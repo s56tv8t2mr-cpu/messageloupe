@@ -82,7 +82,7 @@ export default function PrivacyPage() {
             You don&apos;t have to take our word for it. The full source is available
             on{" "}
             <a
-              href="https://github.com/danielbabbitt/messageloupe"
+              href="https://github.com/s56tv8t2mr-cpu/messageloupe"
               target="_blank"
               rel="noopener noreferrer"
               className="underline-offset-4 hover:underline"

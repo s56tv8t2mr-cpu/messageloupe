@@ -75,7 +75,7 @@ export default function AboutPage() {
             </Link>{" "}
             page. The full source is on{" "}
             <a
-              href="https://github.com/danielbabbitt/messageloupe"
+              href="https://github.com/s56tv8t2mr-cpu/messageloupe"
               target="_blank"
               rel="noopener noreferrer"
               className="underline-offset-4 hover:underline"

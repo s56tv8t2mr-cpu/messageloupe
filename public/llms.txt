@@ -20,4 +20,4 @@ Message Loupe is a static web app for non-technical users who want a sanity chec
 
 ## Source
 
-Open source on GitHub: https://github.com/danielbabbitt/messageloupe
+Open source on GitHub: https://github.com/s56tv8t2mr-cpu/messageloupe

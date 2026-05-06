@@ -36,7 +36,7 @@ export function SiteFooter() {
             Privacy
           </Link>
           <a
-            href="https://github.com/danielbabbitt/messageloupe"
+            href="https://github.com/s56tv8t2mr-cpu/messageloupe"
             target="_blank"
             rel="noopener noreferrer"
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
