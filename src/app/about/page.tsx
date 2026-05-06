@@ -42,6 +42,20 @@ export default function AboutPage() {
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
+            What Message Loupe answers (and what it doesn&apos;t)
+          </h2>
+          <p className="text-muted-foreground">
+            Message Loupe answers one specific question:{" "}
+            <strong className="text-foreground">is the sender who they claim to
+            be?</strong> It does not try to decide whether an email is wanted or
+            relevant. Real cold outreach, real marketing, real newsletters — those
+            can all be &quot;authentic but unwelcome,&quot; and we&apos;ll correctly
+            say they look legitimate, because they are. Whether you want them is your
+            call. Spam filtering is a different problem, handled (imperfectly) by
+            your email provider.
+          </p>
+
+          <h2 className="text-foreground mt-10 text-xl font-semibold">
             What we&apos;re honest about
           </h2>
           <p className="text-muted-foreground">

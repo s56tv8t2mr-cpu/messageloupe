@@ -54,6 +54,15 @@ export function VerdictCard({ verdict, content }: VerdictCardProps) {
         </AlertDescription>
       </Alert>
 
+      {verdict.tier === "safe" ? (
+        <p className="text-muted-foreground -mt-1 px-1 text-xs leading-relaxed">
+          Safe means <strong className="text-foreground/80">authentic</strong>, not
+          welcome. Real cold outreach and marketing pass these checks too — Message
+          Loupe answers &quot;is the sender who they claim to be?&quot;, not &quot;is
+          this email wanted?&quot;
+        </p>
+      ) : null}
+
       {verdict.tier === "caution" && verdict.capped ? (
         <Alert variant="warning" className="bg-warning/[0.06] border-warning/30">
           <PhoneCall aria-hidden />

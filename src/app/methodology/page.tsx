@@ -114,6 +114,17 @@ export default function MethodologyPage() {
           </h2>
           <ul className="text-muted-foreground space-y-1.5">
             <li>
+              <strong className="text-foreground">No spam scoring or
+              sender-reputation blocking.</strong>{" "}
+              We answer &quot;is this email pretending to be something it
+              isn&apos;t?&quot; — not &quot;is this email welcome?&quot; Those are
+              different questions, and your email provider&apos;s spam filter
+              (imperfect though it is) already handles the second one. Cold sales
+              outreach, real newsletters you forgot subscribing to, recruiter
+              cold-emails — those are <em>authentic but unwelcome</em>, and
+              we&apos;ll correctly call them legitimate because they are.
+            </li>
+            <li>
               <strong className="text-foreground">No content classification by
               meaning.</strong>{" "}
               We don&apos;t try to decide whether the email&apos;s <em>content</em> is
