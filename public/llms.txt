@@ -1,0 +1,23 @@
+# Message Loupe
+
+> A free, browser-only second opinion on whether an email really came from where it claims. Drop a saved email or paste raw headers; get a 3-tier verdict (Safe / Caution / Danger) with plain-English reasoning. Nothing leaves the browser.
+
+Message Loupe is a static web app for non-technical users who want a sanity check on a suspicious email. It is not enterprise email security; it is a public-good utility. The analysis engine is an open-source port of an internal triage tool originally built for phishing analysts, with the analyst-grade pivots stripped out and the verdict reduced to plain language.
+
+## Core promise
+
+- **Privacy.** All analysis runs in the user's browser via JavaScript. There is no server-side processing, no logging, no analytics, no cookies. The user's email is never transmitted anywhere.
+- **Honesty.** The verdict is advisory, not a guarantee. The engine can detect impersonation, lookalike domains, authentication failures, and suspicious links, but it is structurally blind to BEC sent from a compromised real account. When the message body mentions money or credentials, the verdict is capped at "Caution — verify by phone."
+- **Forwarded-message guard.** A regular forward replaces the original headers with the forwarder's own. Message Loupe detects this and refuses to issue a verdict, asking the user to provide the original instead.
+
+## Pages
+
+- [Home (the scanner)](https://messageloupe.com/): drop a `.eml` file or paste headers; receive a verdict.
+- [How to save an email](https://messageloupe.com/how-to-save-an-email): step-by-step instructions for Gmail, Outlook web, Apple Mail, Outlook desktop, Thunderbird, iPhone Mail.
+- [Methodology](https://messageloupe.com/methodology): what signals are checked, how the verdict is computed, and the deliberate limits of header-only analysis.
+- [About](https://messageloupe.com/about): why the project exists and how it's built.
+- [Privacy](https://messageloupe.com/privacy): the no-data-collection policy in detail.
+
+## Source
+
+Open source on GitHub: https://github.com/danielbabbitt/messageloupe
