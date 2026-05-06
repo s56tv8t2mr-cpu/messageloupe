@@ -32,6 +32,29 @@ const HIGH_RISK_LINK_FLAGS = new Set([
   "cmTld",
 ])
 
+// Multi-label TLDs that legitimately use a "<label>.<sld>.<cc>" form.
+// Used to extract the registrable domain so subdomains and multi-label
+// country TLDs don't cause false-positive Reply-To-mismatch flags.
+const KNOWN_MULTI_LABEL_SUFFIXES = [
+  "com.au", "com.br", "com.cn", "com.co", "com.hk", "com.mx", "com.my",
+  "com.ng", "com.sg", "com.tr", "com.vn",
+  "co.jp", "co.kr", "co.nz", "co.uk", "co.za",
+  "net.au", "org.au", "org.uk", "ac.uk", "gov.uk",
+]
+
+function registrableDomain(domain: string | null): string | null {
+  if (!domain) return null
+  const lower = domain.toLowerCase()
+  for (const suffix of KNOWN_MULTI_LABEL_SUFFIXES) {
+    if (lower.endsWith(`.${suffix}`)) {
+      const before = lower.slice(0, -suffix.length - 1)
+      const lastLabel = before.split(".").pop()
+      return lastLabel ? `${lastLabel}.${suffix}` : lower
+    }
+  }
+  return lower.split(".").slice(-2).join(".")
+}
+
 const escalate = (current: VerdictTier, target: VerdictTier): VerdictTier => {
   const order: VerdictTier[] = ["safe", "caution", "danger"]
   if (current === "forwarded" || target === "forwarded") return current
@@ -187,7 +210,7 @@ export function computeVerdict({
     tier = escalate(tier, "caution")
   }
 
-  // ---- Reply-To / Return-Path mismatch ----
+  // ---- Return-Path mismatch (sender vs envelope-bounce) ----
   if (
     parser.sendingDomain &&
     parser.returnPathDomain &&
@@ -200,6 +223,25 @@ export function computeVerdict({
       weight: "medium",
     })
     tier = escalate(tier, "caution")
+  }
+
+  // ---- Reply-To routing across distinct registrable domains ----
+  // Phishers commonly send via one infrastructure (e.g., MailerLite-routed
+  // domain A) while routing victim replies to a separate attacker-owned
+  // domain B. Legitimate newsletters keep Reply-To inside the same
+  // registrable as the sender. We carve out actual mailing lists via
+  // List-Id and the very common ESP "noreply / replies@<esp>" pattern.
+  if (parser.sendingDomain && parser.replyToDomain) {
+    const fromReg = registrableDomain(parser.sendingDomain)
+    const replyReg = registrableDomain(parser.replyToDomain)
+    if (fromReg && replyReg && fromReg !== replyReg && !parser.listId) {
+      reasons.push({
+        signal: "replyto-cross-domain",
+        detail: `Replies would go to ${parser.replyToDomain} — a different domain than the visible sender (${parser.sendingDomain}). Phishing campaigns frequently split sending and receiving across multiple attacker-controlled domains; legitimate businesses rarely do this. If both domains share a brand-like name on different TLDs, that's a strong signal of a coordinated impersonation campaign.`,
+        weight: "medium",
+      })
+      tier = escalate(tier, "caution")
+    }
   }
 
   // ---- Link flags ----

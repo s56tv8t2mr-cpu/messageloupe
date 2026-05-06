@@ -99,9 +99,13 @@ export const parseEmlLocally = (text) => {
   const authResults = getHeader('Authentication-Results');
   const fromHeader = getHeader('From') || '';
   const returnPath = getHeader('Return-Path')?.replace(/[<>]/g, '') || null;
+  const replyToHeader = getHeader('Reply-To') || null;
+  const listIdHeader = getHeader('List-Id') || null;
   const sendingEmail = extractEmailAddress(fromHeader) || fromHeader || null;
   const sendingDomain = extractDomain(fromHeader);
   const returnPathDomain = extractDomain(returnPath);
+  const replyTo = replyToHeader ? (extractEmailAddress(replyToHeader) || replyToHeader.replace(/[<>]/g, '').trim()) : null;
+  const replyToDomain = extractDomain(replyToHeader);
   const dkimSignature = getHeader('DKIM-Signature') || '';
   const msgId = getHeader('Message-ID') || '';
   const lowerMsgId = msgId.toLowerCase();
@@ -404,6 +408,9 @@ export const parseEmlLocally = (text) => {
     sendingDomain,
     returnPath,
     returnPathDomain,
+    replyTo,
+    replyToDomain,
+    listId: listIdHeader,
     messageId: msgId,
     bodyText: bodyText || (boundary ? "No message body found (this email may contain only attachments)." : "No message body found."),
     bodyHtml,

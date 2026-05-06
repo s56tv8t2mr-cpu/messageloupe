@@ -43,6 +43,9 @@ export interface ParserResult {
   sendingDomain: string | null
   returnPath: string | null
   returnPathDomain: string | null
+  replyTo: string | null
+  replyToDomain: string | null
+  listId: string | null
   messageId: string
   bodyText: string
   bodyHtml: string

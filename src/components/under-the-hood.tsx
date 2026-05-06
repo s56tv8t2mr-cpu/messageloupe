@@ -87,6 +87,12 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
             fallback="(none — only an address)"
           />
           <Field label="Actual sender" value={parser.sendingEmail} mono />
+          <Field
+            label="Reply-To"
+            value={parser.replyTo}
+            fallback="(none — replies go to sender)"
+            mono
+          />
           <Field label="Return-Path" value={parser.returnPath} mono />
           <Field label="Sending domain" value={parser.sendingDomain} mono />
           <Field label="Sent via" value={parser.serviceIdentified ? parser.sendingService : null} fallback="No clear email service identified" />
