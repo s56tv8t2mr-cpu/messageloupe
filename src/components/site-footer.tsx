@@ -10,7 +10,7 @@ export function SiteFooter() {
             href="/"
             className="text-foreground hover:text-foreground/80 flex items-center gap-2 font-medium tracking-tight transition-colors"
           >
-            <ScanSearch className="size-5" aria-hidden />
+            <ScanSearch className="text-primary size-5" aria-hidden />
             <span>Message Loupe</span>
           </Link>
           <p className="text-muted-foreground flex max-w-sm items-start gap-2 text-sm leading-relaxed">

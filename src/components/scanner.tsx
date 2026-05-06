@@ -166,7 +166,7 @@ export function Scanner() {
       ) : null}
 
       <p className="text-muted-foreground flex items-start gap-2 text-xs leading-relaxed">
-        <ScanSearch className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+        <ScanSearch className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
         Everything happens in your browser. Your email is not uploaded, logged, or
         analyzed by us — we never see it.
       </p>

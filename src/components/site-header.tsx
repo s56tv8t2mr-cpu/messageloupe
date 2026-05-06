@@ -12,7 +12,7 @@ export function SiteHeader() {
           className="text-foreground hover:text-foreground/80 flex items-center gap-2 font-medium tracking-tight transition-colors"
           aria-label="Message Loupe — home"
         >
-          <ScanSearch className="size-5" aria-hidden />
+          <ScanSearch className="text-primary size-5" aria-hidden />
           <span className="text-base">Message Loupe</span>
         </Link>
         <nav className="flex items-center gap-1">
