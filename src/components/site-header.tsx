@@ -1,15 +1,34 @@
+"use client"
+
+import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ScanSearch, Code2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
 export function SiteHeader() {
+  const pathname = usePathname()
+
+  // When the user clicks the brand mark while already on the home page,
+  // reset the scanner back to its idle state and scroll to the top — this
+  // matches the natural "click the logo to start over" expectation.
+  // On any other page, it behaves as a normal home link.
+  const handleBrandClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === "/") {
+      e.preventDefault()
+      window.dispatchEvent(new Event("messageloupe:reset"))
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+  }
+
   return (
     <header className="border-border/60 bg-background/80 sticky top-0 z-30 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4 md:px-6">
         <Link
           href="/"
-          className="text-foreground hover:text-foreground/80 flex items-center gap-2 font-medium tracking-tight transition-colors"
+          onClick={handleBrandClick}
+          className="text-foreground hover:text-foreground/80 flex items-center gap-2 font-semibold tracking-tight transition-colors"
           aria-label="Message Loupe — home"
         >
           <ScanSearch className="text-primary size-5" aria-hidden />

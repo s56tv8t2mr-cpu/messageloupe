@@ -22,8 +22,8 @@ export function SaveEmailHelpSheet({
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5">
-          <HelpCircle className="size-3.5" aria-hidden />
+        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground gap-1.5 text-sm">
+          <HelpCircle className="size-4" aria-hidden />
           {triggerLabel}
         </Button>
       </SheetTrigger>

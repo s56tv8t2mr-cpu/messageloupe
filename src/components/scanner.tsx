@@ -54,12 +54,20 @@ export function Scanner() {
     toast.error("Couldn't load that file", { description: message })
   }, [])
 
-  const reset = () => {
+  const reset = React.useCallback(() => {
     setStatus("idle")
     setAnalysis(null)
     setFilename(null)
     setError(null)
-  }
+  }, [])
+
+  // The site header dispatches "messageloupe:reset" when the user clicks the
+  // brand mark while on the home page. Treat it as the same "Scan another"
+  // action so clicking the logo always returns to a clean ready state.
+  React.useEffect(() => {
+    window.addEventListener("messageloupe:reset", reset)
+    return () => window.removeEventListener("messageloupe:reset", reset)
+  }, [reset])
 
   if (status === "result" && analysis) {
     return (
@@ -165,8 +173,8 @@ export function Scanner() {
         </Alert>
       ) : null}
 
-      <p className="text-muted-foreground flex items-start gap-2 text-xs leading-relaxed">
-        <ScanSearch className="text-primary mt-0.5 size-3.5 shrink-0" aria-hidden />
+      <p className="text-muted-foreground flex items-start gap-2 text-sm leading-relaxed">
+        <ScanSearch className="text-primary mt-0.5 size-4 shrink-0" aria-hidden />
         Everything happens in your browser. Your email is not uploaded, logged, or
         analyzed by us — we never see it.
       </p>
@@ -191,13 +199,13 @@ function ModeButton({
       onClick={onClick}
       data-state={active ? "active" : "inactive"}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium transition-colors",
+        "inline-flex items-center gap-1.5 rounded px-3.5 py-1.5 text-sm font-medium transition-colors",
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",
       )}
     >
-      <span className="[&>svg]:size-3.5" aria-hidden>
+      <span className="[&>svg]:size-4" aria-hidden>
         {icon}
       </span>
       {children}

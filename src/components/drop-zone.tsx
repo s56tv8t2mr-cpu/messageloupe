@@ -140,13 +140,13 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
           <Icon className="size-6" aria-hidden />
         </motion.div>
 
-        <div className="flex flex-col items-center gap-1.5">
-          <p className="text-foreground text-base font-semibold tracking-tight">
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-foreground text-lg font-semibold tracking-tight">
             {dragActive ? "Drop it here" : "Drop a saved email here"}
           </p>
-          <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
-            <span className="font-mono text-xs">.eml</span> or{" "}
-            <span className="font-mono text-xs">.txt</span> with raw headers. Up to
+          <p className="text-muted-foreground max-w-md text-base leading-relaxed">
+            <span className="font-mono text-sm">.eml</span> or{" "}
+            <span className="font-mono text-sm">.txt</span> with raw headers. Up to
             25 MB. Nothing leaves your browser.
           </p>
         </div>
@@ -161,7 +161,6 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
         />
         <Button
           variant="outline"
-          size="sm"
           onClick={(e) => {
             e.stopPropagation()
             inputRef.current?.click()
