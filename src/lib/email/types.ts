@@ -107,6 +107,14 @@ export interface ContentClassification {
   hasUrgency: boolean
 }
 
+export interface SenderTrustSignals {
+  roleImpersonation: boolean
+  brandImpersonation: { brand: string } | null
+  domainHasTyposquatShape: boolean
+  fromPublicWebmail: boolean
+  hasDisplayName: boolean
+}
+
 export interface ForwardDetection {
   isForwarded: boolean
   reason?: "subject-prefix" | "body-separator" | "from-self"
@@ -126,5 +134,6 @@ export interface Analysis {
   links: AnalyzedLink[]
   content: ContentClassification
   forward: ForwardDetection
+  trust: SenderTrustSignals
   verdict: Verdict
 }

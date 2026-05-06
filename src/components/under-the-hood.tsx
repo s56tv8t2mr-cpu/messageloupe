@@ -76,9 +76,18 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
           </span>
         </AccordionTrigger>
         <AccordionContent className="flex flex-col gap-3 pt-2 text-sm">
-          <Field label="From" value={parser.sendingEmail} muted={parser.sendingName} />
-          <Field label="Return-Path" value={parser.returnPath} />
-          <Field label="Sending domain" value={parser.sendingDomain} />
+          <Field
+            label="Display name"
+            value={
+              parser.sendingName && parser.sendingName !== parser.sendingEmail && parser.sendingName.toLowerCase() !== "unknown"
+                ? parser.sendingName
+                : null
+            }
+            fallback="(none — only an address)"
+          />
+          <Field label="Actual sender" value={parser.sendingEmail} mono />
+          <Field label="Return-Path" value={parser.returnPath} mono />
+          <Field label="Sending domain" value={parser.sendingDomain} mono />
           <Field label="Sent via" value={parser.serviceIdentified ? parser.sendingService : null} fallback="No clear email service identified" />
         </AccordionContent>
       </AccordionItem>

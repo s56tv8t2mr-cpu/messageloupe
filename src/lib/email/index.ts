@@ -9,6 +9,7 @@ import { extractLinks, FLAG_LABELS as RAW_FLAG_LABELS } from "./linkAnalyzer.js"
 
 import { classifyContent } from "./classify-content"
 import { detectForward } from "./detect-forward"
+import { evaluateSenderTrust } from "./sender-trust"
 import { computeVerdict } from "./verdict"
 
 import type {
@@ -40,9 +41,10 @@ export function analyze(source: string): Analysis {
   const links = extractLinks(parser) as AnalyzedLink[]
   const content = classifyContent(parser.bodyText || "")
   const forward = detectForward(parser)
-  const verdict = computeVerdict({ parser, links, content, forward })
+  const trust = evaluateSenderTrust(parser)
+  const verdict = computeVerdict({ parser, links, content, forward, trust })
 
-  return { parser, links, content, forward, verdict }
+  return { parser, links, content, forward, trust, verdict }
 }
 
 export type {
@@ -56,4 +58,5 @@ export type {
   VerdictReason,
   ContentClassification,
   ForwardDetection,
+  SenderTrustSignals,
 } from "./types"

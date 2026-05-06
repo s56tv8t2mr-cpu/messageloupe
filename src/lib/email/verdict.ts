@@ -17,6 +17,7 @@ import type {
   ContentClassification,
   ForwardDetection,
   ParserResult,
+  SenderTrustSignals,
   Verdict,
   VerdictReason,
   VerdictTier,
@@ -41,6 +42,7 @@ interface VerdictInputs {
   links: AnalyzedLink[]
   content: ContentClassification
   forward: ForwardDetection
+  trust: SenderTrustSignals
 }
 
 export function computeVerdict({
@@ -48,6 +50,7 @@ export function computeVerdict({
   links,
   content,
   forward,
+  trust,
 }: VerdictInputs): Verdict {
   if (forward.isForwarded) {
     return {
@@ -129,6 +132,54 @@ export function computeVerdict({
       signal: "no-auth",
       detail: "No clear authentication results. The sender domain doesn't enforce DMARC, and SPF/DKIM didn't return a pass.",
       weight: "low",
+    })
+    tier = escalate(tier, "caution")
+  }
+
+  // ---- Sender trust: display-name impersonation + sketchy domain ----
+  // These catch the case where a message authenticates correctly *for its
+  // own domain* but the visible identity (display name) doesn't match what
+  // any legitimate sender of that identity would use.
+
+  if (trust.brandImpersonation) {
+    reasons.push({
+      signal: "brand-impersonation",
+      detail: `The display name claims to be ${trust.brandImpersonation.brand}, but the email comes from ${parser.sendingDomain ?? "an unrelated domain"} — not a domain ${trust.brandImpersonation.brand} actually sends from.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  if (trust.roleImpersonation) {
+    if (trust.domainHasTyposquatShape) {
+      reasons.push({
+        signal: "role-impersonation-sketchy-domain",
+        detail: `The display name claims a department or role (“${parser.sendingName}”), but the actual email comes from ${parser.sendingDomain ?? "an unusual domain"} — a domain shape (digits mixed with letters, leading numbers, or punycode) commonly used by attackers, and unlikely to be any real employer.`,
+        weight: "high",
+      })
+      tier = escalate(tier, "danger")
+    } else if (trust.fromPublicWebmail) {
+      reasons.push({
+        signal: "role-impersonation-webmail",
+        detail: `The display name claims a department or role (“${parser.sendingName}”), but the actual email comes from a personal/public email account at ${parser.sendingDomain}. Real employers don't send HR/IT/Accounting emails from gmail or outlook.`,
+        weight: "high",
+      })
+      tier = escalate(tier, "danger")
+    } else {
+      reasons.push({
+        signal: "role-impersonation",
+        detail: `The display name says “${parser.sendingName}” but the actual email is from ${parser.sendingDomain}. If this is supposed to be from your own employer's HR/IT/Accounting, double-check the domain matches your company's real domain.`,
+        weight: "medium",
+      })
+      tier = escalate(tier, "caution")
+    }
+  } else if (trust.domainHasTyposquatShape && !trust.brandImpersonation) {
+    // Typosquat shape on its own is a soft signal — many legitimate small
+    // businesses have hyphenated or numeric labels. Caution, not danger.
+    reasons.push({
+      signal: "domain-typosquat-shape",
+      detail: `The sending domain (${parser.sendingDomain}) has a shape associated with throwaway or typosquat domains — letters mixed with digits, a leading number, or punycode. Legitimate businesses usually have cleaner domain names.`,
+      weight: "medium",
     })
     tier = escalate(tier, "caution")
   }
