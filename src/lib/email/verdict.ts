@@ -24,6 +24,7 @@ import type {
   VerdictTier,
 } from "./types"
 import { shouldCapVerdict } from "./classify-content"
+import { registrableDomain } from "./domain"
 
 const HIGH_RISK_LINK_FLAGS = new Set([
   "mismatch",
@@ -31,29 +32,6 @@ const HIGH_RISK_LINK_FLAGS = new Set([
   "punycode",
   "cmTld",
 ])
-
-// Multi-label TLDs that legitimately use a "<label>.<sld>.<cc>" form.
-// Used to extract the registrable domain so subdomains and multi-label
-// country TLDs don't cause false-positive Reply-To-mismatch flags.
-const KNOWN_MULTI_LABEL_SUFFIXES = [
-  "com.au", "com.br", "com.cn", "com.co", "com.hk", "com.mx", "com.my",
-  "com.ng", "com.sg", "com.tr", "com.vn",
-  "co.jp", "co.kr", "co.nz", "co.uk", "co.za",
-  "net.au", "org.au", "org.uk", "ac.uk", "gov.uk",
-]
-
-function registrableDomain(domain: string | null): string | null {
-  if (!domain) return null
-  const lower = domain.toLowerCase()
-  for (const suffix of KNOWN_MULTI_LABEL_SUFFIXES) {
-    if (lower.endsWith(`.${suffix}`)) {
-      const before = lower.slice(0, -suffix.length - 1)
-      const lastLabel = before.split(".").pop()
-      return lastLabel ? `${lastLabel}.${suffix}` : lower
-    }
-  }
-  return lower.split(".").slice(-2).join(".")
-}
 
 const escalate = (current: VerdictTier, target: VerdictTier): VerdictTier => {
   const order: VerdictTier[] = ["safe", "caution", "danger"]

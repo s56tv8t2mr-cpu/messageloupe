@@ -108,7 +108,6 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
         disabled && "pointer-events-none opacity-60",
       )}
     >
-      {/* Soft radial backdrop to lift the empty state */}
       <div
         aria-hidden
         className={cn(

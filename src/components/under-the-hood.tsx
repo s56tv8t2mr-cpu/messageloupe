@@ -29,7 +29,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { FLAG_LABELS, type Analysis, type LinkFlag } from "@/lib/email"
+import {
+  FLAG_LABELS,
+  authResultStatus,
+  type Analysis,
+  type LinkFlag,
+} from "@/lib/email"
 
 const FLAG_VARIANT: Record<LinkFlag, "destructive" | "warning" | "outline"> = {
   mismatch: "destructive",
@@ -281,30 +286,27 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
   )
 }
 
+const AUTH_BADGE_META: Record<
+  ReturnType<typeof authResultStatus>,
+  { Icon: typeof CircleHelp; variant: "success" | "warning" | "destructive" | "outline" }
+> = {
+  ok: { Icon: CircleCheck, variant: "success" },
+  fail: { Icon: CircleX, variant: "destructive" },
+  warn: { Icon: CircleHelp, variant: "warning" },
+  unknown: { Icon: CircleHelp, variant: "outline" },
+}
+
 function AuthBadge({ label, result }: { label: string; result: string | null }) {
   const value = result ?? "unknown"
-  const lower = value.toLowerCase()
-
-  let Icon = CircleHelp
-  let variant: "success" | "warning" | "destructive" | "outline" = "outline"
-
-  if (lower === "pass") {
-    Icon = CircleCheck
-    variant = "success"
-  } else if (lower === "fail" || lower === "permerror") {
-    Icon = CircleX
-    variant = "destructive"
-  } else if (lower === "softfail" || lower === "neutral" || lower === "temperror") {
-    Icon = CircleHelp
-    variant = "warning"
-  } else if (lower === "present") {
-    Icon = Info
-    variant = "outline"
-  }
+  // "present" is an engine-only signal meaning a DKIM-Signature header
+  // exists but the verifier never reported a result — neutral, not warning.
+  const status = value.toLowerCase() === "present" ? "unknown" : authResultStatus(value)
+  const { Icon, variant } = AUTH_BADGE_META[status]
+  const DisplayIcon = value.toLowerCase() === "present" ? Info : Icon
 
   return (
     <Badge variant={variant} className="gap-1">
-      <Icon aria-hidden />
+      <DisplayIcon aria-hidden />
       <span className="font-mono">{label}</span>
       <span className="text-muted-foreground/80 font-mono lowercase">: {value}</span>
     </Badge>

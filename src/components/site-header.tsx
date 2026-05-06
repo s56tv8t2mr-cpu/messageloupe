@@ -10,10 +10,6 @@ import { Button } from "@/components/ui/button"
 export function SiteHeader() {
   const pathname = usePathname()
 
-  // When the user clicks the brand mark while already on the home page,
-  // reset the scanner back to its idle state and scroll to the top — this
-  // matches the natural "click the logo to start over" expectation.
-  // On any other page, it behaves as a normal home link.
   const handleBrandClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (pathname === "/") {
       e.preventDefault()

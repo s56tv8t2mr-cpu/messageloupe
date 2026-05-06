@@ -31,8 +31,7 @@ export function Scanner() {
   const runAnalyze = React.useCallback((source: string, sourceName: string | null) => {
     setError(null)
     setStatus("analyzing")
-    // Defer to next tick so the UI can render the spinner before the regex
-    // and parser walks block the main thread.
+    // Yield once so the spinner paints before the parser walks block the thread.
     setTimeout(() => {
       try {
         const result = analyze(source)
@@ -61,9 +60,8 @@ export function Scanner() {
     setError(null)
   }, [])
 
-  // The site header dispatches "messageloupe:reset" when the user clicks the
-  // brand mark while on the home page. Treat it as the same "Scan another"
-  // action so clicking the logo always returns to a clean ready state.
+  // Global event lets the header trigger reset without lifting state into
+  // a context that nothing else needs.
   React.useEffect(() => {
     window.addEventListener("messageloupe:reset", reset)
     return () => window.removeEventListener("messageloupe:reset", reset)
@@ -85,11 +83,7 @@ export function Scanner() {
           </Button>
         </div>
 
-        <VerdictCard
-          verdict={analysis.verdict}
-          content={analysis.content}
-          analysis={analysis}
-        />
+        <VerdictCard analysis={analysis} />
 
         <div className="border-border/60 mt-4 rounded-xl border p-4 sm:p-5">
           <p className="text-muted-foreground mb-3 text-[13px] font-medium tracking-wide uppercase">

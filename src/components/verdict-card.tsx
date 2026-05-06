@@ -20,14 +20,16 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import type {
-  Verdict,
-  VerdictTier,
-  ContentClassification,
-  Analysis,
+import {
+  authResultStatus,
+  sameRegistrable,
+  type Analysis,
+  type AuthStatus,
+  type LinkFlag,
+  type VerdictTier,
 } from "@/lib/email"
 
-type ChipStatus = "ok" | "warn" | "fail" | "unknown"
+type ChipStatus = AuthStatus
 
 const TIER_META: Record<
   VerdictTier,
@@ -79,17 +81,29 @@ const CHIP_META: Record<
   unknown: { Icon: CircleAlert, cls: "text-muted-foreground" },
 }
 
+// Chip presentation buckets a subset of high-risk flags as "fail" and
+// medium-risk as "warn". This is intentionally less aggressive than the
+// verdict engine's HIGH_RISK_LINK_FLAGS — for the chip we want a glance-
+// readable status, not the full escalation rule.
+const FAIL_LINK_FLAGS: readonly LinkFlag[] = ["mismatch", "ipHost", "punycode"]
+const WARN_LINK_FLAGS: readonly LinkFlag[] = ["cmTld", "shortener"]
+
+const REASON_DOT_COLOR = {
+  high: "text-destructive",
+  medium: "text-warning",
+  low: "text-muted-foreground",
+} as const
+
 interface VerdictCardProps {
-  verdict: Verdict
-  content: ContentClassification
   analysis: Analysis
 }
 
-export function VerdictCard({ verdict, content, analysis }: VerdictCardProps) {
+export function VerdictCard({ analysis }: VerdictCardProps) {
+  const { verdict, content } = analysis
   const meta = TIER_META[verdict.tier]
   const TierIcon = meta.Icon
 
-  const chips = computeChips(analysis)
+  const chips = React.useMemo(() => computeChips(analysis), [analysis])
 
   return (
     <motion.div
@@ -209,13 +223,10 @@ export function VerdictCard({ verdict, content, analysis }: VerdictCardProps) {
               <li key={r.signal} className="flex gap-2.5 leading-relaxed">
                 <span
                   aria-hidden
-                  className={
-                    r.weight === "high"
-                      ? "text-destructive mt-[7px] size-2 shrink-0 rounded-full bg-current"
-                      : r.weight === "medium"
-                        ? "text-warning mt-[7px] size-2 shrink-0 rounded-full bg-current"
-                        : "text-muted-foreground mt-[7px] size-2 shrink-0 rounded-full bg-current"
-                  }
+                  className={cn(
+                    "mt-[7px] size-2 shrink-0 rounded-full bg-current",
+                    REASON_DOT_COLOR[r.weight],
+                  )}
                 />
                 <span>{r.detail}</span>
               </li>
@@ -272,151 +283,145 @@ interface ChipState {
 }
 
 function computeChips(a: Analysis): ChipState {
-  const { parser, links, trust } = a
-
-  // Authentication: worst of SPF / DKIM / DMARC
-  const authResults = [parser.spfResult, parser.dkimResult, parser.dmarcResult]
-  const authStatuses = authResults.map(authToStatus)
-  const authStatus = worst(authStatuses)
-  const authDetail =
-    authStatus === "ok"
-      ? "SPF, DKIM, DMARC pass"
-      : authStatus === "fail"
-        ? "Authentication failed"
-        : authStatus === "warn"
-          ? "Partial / soft failures"
-          : "No auth headers"
-
-  // Sender: spoofing, role/brand impersonation, return-path or reply-to drift
-  let senderStatus: ChipStatus = "ok"
-  let senderDetail = "Aligned"
-  if (parser.spoofingLikely) {
-    senderStatus = "fail"
-    senderDetail = "Looks spoofed"
-  } else if (trust.brandImpersonation) {
-    senderStatus = "fail"
-    senderDetail = `Impersonates ${trust.brandImpersonation.brand}`
-  } else if (trust.roleImpersonation && trust.domainHasTyposquatShape) {
-    senderStatus = "fail"
-    senderDetail = "Role + lookalike domain"
-  } else if (trust.roleImpersonation && trust.fromPublicWebmail) {
-    senderStatus = "fail"
-    senderDetail = "Role from webmail"
-  } else if (trust.roleImpersonation) {
-    senderStatus = "warn"
-    senderDetail = "Role display name"
-  } else if (
-    parser.replyToDomain &&
-    parser.sendingDomain &&
-    !sameRegistrable(parser.replyToDomain, parser.sendingDomain) &&
-    !parser.listId
-  ) {
-    senderStatus = "warn"
-    senderDetail = "Reply-To differs"
-  } else if (
-    parser.returnPathDomain &&
-    parser.sendingDomain &&
-    !sameRegistrable(parser.returnPathDomain, parser.sendingDomain) &&
-    !parser.serviceIdentified
-  ) {
-    senderStatus = "warn"
-    senderDetail = "Return-Path differs"
-  } else if (parser.serviceIdentified) {
-    senderDetail = `Sent via ${parser.sendingService}`
-  }
-
-  // Routing: source IP found?
-  let routingStatus: ChipStatus = "ok"
-  let routingDetail = parser.sourceHostname || parser.sourceIp || "Identified"
-  if (!parser.sourceIp) {
-    routingStatus = "warn"
-    routingDetail = "No source IP"
-  } else if (parser.sourceHostname) {
-    routingDetail = parser.sourceHostname
-  }
-
-  // Links: worst flag across all links
-  let linksStatus: ChipStatus = "ok"
-  let linksDetail = links.length === 0 ? "No links" : `${links.length} clean`
-  if (links.length > 0) {
-    let hasHigh = false
-    let hasMed = false
-    for (const l of links) {
-      for (const f of l.flags) {
-        if (f === "mismatch" || f === "ipHost" || f === "punycode") hasHigh = true
-        else if (f === "cmTld" || f === "shortener") hasMed = true
-      }
-    }
-    if (hasHigh) {
-      linksStatus = "fail"
-      linksDetail = "Suspicious links"
-    } else if (hasMed) {
-      linksStatus = "warn"
-      linksDetail = "Watch links"
-    } else {
-      linksDetail = `${links.length} link${links.length === 1 ? "" : "s"}, clean`
-    }
-  } else if (!parser.bodyText) {
-    linksStatus = "unknown"
-    linksDetail = "Headers only"
-  }
+  const auth = computeAuthChip(a)
+  const sender = computeSenderChip(a)
+  const routing = computeRoutingChip(a)
+  const links = computeLinksChip(a)
 
   return {
-    auth: authStatus,
-    authDetail,
-    sender: senderStatus,
-    senderDetail,
-    routing: routingStatus,
-    routingDetail,
-    links: linksStatus,
-    linksDetail,
+    auth: auth.status,
+    authDetail: auth.detail,
+    sender: sender.status,
+    senderDetail: sender.detail,
+    routing: routing.status,
+    routingDetail: routing.detail,
+    links: links.status,
+    linksDetail: links.detail,
   }
 }
 
-function authToStatus(v: string | null): ChipStatus {
-  if (!v) return "unknown"
-  const lower = v.toLowerCase()
-  if (lower === "pass") return "ok"
-  if (lower === "fail" || lower === "permerror") return "fail"
-  if (
-    lower === "softfail" ||
-    lower === "neutral" ||
-    lower === "temperror" ||
-    lower === "none"
-  )
-    return "warn"
-  return "unknown"
+interface ChipResult {
+  status: ChipStatus
+  detail: string
 }
 
-function worst(s: ChipStatus[]): ChipStatus {
+function computeAuthChip({ parser }: Analysis): ChipResult {
+  const statuses = [parser.spfResult, parser.dkimResult, parser.dmarcResult].map(
+    authResultStatus,
+  )
+  const status = worstStatus(statuses)
+  const detail =
+    status === "ok"
+      ? "SPF, DKIM, DMARC pass"
+      : status === "fail"
+        ? "Authentication failed"
+        : status === "warn"
+          ? "Partial / soft failures"
+          : "No auth headers"
+  return { status, detail }
+}
+
+// Sender-chip rules in priority order — first match wins. Reads as data,
+// not branching control flow, so adding a new rule is one entry.
+type SenderRule = {
+  match: (a: Analysis) => ChipResult | null
+}
+
+const SENDER_RULES: SenderRule[] = [
+  {
+    match: ({ parser }) =>
+      parser.spoofingLikely ? { status: "fail", detail: "Looks spoofed" } : null,
+  },
+  {
+    match: ({ trust }) =>
+      trust.brandImpersonation
+        ? { status: "fail", detail: `Impersonates ${trust.brandImpersonation.brand}` }
+        : null,
+  },
+  {
+    match: ({ trust }) =>
+      trust.roleImpersonation && trust.domainHasTyposquatShape
+        ? { status: "fail", detail: "Role + lookalike domain" }
+        : null,
+  },
+  {
+    match: ({ trust }) =>
+      trust.roleImpersonation && trust.fromPublicWebmail
+        ? { status: "fail", detail: "Role from webmail" }
+        : null,
+  },
+  {
+    match: ({ trust }) =>
+      trust.roleImpersonation
+        ? { status: "warn", detail: "Role display name" }
+        : null,
+  },
+  {
+    match: ({ parser }) => {
+      const cross =
+        parser.replyToDomain &&
+        parser.sendingDomain &&
+        !sameRegistrable(parser.replyToDomain, parser.sendingDomain) &&
+        !parser.listId
+      return cross ? { status: "warn", detail: "Reply-To differs" } : null
+    },
+  },
+  {
+    match: ({ parser }) => {
+      const cross =
+        parser.returnPathDomain &&
+        parser.sendingDomain &&
+        !sameRegistrable(parser.returnPathDomain, parser.sendingDomain) &&
+        !parser.serviceIdentified
+      return cross ? { status: "warn", detail: "Return-Path differs" } : null
+    },
+  },
+]
+
+function computeSenderChip(a: Analysis): ChipResult {
+  for (const rule of SENDER_RULES) {
+    const hit = rule.match(a)
+    if (hit) return hit
+  }
+  if (a.parser.serviceIdentified) {
+    return { status: "ok", detail: `Sent via ${a.parser.sendingService}` }
+  }
+  return { status: "ok", detail: "Aligned" }
+}
+
+function computeRoutingChip({ parser }: Analysis): ChipResult {
+  if (!parser.sourceIp) {
+    return { status: "warn", detail: "No source IP" }
+  }
+  return {
+    status: "ok",
+    detail: parser.sourceHostname || parser.sourceIp,
+  }
+}
+
+function computeLinksChip({ links, parser }: Analysis): ChipResult {
+  if (links.length === 0) {
+    if (!parser.bodyText) return { status: "unknown", detail: "Headers only" }
+    return { status: "ok", detail: "No links" }
+  }
+
+  let hasFail = false
+  let hasWarn = false
+  for (const l of links) {
+    for (const f of l.flags) {
+      if (FAIL_LINK_FLAGS.includes(f)) hasFail = true
+      else if (WARN_LINK_FLAGS.includes(f)) hasWarn = true
+    }
+  }
+
+  if (hasFail) return { status: "fail", detail: "Suspicious links" }
+  if (hasWarn) return { status: "warn", detail: "Watch links" }
+  return { status: "ok", detail: `${links.length} link${links.length === 1 ? "" : "s"}, clean` }
+}
+
+function worstStatus(s: ChipStatus[]): ChipStatus {
   if (s.includes("fail")) return "fail"
   if (s.includes("warn")) return "warn"
   if (s.includes("unknown")) return "warn"
   return "ok"
-}
-
-const MULTI_LABEL_SUFFIXES = new Set([
-  "co.uk",
-  "com.au",
-  "com.co",
-  "co.nz",
-  "co.za",
-  "co.jp",
-  "com.br",
-  "com.mx",
-  "com.sg",
-])
-
-function sameRegistrable(a: string, b: string): boolean {
-  return registrable(a) === registrable(b)
-}
-
-function registrable(domain: string): string {
-  const d = domain.toLowerCase().replace(/\.$/, "")
-  const parts = d.split(".")
-  if (parts.length <= 2) return d
-  const last2 = parts.slice(-2).join(".")
-  const last3 = parts.slice(-3).join(".")
-  if (MULTI_LABEL_SUFFIXES.has(last2)) return last3
-  return last2
 }
