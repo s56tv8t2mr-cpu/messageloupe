@@ -1,16 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { FileUp, FileText } from "lucide-react"
+import { motion } from "motion/react"
+import { FileUp, FileText, Mail } from "lucide-react"
 
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -77,6 +70,8 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
     e.target.value = ""
   }
 
+  const Icon = dragActive ? FileText : FileUp
+
   return (
     <div
       data-drag-active={dragActive || undefined}
@@ -93,47 +88,91 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
         setDragActive(false)
       }}
       onDrop={onDrop}
+      onClick={() => !disabled && inputRef.current?.click()}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      onKeyDown={(e) => {
+        if (disabled) return
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          inputRef.current?.click()
+        }
+      }}
+      aria-label="Drop a saved email here, or click to browse"
       className={cn(
-        "rounded-xl border border-dashed transition-all",
+        "group relative cursor-pointer overflow-hidden rounded-xl border border-dashed outline-none transition-all duration-200",
+        "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         dragActive
-          ? "border-primary/60 bg-primary/[0.04] scale-[1.005]"
-          : "border-border/60 bg-card/40",
+          ? "border-primary/70 bg-primary/[0.05] scale-[1.005]"
+          : "border-border hover:border-primary/50 bg-card hover:bg-primary/[0.02]",
         disabled && "pointer-events-none opacity-60",
       )}
     >
-      <Empty className="border-0 bg-transparent py-12">
-        <EmptyHeader>
-          <EmptyMedia variant="icon" className="bg-muted size-12 [&_svg:not([class*='size-'])]:size-5">
-            {dragActive ? <FileText aria-hidden /> : <FileUp aria-hidden />}
-          </EmptyMedia>
-          <EmptyTitle className="text-base">
+      {/* Soft radial backdrop to lift the empty state */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300",
+          dragActive
+            ? "opacity-100"
+            : "group-hover:opacity-60",
+        )}
+        style={{
+          background:
+            "radial-gradient(ellipse at center, color-mix(in oklch, var(--primary) 12%, transparent), transparent 70%)",
+        }}
+      />
+
+      <div className="relative flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+        <motion.div
+          aria-hidden
+          animate={
+            dragActive ? { scale: 1.06 } : { scale: 1 }
+          }
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+          className={cn(
+            "flex size-14 items-center justify-center rounded-full transition-colors duration-200",
+            dragActive
+              ? "bg-primary/15 text-primary ring-primary/25 ring-4"
+              : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary",
+          )}
+        >
+          <Icon className="size-6" aria-hidden />
+        </motion.div>
+
+        <div className="flex flex-col items-center gap-1.5">
+          <p className="text-foreground text-base font-semibold tracking-tight">
             {dragActive ? "Drop it here" : "Drop a saved email here"}
-          </EmptyTitle>
-          <EmptyDescription>
+          </p>
+          <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
             <span className="font-mono text-xs">.eml</span> or{" "}
             <span className="font-mono text-xs">.txt</span> with raw headers. Up to
             25 MB. Nothing leaves your browser.
-          </EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".eml,.txt,.mbox,message/rfc822,text/plain"
-            className="hidden"
-            onChange={onChange}
-            disabled={disabled}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => inputRef.current?.click()}
-            disabled={disabled}
-          >
-            Browse files
-          </Button>
-        </EmptyContent>
-      </Empty>
+          </p>
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".eml,.txt,.mbox,message/rfc822,text/plain"
+          className="hidden"
+          onChange={onChange}
+          disabled={disabled}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation()
+            inputRef.current?.click()
+          }}
+          disabled={disabled}
+          className="mt-1"
+        >
+          <Mail data-icon="inline-start" />
+          Browse files
+        </Button>
+      </div>
     </div>
   )
 }
