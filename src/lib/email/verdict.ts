@@ -306,19 +306,19 @@ export function computeVerdict({
       weight: "high",
     })
     tier = escalate(tier, "danger")
-  } else if (content.hasJobOffer && tier === "safe") {
+  } else if (content.hasJobOffer) {
     reasons.push({
       signal: "job-offer-content",
       detail:
-        "This email reads like a job offer or onboarding message. If you didn't apply for this role through a recruiter or company website, treat it as a scam. Verify any offer through the company's official careers page before acting.",
+        "This email reads like a job offer, interview invitation, or onboarding message. If you didn't apply for this role through a recruiter or the company's official site, treat it as a scam. Verify any offer through the company's official careers page before acting.",
       weight: "medium",
     })
     tier = escalate(tier, "caution")
-  } else if (content.hasDocumentRequest && tier === "safe") {
+  } else if (content.hasDocumentRequest) {
     reasons.push({
       signal: "document-request-content",
       detail:
-        "This email asks for copies of personal documents (passport, ID, certificates, photos). Legitimate organizations use secure upload portals or in-person verification — never email attachments. Verify the request through a channel you already trust.",
+        "This email asks for copies of personal documents (passport, ID, certificates, photos). Legitimate organizations use secure upload portals or in-person verification — they don't ask people to email scans. Verify the request through a channel you already trust.",
       weight: "medium",
     })
     tier = escalate(tier, "caution")
