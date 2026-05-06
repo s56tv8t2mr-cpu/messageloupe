@@ -84,7 +84,7 @@ export function Scanner() {
         />
 
         <div className="border-border/60 mt-4 rounded-xl border p-4 sm:p-5">
-          <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
+          <p className="text-muted-foreground mb-3 text-[13px] font-medium tracking-wide uppercase">
             Under the hood
           </p>
           <UnderTheHood analysis={analysis} />

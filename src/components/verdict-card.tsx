@@ -108,15 +108,15 @@ export function VerdictCard({ verdict, content, analysis }: VerdictCardProps) {
         <div className="flex items-center justify-between gap-3">
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide uppercase ring-1 ring-inset",
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold tracking-wide uppercase ring-1 ring-inset",
               meta.pill,
             )}
           >
-            <TierIcon className="size-3.5" aria-hidden />
+            <TierIcon className="size-4" aria-hidden />
             {meta.label}
           </span>
           {verdict.capped ? (
-            <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
+            <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               Capped — verify by phone
             </span>
           ) : null}
@@ -124,12 +124,12 @@ export function VerdictCard({ verdict, content, analysis }: VerdictCardProps) {
 
         <h2
           id="verdict-headline"
-          className="text-foreground mt-3 text-xl font-semibold tracking-tight sm:text-2xl"
+          className="text-foreground mt-3 text-2xl font-semibold tracking-tight sm:text-3xl"
         >
           {verdict.headline}
         </h2>
 
-        <p className="text-foreground/75 mt-2 text-sm leading-relaxed sm:text-[15px]">
+        <p className="text-foreground/80 mt-2.5 text-base leading-relaxed sm:text-[17px]">
           {verdict.explanation}
         </p>
 
@@ -191,8 +191,8 @@ export function VerdictCard({ verdict, content, analysis }: VerdictCardProps) {
         content.hasUrgency ||
         content.hasJobOffer ||
         content.hasDocumentRequest) && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-muted-foreground text-xs">Detected in this message:</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-sm">Detected in this message:</span>
           {content.hasMoney ? <Badge variant="warning">Money / banking</Badge> : null}
           {content.hasCredentials ? <Badge variant="warning">Credentials / login</Badge> : null}
           {content.hasJobOffer ? <Badge variant="warning">Job offer</Badge> : null}
@@ -202,19 +202,19 @@ export function VerdictCard({ verdict, content, analysis }: VerdictCardProps) {
       )}
 
       {verdict.reasons.length > 0 ? (
-        <div className="text-muted-foreground border-border/60 mt-1 rounded-lg border p-3">
-          <p className="text-foreground mb-2 text-xs font-medium">Why we said that:</p>
-          <ul className="space-y-1.5 text-xs">
+        <div className="text-muted-foreground border-border/60 mt-1 rounded-lg border p-4">
+          <p className="text-foreground mb-2.5 text-sm font-medium">Why we said that:</p>
+          <ul className="space-y-2 text-sm">
             {verdict.reasons.map((r) => (
-              <li key={r.signal} className="flex gap-2 leading-relaxed">
+              <li key={r.signal} className="flex gap-2.5 leading-relaxed">
                 <span
                   aria-hidden
                   className={
                     r.weight === "high"
-                      ? "text-destructive mt-1.5 size-1.5 shrink-0 rounded-full bg-current"
+                      ? "text-destructive mt-[7px] size-2 shrink-0 rounded-full bg-current"
                       : r.weight === "medium"
-                        ? "text-warning mt-1.5 size-1.5 shrink-0 rounded-full bg-current"
-                        : "text-muted-foreground mt-1.5 size-1.5 shrink-0 rounded-full bg-current"
+                        ? "text-warning mt-[7px] size-2 shrink-0 rounded-full bg-current"
+                        : "text-muted-foreground mt-[7px] size-2 shrink-0 rounded-full bg-current"
                   }
                 />
                 <span>{r.detail}</span>
@@ -243,19 +243,19 @@ function SignalChip({
   return (
     <div
       role="listitem"
-      className="bg-background/60 border-border/60 flex items-center gap-2.5 rounded-lg border px-3 py-2"
+      className="bg-background/60 border-border/60 flex items-center gap-2.5 rounded-lg border px-3 py-2.5"
       title={detail}
     >
       <Icon className="text-muted-foreground size-4 shrink-0" aria-hidden />
       <div className="flex min-w-0 flex-col leading-tight">
-        <span className="text-muted-foreground text-[10px] font-medium tracking-wide uppercase">
+        <span className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
           {label}
         </span>
-        <span className="text-foreground/90 truncate text-xs font-medium">
+        <span className="text-foreground/90 mt-0.5 truncate text-sm font-medium">
           {detail}
         </span>
       </div>
-      <StatusIcon className={cn("ml-auto size-4 shrink-0", m.cls)} aria-hidden />
+      <StatusIcon className={cn("ml-auto size-[18px] shrink-0", m.cls)} aria-hidden />
     </div>
   )
 }
