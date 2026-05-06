@@ -105,6 +105,8 @@ export interface ContentClassification {
   hasMoney: boolean
   hasCredentials: boolean
   hasUrgency: boolean
+  hasJobOffer: boolean
+  hasDocumentRequest: boolean
 }
 
 export interface SenderTrustSignals {
@@ -129,9 +131,15 @@ export interface Verdict {
   capReason?: string
 }
 
+export interface AttachmentInfo {
+  filename: string
+  contentType: string
+}
+
 export interface Analysis {
   parser: ParserResult
   links: AnalyzedLink[]
+  attachments: AttachmentInfo[]
   content: ContentClassification
   forward: ForwardDetection
   trust: SenderTrustSignals

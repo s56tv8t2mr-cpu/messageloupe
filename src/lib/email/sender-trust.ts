@@ -44,6 +44,11 @@ const ROLE_IMPERSONATION_PATTERNS: RegExp[] = [
   /\bmanagement\s+(team|notice)\b/i,
   /\bemployee\s+(relations|benefits|services)\b/i,
   /\bbenefits\s+(team|admin|department)\b/i,
+  /\bcareers?\b/i,
+  /\brecruit(ing|ment|er)?\b/i,
+  /\btalent\s+(team|acquisition|department)\b/i,
+  /\bhiring\s+(team|manager|department)?\b/i,
+  /\bhr\s+(?:and\s+)?recruit(ing|ment)?\b/i,
 ]
 
 // Well-known brands frequently impersonated, with their known legitimate

@@ -66,11 +66,17 @@ export function VerdictCard({ verdict, content }: VerdictCardProps) {
         </Alert>
       ) : null}
 
-      {(content.hasMoney || content.hasCredentials || content.hasUrgency) && (
+      {(content.hasMoney ||
+        content.hasCredentials ||
+        content.hasUrgency ||
+        content.hasJobOffer ||
+        content.hasDocumentRequest) && (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-muted-foreground text-xs">Detected in this message:</span>
           {content.hasMoney ? <Badge variant="warning">Money / banking</Badge> : null}
           {content.hasCredentials ? <Badge variant="warning">Credentials / login</Badge> : null}
+          {content.hasJobOffer ? <Badge variant="warning">Job offer</Badge> : null}
+          {content.hasDocumentRequest ? <Badge variant="warning">Documents requested</Badge> : null}
           {content.hasUrgency ? <Badge variant="outline">Urgency language</Badge> : null}
         </div>
       )}

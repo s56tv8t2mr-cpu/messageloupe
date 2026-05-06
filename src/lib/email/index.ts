@@ -10,6 +10,7 @@ import { extractLinks, FLAG_LABELS as RAW_FLAG_LABELS } from "./linkAnalyzer.js"
 import { classifyContent } from "./classify-content"
 import { detectForward } from "./detect-forward"
 import { evaluateSenderTrust } from "./sender-trust"
+import { extractAttachments } from "./attachments"
 import { computeVerdict } from "./verdict"
 
 import type {
@@ -39,18 +40,20 @@ export function analyze(source: string): Analysis {
 
   const parser = parseEmlLocally(source) as ParserResult
   const links = extractLinks(parser) as AnalyzedLink[]
-  const content = classifyContent(parser.bodyText || "")
+  const attachments = extractAttachments(source)
+  const content = classifyContent(`${parser.bodyText ?? ""}\n${parser.subject ?? ""}`)
   const forward = detectForward(parser)
   const trust = evaluateSenderTrust(parser)
-  const verdict = computeVerdict({ parser, links, content, forward, trust })
+  const verdict = computeVerdict({ parser, links, attachments, content, forward, trust })
 
-  return { parser, links, content, forward, trust, verdict }
+  return { parser, links, attachments, content, forward, trust, verdict }
 }
 
 export type {
   Analysis,
   ParserResult,
   AnalyzedLink,
+  AttachmentInfo,
   LinkFlag,
   FlagLabel,
   Verdict,

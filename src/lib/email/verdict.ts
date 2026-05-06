@@ -14,6 +14,7 @@
 
 import type {
   AnalyzedLink,
+  AttachmentInfo,
   ContentClassification,
   ForwardDetection,
   ParserResult,
@@ -40,6 +41,7 @@ const escalate = (current: VerdictTier, target: VerdictTier): VerdictTier => {
 interface VerdictInputs {
   parser: ParserResult
   links: AnalyzedLink[]
+  attachments: AttachmentInfo[]
   content: ContentClassification
   forward: ForwardDetection
   trust: SenderTrustSignals
@@ -48,6 +50,7 @@ interface VerdictInputs {
 export function computeVerdict({
   parser,
   links,
+  attachments,
   content,
   forward,
   trust,
@@ -247,6 +250,38 @@ export function computeVerdict({
     tier = escalate(tier, "caution")
   }
 
+  // ---- Job-offer + document-request scams ----
+  // A distinct phish family from money/credential phish. The dangerous
+  // combination is offer language + document/PII request: real employers
+  // use secure portals (Lever, BambooHR, DocuSign) and don't ask candidates
+  // to email scans of their passport. Pair fires danger; single fires
+  // caution.
+  if (content.hasJobOffer && content.hasDocumentRequest) {
+    reasons.push({
+      signal: "job-offer-with-document-request",
+      detail:
+        "This email reads like a job offer and asks for personal documents (passport, ID, certificates, photos). Legitimate employers use secure portals for this — they don't ask candidates to email scans. This is a classic recruitment-scam pattern.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  } else if (content.hasJobOffer && tier === "safe") {
+    reasons.push({
+      signal: "job-offer-content",
+      detail:
+        "This email reads like a job offer or onboarding message. If you didn't apply for this role through a recruiter or company website, treat it as a scam. Verify any offer through the company's official careers page before acting.",
+      weight: "medium",
+    })
+    tier = escalate(tier, "caution")
+  } else if (content.hasDocumentRequest && tier === "safe") {
+    reasons.push({
+      signal: "document-request-content",
+      detail:
+        "This email asks for copies of personal documents (passport, ID, certificates, photos). Legitimate organizations use secure upload portals or in-person verification — never email attachments. Verify the request through a channel you already trust.",
+      weight: "medium",
+    })
+    tier = escalate(tier, "caution")
+  }
+
   // ---- Money/credential cap ----
   let capped = false
   let capReason: string | undefined
@@ -254,8 +289,30 @@ export function computeVerdict({
     capped = true
     capReason = content.hasMoney
       ? "This message mentions money, payment, or banking changes."
-      : "This message asks about credentials or login info."
+      : content.hasCredentials
+        ? "This message asks about credentials or login info."
+        : "This message asks for copies of personal documents."
     tier = "caution"
+  }
+
+  // ---- Attachment + offer/money combination ----
+  // Attachments alone are normal. Attachments combined with job-offer or
+  // money-transfer language are how a lot of malware-bearing phish lands.
+  if (
+    attachments.length > 0 &&
+    (content.hasJobOffer || content.hasMoney) &&
+    tier !== "danger"
+  ) {
+    const fileList = attachments
+      .slice(0, 3)
+      .map((a) => a.filename)
+      .join(", ")
+    reasons.push({
+      signal: "attachment-with-suspicious-content",
+      detail: `This email carries ${attachments.length} attachment${attachments.length === 1 ? "" : "s"} (${fileList}${attachments.length > 3 ? ", …" : ""}) alongside ${content.hasJobOffer ? "job-offer" : "money-transfer"} language. Don't open the attachment unless you can confirm the sender by phone first — phishing attachments often contain malware or fake login pages.`,
+      weight: content.hasJobOffer && content.hasDocumentRequest ? "high" : "medium",
+    })
+    tier = escalate(tier, "caution")
   }
 
   return {

@@ -10,6 +10,7 @@ import {
   CircleX,
   CircleHelp,
   Info,
+  Paperclip,
 } from "lucide-react"
 
 import {
@@ -44,7 +45,7 @@ interface UnderTheHoodProps {
 }
 
 export function UnderTheHood({ analysis }: UnderTheHoodProps) {
-  const { parser, links } = analysis
+  const { parser, links, attachments } = analysis
   const hasLinks = links.length > 0
 
   return (
@@ -91,6 +92,39 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
           <Field label="Sent via" value={parser.serviceIdentified ? parser.sendingService : null} fallback="No clear email service identified" />
         </AccordionContent>
       </AccordionItem>
+
+      {attachments.length > 0 ? (
+        <AccordionItem value="attachments">
+          <AccordionTrigger className="gap-3">
+            <span className="flex items-center gap-2.5">
+              <Paperclip className="text-muted-foreground size-4" aria-hidden />
+              Attachments{" "}
+              <Badge variant="outline" className="ml-1">
+                {attachments.length}
+              </Badge>
+            </span>
+          </AccordionTrigger>
+          <AccordionContent className="flex flex-col gap-2 pt-2 text-sm">
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              We don&apos;t open or scan attachment contents — only the names and types
+              are shown. Don&apos;t open an attachment from a message you can&apos;t verify.
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {attachments.map((a, i) => (
+                <li
+                  key={`${a.filename}-${i}`}
+                  className="border-border/60 flex items-center justify-between gap-3 rounded-md border p-2.5"
+                >
+                  <span className="font-mono text-xs break-all">{a.filename}</span>
+                  <Badge variant="outline" className="shrink-0 font-mono">
+                    {a.contentType}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+      ) : null}
 
       <AccordionItem value="routing">
         <AccordionTrigger className="gap-3">
