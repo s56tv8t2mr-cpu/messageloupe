@@ -88,8 +88,9 @@ export const parseEmlLocally = (text) => {
           .replace(/=\n/g, '')
           .replace(/=[0-9A-F]{2}/gi, (match) => String.fromCharCode(parseInt(match.slice(1), 16)));
       }
-    } catch (error) {
-      console.error("Decoding failed:", error);
+    } catch {
+      // Fall through to the raw content if decode fails — better to show
+      // the encoded text than to crash the parser.
     }
     return content;
   };
