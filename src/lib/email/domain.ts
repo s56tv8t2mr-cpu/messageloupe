@@ -9,7 +9,7 @@
 // comparison would return true — false negative on alignment, never a
 // false positive on mismatch).
 
-export const KNOWN_MULTI_LABEL_SUFFIXES = [
+const KNOWN_MULTI_LABEL_SUFFIXES = [
   "com.au", "com.br", "com.cn", "com.co", "com.hk", "com.mx", "com.my",
   "com.ng", "com.sg", "com.tr", "com.vn",
   "co.jp", "co.kr", "co.nz", "co.uk", "co.za",

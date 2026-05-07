@@ -13,7 +13,7 @@ import { evaluateSenderTrust } from "./sender-trust"
 import { extractAttachments } from "./attachments"
 import { computeVerdict } from "./verdict"
 
-export { registrableDomain, sameRegistrable } from "./domain"
+export { sameRegistrable } from "./domain"
 export { authResultStatus, type AuthStatus } from "./auth-status"
 
 import type {
