@@ -31,8 +31,8 @@ export function SaveEmailHelpSheet({
         <SheetHeader>
           <SheetTitle>How to save an email for scanning</SheetTitle>
           <SheetDescription>
-            We need the original email — either the whole file (.eml or .msg) or just
-            the raw headers. Don&apos;t paste the email body or send a screenshot —
+            We need the original email: either the whole file (.eml or .msg) or just
+            the raw headers. Don&apos;t paste the email body or send a screenshot, since
             those don&apos;t include the hidden routing info we check.
           </SheetDescription>
         </SheetHeader>
@@ -42,7 +42,7 @@ export function SaveEmailHelpSheet({
             <AlertTitle>Regular forwarding doesn&apos;t work.</AlertTitle>
             <AlertDescription>
               When you forward an email, your mail program replaces the original
-              headers with your own — that destroys the evidence we need. Either
+              headers with your own, which destroys the evidence we need. Either
               download the original file, or use the &quot;Show Original&quot; / raw
               headers view and paste those instead. <em>Forward as Attachment</em> (a
               different feature in some clients) is fine because it preserves the
@@ -82,7 +82,7 @@ export function SaveEmailHelpSheet({
             title="Outlook desktop (Windows / Mac)"
             steps={[
               "Drag the email from your inbox onto your desktop. It saves as .msg (Windows) or .eml (Mac).",
-              "If you only have .msg and the file mode rejects it, switch to \"Paste headers\" — open the email, choose File → Properties, and copy everything from the \"Internet headers\" box.",
+              "If you only have .msg and the file mode rejects it, switch to \"Paste headers\". Open the email, choose File → Properties, and copy everything from the \"Internet headers\" box.",
             ]}
           />
 
@@ -113,7 +113,7 @@ export function SaveEmailHelpSheet({
               <li>
                 <strong className="text-foreground">iPhone Mail:</strong> long-press the
                 message → <em>Forward as Attachment</em> (this is different from regular
-                Forward — it preserves the original) → send to yourself, then open the
+                Forward, but preserves the original) → send to yourself, then open the
                 .eml attachment on a computer.
               </li>
               <li>
@@ -124,7 +124,7 @@ export function SaveEmailHelpSheet({
               </li>
               <li>
                 If neither works, wait until you&apos;re at a computer. Don&apos;t
-                regular-forward the email to yourself — that breaks the analysis.
+                regular-forward the email to yourself, since that breaks the analysis.
               </li>
             </ul>
           </div>

@@ -13,7 +13,7 @@ export default function Home() {
           </h1>
           <p className="text-muted-foreground mt-4 max-w-xl text-balance text-base leading-relaxed md:text-lg">
             Drop a saved email or paste raw headers. We check 40+ signals and tell you
-            whether the sender is who they claim to be — in plain English. Runs entirely
+            whether the sender is who they claim to be, in plain English. Runs entirely
             in your browser. Nothing leaves your device.
           </p>
         </section>

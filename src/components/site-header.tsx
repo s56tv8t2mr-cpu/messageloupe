@@ -25,7 +25,7 @@ export function SiteHeader() {
           href="/"
           onClick={handleBrandClick}
           className="text-foreground hover:text-foreground/80 flex items-center gap-2 font-semibold tracking-tight transition-colors"
-          aria-label="Message Loupe — home"
+          aria-label="Message Loupe home"
         >
           <ScanSearch className="text-primary size-5" aria-hidden />
           <span className="text-base">Message Loupe</span>

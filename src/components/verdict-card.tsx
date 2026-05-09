@@ -131,7 +131,7 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
           </span>
           {verdict.capped ? (
             <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Capped — verify by phone
+              Capped: verify by phone
             </span>
           ) : null}
         </div>
@@ -182,7 +182,7 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
       {verdict.tier === "safe" ? (
         <p className="text-muted-foreground -mt-1 px-1 text-xs leading-relaxed">
           Safe means <strong className="text-foreground/80">authentic</strong>, not
-          welcome. Real cold outreach and marketing pass these checks too — Message
+          welcome. Real cold outreach and marketing pass these checks too, so Message
           Loupe answers &quot;is the sender who they claim to be?&quot;, not &quot;is
           this email wanted?&quot;
         </p>
@@ -193,7 +193,7 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
           <PhoneCall aria-hidden />
           <AlertTitle className="text-sm">Verify by phone before acting</AlertTitle>
           <AlertDescription>
-            Use a number you already trust — your saved contact, your bank&apos;s
+            Use a number you already trust: your saved contact, your bank&apos;s
             number on the back of your card, or your accountant&apos;s known line.
             Never call a number from this email.
           </AlertDescription>

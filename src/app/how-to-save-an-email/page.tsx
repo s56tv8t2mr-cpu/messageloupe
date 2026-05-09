@@ -30,10 +30,10 @@ export default function HowToSaveAnEmailPage() {
           How to save an email for scanning
         </h1>
         <p className="text-muted-foreground mt-3 text-base leading-relaxed">
-          Message Loupe needs the original email — either the whole file (
+          Message Loupe needs the original email: either the whole file (
           <code className="font-mono text-sm">.eml</code> or{" "}
           <code className="font-mono text-sm">.msg</code>) or just the raw headers.
-          Don&apos;t paste the email body or send a screenshot — those don&apos;t
+          Don&apos;t paste the email body or send a screenshot, since those don&apos;t
           include the hidden routing info we check.
         </p>
 
@@ -42,7 +42,7 @@ export default function HowToSaveAnEmailPage() {
           <AlertTitle>Regular forwarding doesn&apos;t work</AlertTitle>
           <AlertDescription>
             When you forward an email, your mail program replaces the original
-            headers with your own — that destroys the evidence we need. Either
+            headers with your own, which destroys the evidence we need. Either
             download the original file, or use the &quot;Show Original&quot; / raw
             headers view and paste those instead. <em>Forward as Attachment</em> (a
             different feature in some clients, listed below) is fine because it
@@ -55,7 +55,7 @@ export default function HowToSaveAnEmailPage() {
           title="Gmail (in a browser)"
           steps={[
             "Open the email.",
-            "Click the ⋮ next to the Reply arrow — the one inside the email itself, not the menu at the very top of the page.",
+            "Click the ⋮ next to the Reply arrow (the one inside the email itself, not the menu at the very top of the page).",
             'Click "Download message."',
             "Drop the saved .eml file into Message Loupe.",
           ]}
@@ -119,7 +119,7 @@ export default function HowToSaveAnEmailPage() {
           <li>
             <strong className="text-foreground">iPhone Mail.</strong> Long-press the
             message, then choose <em>Forward as Attachment</em>. This is{" "}
-            <strong>different</strong> from regular Forward — it preserves the
+            <strong>different</strong> from regular Forward, and it preserves the
             original intact. Send to yourself, then open the .eml attachment on a
             computer.
           </li>
@@ -131,7 +131,7 @@ export default function HowToSaveAnEmailPage() {
           </li>
           <li>
             If neither works, wait until you&apos;re at a computer.
-            Don&apos;t&nbsp;regular-forward the email to yourself — that breaks the
+            Don&apos;t&nbsp;regular-forward the email to yourself, since that breaks the
             analysis.
           </li>
         </ul>

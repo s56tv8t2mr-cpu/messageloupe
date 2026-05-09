@@ -61,7 +61,7 @@ export function computeVerdict({
       tier: "forwarded",
       headline: "This looks like a forward",
       explanation:
-        "The original headers — the only thing that proves who really sent the email — appear to have been replaced by your own when the message was forwarded. Save the original message instead, or open the suspicious email and use \"Show Original\" / \"View Source\" to copy the raw headers, then paste them in here.",
+        "The original headers (the only thing that proves who really sent the email) appear to have been replaced by your own when the message was forwarded. Save the original message instead, or open the suspicious email and use \"Show Original\" / \"View Source\" to copy the raw headers, then paste them in here.",
       reasons: [
         {
           signal: forward.reason ?? "forwarded",
@@ -70,7 +70,7 @@ export function computeVerdict({
               ? "Subject begins with a forward prefix (Fwd:/Fw:)."
               : forward.reason === "body-separator"
                 ? "Message body contains a forwarded-message separator block."
-                : "No upstream Received chain detected — likely sent or forwarded by you.",
+                : "No upstream Received chain detected; likely sent or forwarded by you.",
           weight: "high",
         },
       ],
@@ -148,7 +148,7 @@ export function computeVerdict({
   if (trust.brandImpersonation) {
     reasons.push({
       signal: "brand-impersonation",
-      detail: `The display name claims to be ${trust.brandImpersonation.brand}, but the email comes from ${parser.sendingDomain ?? "an unrelated domain"} — not a domain ${trust.brandImpersonation.brand} actually sends from.`,
+      detail: `The display name claims to be ${trust.brandImpersonation.brand}, but the email comes from ${parser.sendingDomain ?? "an unrelated domain"}, not a domain ${trust.brandImpersonation.brand} actually sends from.`,
       weight: "high",
     })
     tier = escalate(tier, "danger")
@@ -158,7 +158,7 @@ export function computeVerdict({
     if (trust.domainHasTyposquatShape) {
       reasons.push({
         signal: "role-impersonation-sketchy-domain",
-        detail: `The display name claims a department or role (“${parser.sendingName}”), but the actual email comes from ${parser.sendingDomain ?? "an unusual domain"} — a domain shape (digits mixed with letters, leading numbers, or punycode) commonly used by attackers, and unlikely to be any real employer.`,
+        detail: `The display name claims a department or role (“${parser.sendingName}”), but the actual email comes from ${parser.sendingDomain ?? "an unusual domain"}: a domain shape (digits mixed with letters, leading numbers, or punycode) commonly used by attackers, and unlikely to be any real employer.`,
         weight: "high",
       })
       tier = escalate(tier, "danger")
@@ -182,7 +182,7 @@ export function computeVerdict({
     // businesses have hyphenated or numeric labels. Caution, not danger.
     reasons.push({
       signal: "domain-typosquat-shape",
-      detail: `The sending domain (${parser.sendingDomain}) has a shape associated with throwaway or typosquat domains — letters mixed with digits, a leading number, or punycode. Legitimate businesses usually have cleaner domain names.`,
+      detail: `The sending domain (${parser.sendingDomain}) has a shape associated with throwaway or typosquat domains: letters mixed with digits, a leading number, or punycode. Legitimate businesses usually have cleaner domain names.`,
       weight: "medium",
     })
     tier = escalate(tier, "caution")
@@ -215,7 +215,7 @@ export function computeVerdict({
     if (fromReg && replyReg && fromReg !== replyReg && !parser.listId) {
       reasons.push({
         signal: "replyto-cross-domain",
-        detail: `Replies would go to ${parser.replyToDomain} — a different domain than the visible sender (${parser.sendingDomain}). Phishing campaigns frequently split sending and receiving across multiple attacker-controlled domains; legitimate businesses rarely do this. If both domains share a brand-like name on different TLDs, that's a strong signal of a coordinated impersonation campaign.`,
+        detail: `Replies would go to ${parser.replyToDomain}, a different domain than the visible sender (${parser.sendingDomain}). Phishing campaigns frequently split sending and receiving across multiple attacker-controlled domains; legitimate businesses rarely do this. If both domains share a brand-like name on different TLDs, that's a strong signal of a coordinated impersonation campaign.`,
         weight: "medium",
       })
       tier = escalate(tier, "caution")
@@ -239,7 +239,7 @@ export function computeVerdict({
           case "punycode":
             return "a link uses punycode, which can hide a fake domain"
           case "cmTld":
-            return "a link ends in .cm — a common typo trap for .com"
+            return "a link ends in .cm, a common typo trap for .com"
           default:
             return f
         }
@@ -280,7 +280,7 @@ export function computeVerdict({
     reasons.push({
       signal: "job-offer-with-document-request",
       detail:
-        "This email reads like a job offer and asks for personal documents (passport, ID, certificates, photos). Legitimate employers use secure portals for this — they don't ask candidates to email scans. This is a classic recruitment-scam pattern.",
+        "This email reads like a job offer and asks for personal documents (passport, ID, certificates, photos). Legitimate employers use secure portals for this; they don't ask candidates to email scans. This is a classic recruitment-scam pattern.",
       weight: "high",
     })
     tier = escalate(tier, "danger")
@@ -296,7 +296,7 @@ export function computeVerdict({
     reasons.push({
       signal: "document-request-content",
       detail:
-        "This email asks for copies of personal documents (passport, ID, certificates, photos). Legitimate organizations use secure upload portals or in-person verification — they don't ask people to email scans. Verify the request through a channel you already trust.",
+        "This email asks for copies of personal documents (passport, ID, certificates, photos). Legitimate organizations use secure upload portals or in-person verification; they don't ask people to email scans. Verify the request through a channel you already trust.",
       weight: "medium",
     })
     tier = escalate(tier, "caution")
@@ -329,7 +329,7 @@ export function computeVerdict({
       .join(", ")
     reasons.push({
       signal: "attachment-with-suspicious-content",
-      detail: `This email carries ${attachments.length} attachment${attachments.length === 1 ? "" : "s"} (${fileList}${attachments.length > 3 ? ", …" : ""}) alongside ${content.hasJobOffer ? "job-offer" : "money-transfer"} language. Don't open the attachment unless you can confirm the sender by phone first — phishing attachments often contain malware or fake login pages.`,
+      detail: `This email carries ${attachments.length} attachment${attachments.length === 1 ? "" : "s"} (${fileList}${attachments.length > 3 ? ", …" : ""}) alongside ${content.hasJobOffer ? "job-offer" : "money-transfer"} language. Don't open the attachment unless you can confirm the sender by phone first; phishing attachments often contain malware or fake login pages.`,
       weight: content.hasJobOffer && content.hasDocumentRequest ? "high" : "medium",
     })
     tier = escalate(tier, "caution")
@@ -372,7 +372,7 @@ function explanationFor(
   }
   if (tier === "caution") {
     if (ctx.capped) {
-      return `${ctx.capReason} Even though the technical signals look fine on the surface, anything involving money or credentials should be verified by phone using a number you already trust — not one from this email.`
+      return `${ctx.capReason} Even though the technical signals look fine on the surface, anything involving money or credentials should be verified by phone using a number you already trust, not one from this email.`
     }
     return "Some signals don't add up. Treat this email with skepticism. Verify any requested action through a channel you already trust before responding."
   }
