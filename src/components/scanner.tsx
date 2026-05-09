@@ -16,7 +16,11 @@ import { VerdictCard } from "./verdict-card"
 import { UnderTheHood } from "./under-the-hood"
 import { SaveEmailHelpSheet } from "./save-email-help-sheet"
 
-import { analyze, type Analysis } from "@/lib/email"
+import type { Analysis } from "@/lib/email"
+import type {
+  AnalyzeRequest,
+  AnalyzeResponse,
+} from "@/lib/email/analyze.worker"
 
 type Mode = "file" | "paste"
 type Status = "idle" | "analyzing" | "result"
@@ -28,24 +32,56 @@ export function Scanner() {
   const [filename, setFilename] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
-  const runAnalyze = React.useCallback((source: string, sourceName: string | null) => {
-    setError(null)
-    setStatus("analyzing")
-    // Yield once so the spinner paints before the parser walks block the thread.
-    setTimeout(() => {
-      try {
-        const result = analyze(source)
-        setAnalysis(result)
+  const workerRef = React.useRef<Worker | null>(null)
+  const requestIdRef = React.useRef(0)
+  const pendingRef = React.useRef<{ id: number; sourceName: string | null } | null>(
+    null,
+  )
+
+  React.useEffect(() => {
+    const worker = new Worker(
+      new URL("../lib/email/analyze.worker.ts", import.meta.url),
+      { type: "module" },
+    )
+    worker.onmessage = (event: MessageEvent<AnalyzeResponse>) => {
+      const data = event.data
+      // Ignore responses to canceled requests (user reset, started another scan).
+      if (!pendingRef.current || pendingRef.current.id !== data.id) return
+      const { sourceName } = pendingRef.current
+      pendingRef.current = null
+      if (data.ok) {
+        setAnalysis(data.result)
         setFilename(sourceName)
         setStatus("result")
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Couldn't analyze that input."
-        setError(message)
+      } else {
+        setError(data.error)
         setStatus("idle")
-        toast.error("Scan failed", { description: message })
+        toast.error("Scan failed", { description: data.error })
       }
-    }, 0)
+    }
+    worker.onerror = (event) => {
+      pendingRef.current = null
+      const message = event.message || "Worker crashed while analyzing."
+      setError(message)
+      setStatus("idle")
+      toast.error("Scan failed", { description: message })
+    }
+    workerRef.current = worker
+    return () => {
+      worker.terminate()
+      workerRef.current = null
+    }
+  }, [])
+
+  const runAnalyze = React.useCallback((source: string, sourceName: string | null) => {
+    const worker = workerRef.current
+    if (!worker) return
+    setError(null)
+    setStatus("analyzing")
+    const id = ++requestIdRef.current
+    pendingRef.current = { id, sourceName }
+    const request: AnalyzeRequest = { id, source }
+    worker.postMessage(request)
   }, [])
 
   const handleError = React.useCallback((message: string) => {
@@ -54,6 +90,8 @@ export function Scanner() {
   }, [])
 
   const reset = React.useCallback(() => {
+    // Cancel any in-flight worker response by dropping the pending id.
+    pendingRef.current = null
     setStatus("idle")
     setAnalysis(null)
     setFilename(null)
