@@ -31,6 +31,35 @@ const DEFAULT_RECEIVED = [
   "from sender.example.com (sender.example.com [203.0.113.45]) by mx.example.com with ESMTPS; Mon, 01 Jan 2024 11:59:55 -0500",
 ]
 
+// Counter-based deterministic Message-IDs. Sonar S2245 flags Math.random
+// even in test code; a counter is both deterministic (good for snapshots)
+// and silences the rule.
+let messageIdCounter = 0
+
+// Compose an Authentication-Results header. Default values mirror a
+// legitimate aligned message; pass overrides to exercise specific failure
+// paths without rewriting the whole string in every test.
+export function authResults(opts: {
+  domain: string
+  spf?: string
+  dkim?: string
+  dmarc?: string
+  mailfrom?: string
+  headerFrom?: string
+  authservId?: string
+}): string {
+  const {
+    domain,
+    spf = "pass",
+    dkim = "pass",
+    dmarc = "pass",
+    mailfrom = domain,
+    headerFrom = domain,
+    authservId = "mx.recipient.org",
+  } = opts
+  return `${authservId}; spf=${spf} smtp.mailfrom=${mailfrom}; dkim=${dkim} header.i=@${domain}; dmarc=${dmarc} header.from=${headerFrom}`
+}
+
 export function buildEml(opts: BuildOpts = {}): string {
   const {
     from = "Test Sender <sender@example.com>",
@@ -60,7 +89,7 @@ export function buildEml(opts: BuildOpts = {}): string {
   lines.push(`From: ${from}`)
   lines.push(`To: ${to}`)
   lines.push(`Subject: ${subject}`)
-  lines.push(`Message-ID: <${Math.random().toString(36).slice(2)}@example.com>`)
+  lines.push(`Message-ID: <fixture-${++messageIdCounter}@example.com>`)
   lines.push(`Date: Mon, 01 Jan 2024 12:00:00 -0500`)
 
   if (htmlBody) {

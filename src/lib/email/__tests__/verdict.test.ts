@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest"
 
 import { analyze } from "../index"
-import { buildEml, cleanEsp } from "./fixtures"
+import { authResults, buildEml, cleanEsp } from "./fixtures"
 
 const reasonSignals = (a: ReturnType<typeof analyze>) =>
   a.verdict.reasons.map((r) => r.signal)
@@ -18,7 +18,7 @@ describe("authentication failures", () => {
   it("DMARC fail → danger", () => {
     const eml = buildEml({
       from: "Bank Alerts <alerts@bank.example>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=bank.example; dkim=pass header.i=@bank.example; dmarc=fail header.from=bank.example",
+      authResults: authResults({ domain: "bank.example", dmarc: "fail" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("danger")
@@ -28,7 +28,7 @@ describe("authentication failures", () => {
   it("SPF fail → danger", () => {
     const eml = buildEml({
       from: "Sender <user@example.com>",
-      authResults: "mx.recipient.org; spf=fail smtp.mailfrom=example.com; dmarc=none",
+      authResults: authResults({ domain: "example.com", spf: "fail", dmarc: "none" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("danger")
@@ -37,7 +37,7 @@ describe("authentication failures", () => {
 
   it("SPF softfail → caution", () => {
     const eml = buildEml({
-      authResults: "mx.recipient.org; spf=softfail smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass",
+      authResults: authResults({ domain: "example.com", spf: "softfail" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("caution")
@@ -46,7 +46,7 @@ describe("authentication failures", () => {
 
   it("DKIM fail with SPF pass → caution", () => {
     const eml = buildEml({
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=example.com; dkim=fail header.i=@example.com; dmarc=pass",
+      authResults: authResults({ domain: "example.com", dkim: "fail" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("caution")
@@ -65,7 +65,7 @@ describe("display-name impersonation", () => {
   it("brand-impersonation: PayPal display from random domain → danger", () => {
     const eml = buildEml({
       from: "PayPal Service <service@random-payments.com>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=random-payments.com; dkim=pass header.i=@random-payments.com; dmarc=pass",
+      authResults: authResults({ domain: "random-payments.com" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("danger")
@@ -75,7 +75,7 @@ describe("display-name impersonation", () => {
   it("brand-impersonation suppressed when domain is on the legit list", () => {
     const eml = buildEml({
       from: "PayPal <service@paypal.com>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=paypal.com; dkim=pass header.i=@paypal.com; dmarc=pass",
+      authResults: authResults({ domain: "paypal.com" }),
     })
     const a = analyze(eml)
     expect(reasonSignals(a)).not.toContain("brand-impersonation")
@@ -84,7 +84,7 @@ describe("display-name impersonation", () => {
   it("role-impersonation from a public webmail → danger", () => {
     const eml = buildEml({
       from: "Human Resources <hr.notice@gmail.com>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=gmail.com; dkim=pass header.i=@gmail.com; dmarc=pass",
+      authResults: authResults({ domain: "gmail.com" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("danger")
@@ -94,7 +94,7 @@ describe("display-name impersonation", () => {
   it("role-impersonation from a typosquat-shape domain → danger", () => {
     const eml = buildEml({
       from: "IT Support <support@h3lp-desk-corp-77.com>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=h3lp-desk-corp-77.com; dkim=pass header.i=@h3lp-desk-corp-77.com; dmarc=pass",
+      authResults: authResults({ domain: "h3lp-desk-corp-77.com" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("danger")
@@ -104,7 +104,7 @@ describe("display-name impersonation", () => {
   it("typosquat-shape domain alone (no role/brand match) → caution", () => {
     const eml = buildEml({
       from: "John Smith <john@7secure-mail.com>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=7secure-mail.com; dkim=pass header.i=@7secure-mail.com; dmarc=pass",
+      authResults: authResults({ domain: "7secure-mail.com" }),
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("caution")
@@ -113,9 +113,11 @@ describe("display-name impersonation", () => {
 })
 
 describe("link flags", () => {
+  const exampleAuth = authResults({ domain: "example.com" })
+
   it("anchor/href mismatch → danger", () => {
     const eml = buildEml({
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass",
+      authResults: exampleAuth,
       body: "Click the link to verify.",
       htmlBody:
         '<p>Click <a href="http://attacker.example/login">https://your-bank.com/secure</a> to verify.</p>',
@@ -127,8 +129,8 @@ describe("link flags", () => {
 
   it("raw-IP host link → danger", () => {
     const eml = buildEml({
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass",
-      body: 'Visit http://203.0.113.45/login to access your account.',
+      authResults: exampleAuth,
+      body: "Visit http://203.0.113.45/login to access your account.",
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("danger")
@@ -137,8 +139,8 @@ describe("link flags", () => {
 
   it("shortener link alone → caution", () => {
     const eml = buildEml({
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass",
-      body: 'Read more at https://bit.ly/3xyz123 — thanks!',
+      authResults: exampleAuth,
+      body: "Read more at https://bit.ly/3xyz123 — thanks!",
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("caution")
@@ -171,7 +173,7 @@ describe("job-offer scams", () => {
   it("job offer + document request → danger", () => {
     const eml = buildEml({
       from: "Talent Team <careers@new-opportunities-inc.com>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=new-opportunities-inc.com; dkim=pass header.i=@new-opportunities-inc.com; dmarc=pass",
+      authResults: authResults({ domain: "new-opportunities-inc.com" }),
       body: "We are pleased to offer you a remote position. Please email a scan of your passport and a copy of your driver's license to begin onboarding.",
     })
     const a = analyze(eml)
@@ -185,7 +187,6 @@ describe("job-offer scams", () => {
       body: "Welcome to the team! Your offer letter is attached. Looking forward to your start date.",
     })
     const a = analyze(eml)
-    // job-offer + attachment-with-suspicious-content scenarios not used here;
     // pure offer language without document request stays at caution.
     expect(a.verdict.tier).toBe("caution")
     expect(reasonSignals(a)).toContain("job-offer-content")
@@ -193,10 +194,12 @@ describe("job-offer scams", () => {
 })
 
 describe("forwarded-message guard", () => {
+  const exampleAuth = authResults({ domain: "example.com" })
+
   it("subject prefix Fwd: → forwarded tier, no verdict issued", () => {
     const eml = buildEml({
       subject: "Fwd: Suspicious email",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass",
+      authResults: exampleAuth,
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("forwarded")
@@ -204,7 +207,7 @@ describe("forwarded-message guard", () => {
 
   it("body separator '----- Forwarded message -----' → forwarded tier", () => {
     const eml = buildEml({
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass",
+      authResults: exampleAuth,
       body: "FYI:\n\n---------- Forwarded message ----------\nFrom: stranger@phish.example\nSubject: Urgent",
     })
     const a = analyze(eml)
@@ -221,11 +224,13 @@ describe("clean ESP-routed mail", () => {
 })
 
 describe("Reply-To routing", () => {
+  const vendorAuth = authResults({ domain: "vendor-a.example" })
+
   it("Reply-To on a different registrable domain (no List-Id) → caution", () => {
     const eml = buildEml({
       from: "Vendor <hello@vendor-a.example>",
       replyTo: "ops@vendor-b-payments.example",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=vendor-a.example; dkim=pass header.i=@vendor-a.example; dmarc=pass",
+      authResults: vendorAuth,
     })
     const a = analyze(eml)
     expect(a.verdict.tier).toBe("caution")
@@ -237,7 +242,7 @@ describe("Reply-To routing", () => {
       from: "Vendor <hello@vendor-a.example>",
       replyTo: "ops@vendor-b.example",
       listId: "<announce.vendor-a.example>",
-      authResults: "mx.recipient.org; spf=pass smtp.mailfrom=vendor-a.example; dkim=pass header.i=@vendor-a.example; dmarc=pass",
+      authResults: vendorAuth,
     })
     const a = analyze(eml)
     expect(reasonSignals(a)).not.toContain("replyto-cross-domain")
