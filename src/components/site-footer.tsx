@@ -49,7 +49,7 @@ export function SiteFooter() {
         <div className="text-muted-foreground mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-5 text-sm md:flex-row md:items-center md:justify-between md:gap-6 md:px-6">
           <p className="leading-relaxed">
             © {new Date().getFullYear()} Message Loupe. The verdict is advisory, not a
-            guarantee — always verify money or credential requests through a channel
+            guarantee. Always verify money or credential requests through a channel
             you already trust.
           </p>
           <p className="shrink-0 leading-relaxed">

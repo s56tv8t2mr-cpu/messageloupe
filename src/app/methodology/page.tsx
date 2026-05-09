@@ -147,21 +147,22 @@ export default function MethodologyPage() {
             How we test ourselves
           </h2>
           <p className="text-muted-foreground">
-            The rule engine ships with a regression suite: synthetic{" "}
-            <code>.eml</code> fixtures that exercise each verdict path
-            (authentication failures, brand and role impersonation, link flags,
-            the money/credential cap, the job-offer-plus-document-request pair,
-            the forwarded-message guard, and known-good ESP-routed mail). The
-            tests run on every change to make sure refactors don&apos;t silently
-            move a verdict from <em>danger</em> to <em>caution</em> on a
-            scenario we&apos;ve already documented. The fixtures are
-            constructed, not redacted real samples — they prove the engine
-            still produces the documented verdict for each rule path.
+            The rule engine ships with a regression suite: synthetic .eml
+            fixtures that exercise each verdict path (authentication failures,
+            brand and role impersonation, link flags, the money/credential
+            cap, the job-offer-plus-document-request pair, the
+            forwarded-message guard, and known-good ESP-routed mail). The
+            tests run on every change to make sure refactors don&apos;t
+            silently move a verdict from &quot;danger&quot; to
+            &quot;caution&quot; on a scenario we&apos;ve already documented.
+            The fixtures are constructed, not redacted real samples; they
+            prove the engine still produces the documented verdict for each
+            rule path.
           </p>
           <p className="text-muted-foreground">
             If you find a real-world email where we get the wrong answer, email
-            the saved file (never just the body — the headers are the evidence)
-            to{" "}
+            the saved file (never just the body, since the headers are the
+            evidence) to{" "}
             <a
               href="mailto:hello@messageloupe.com"
               className="underline-offset-4 hover:underline"

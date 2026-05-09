@@ -50,7 +50,7 @@ export default function PrivacyPage() {
           </p>
           <p className="text-muted-foreground">
             <strong className="text-foreground">Standard server logs.</strong>{" "}
-            Our hosting provider (Vercel) keeps short-lived request logs for
+            Our hosting provider (Cloudflare Pages) keeps short-lived request logs for
             availability and DDoS-mitigation purposes. These contain your IP
             address and the URL you requested, like every other website on the
             internet. They do not contain anything from your email.
