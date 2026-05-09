@@ -8,7 +8,7 @@ import { ShieldCheck } from "lucide-react"
 export const metadata: Metadata = {
   title: "Privacy",
   description:
-    "Message Loupe is a static page that runs entirely in your browser. We don't collect, log, transmit, or store your email — ever.",
+    "Message Loupe is a static page that runs entirely in your browser. We don't collect, log, transmit, or store your email, ever.",
   alternates: { canonical: "/privacy" },
 }
 
@@ -62,7 +62,7 @@ export default function PrivacyPage() {
           <ul className="text-muted-foreground space-y-1.5">
             <li>We do not upload, log, store, or transmit your email.</li>
             <li>We do not call third-party reputation services with your data.</li>
-            <li>We do not set cookies (other than what your browser may set automatically — none from us).</li>
+            <li>We do not set cookies (other than what your browser may set automatically; none from us).</li>
             <li>We do not have a database. There is nothing to leak.</li>
           </ul>
 
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
               GitHub
             </a>
             . Open your browser&apos;s network tab while you analyze a sample
-            email — you&apos;ll see no outgoing requests during the scan.
+            email; you&apos;ll see no outgoing requests during the scan.
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">

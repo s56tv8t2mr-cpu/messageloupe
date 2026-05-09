@@ -38,7 +38,7 @@ export const FLAG_LABELS = RAW_FLAG_LABELS as Record<LinkFlag, FlagLabel>
  */
 export function analyze(source: string): Analysis {
   if (!source || !source.trim()) {
-    throw new Error("Empty source — paste headers or upload a .eml file.")
+    throw new Error("Empty source: paste headers or upload a .eml file.")
   }
 
   const parser = parseEmlLocally(source) as ParserResult

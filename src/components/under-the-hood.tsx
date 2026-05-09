@@ -89,13 +89,13 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
                 ? parser.sendingName
                 : null
             }
-            fallback="(none — only an address)"
+            fallback="(none, only an address)"
           />
           <Field label="Actual sender" value={parser.sendingEmail} mono />
           <Field
             label="Reply-To"
             value={parser.replyTo}
-            fallback="(none — replies go to sender)"
+            fallback="(none, replies go to sender)"
             mono
           />
           <Field label="Return-Path" value={parser.returnPath} mono />
@@ -117,7 +117,7 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
           </AccordionTrigger>
           <AccordionContent className="flex flex-col gap-2 pt-2 text-sm">
             <p className="text-muted-foreground text-xs leading-relaxed">
-              We don&apos;t open or scan attachment contents — only the names and types
+              We don&apos;t open or scan attachment contents, only the names and types
               are shown. Don&apos;t open an attachment from a message you can&apos;t verify.
             </p>
             <ul className="flex flex-col gap-1.5">
@@ -258,7 +258,7 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
                       <TableCell className="align-top text-right">
                         <div className="inline-flex flex-wrap justify-end gap-1">
                           {link.flags.length === 0 ? (
-                            <span className="text-muted-foreground text-xs">—</span>
+                            <span className="text-muted-foreground text-xs">none</span>
                           ) : (
                             link.flags.map((flag) => (
                               <Badge key={flag} variant={FLAG_VARIANT[flag]}>
@@ -317,7 +317,7 @@ function Field({
   label,
   value,
   muted,
-  fallback = "—",
+  fallback = "(not provided)",
   mono,
 }: {
   label: string

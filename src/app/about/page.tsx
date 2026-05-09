@@ -23,7 +23,7 @@ export default function AboutPage() {
         <div className="prose prose-zinc dark:prose-invert mt-8 max-w-none text-base leading-relaxed">
           <p className="text-muted-foreground">
             Message Loupe is a free second-opinion tool for email. Drop a saved
-            email — or paste its raw headers — and within a couple of seconds you get
+            email, or paste its raw headers, and within a couple of seconds you get
             a plain-English verdict: <strong>safe</strong>, <strong>caution</strong>,
             or <strong>likely fake</strong>, with a short explanation of how we got
             there.
@@ -34,9 +34,9 @@ export default function AboutPage() {
           </h2>
           <p className="text-muted-foreground">
             Most phishing-detection tools are aimed at security teams and cost five or
-            six figures a year. The rest of us — freelancers, small businesses, people
+            six figures a year. The rest of us (freelancers, small businesses, people
             who handle their parents&apos; bills, anyone who&apos;s ever stared at an
-            email and wondered &quot;is this really my bank?&quot; — get a spam folder
+            email and wondered &quot;is this really my bank?&quot;) get a spam folder
             and a hunch. Message Loupe is what happens when an analyst&apos;s triage
             engine is rebuilt for everyone else, with the jargon stripped out.
           </p>
@@ -48,7 +48,7 @@ export default function AboutPage() {
             Message Loupe answers one specific question:{" "}
             <strong className="text-foreground">is the sender who they claim to
             be?</strong> It does not try to decide whether an email is wanted or
-            relevant. Real cold outreach, real marketing, real newsletters — those
+            relevant. Real cold outreach, real marketing, real newsletters: those
             can all be &quot;authentic but unwelcome,&quot; and we&apos;ll correctly
             say they look legitimate, because they are. Whether you want them is your
             call. Spam filtering is a different problem, handled (imperfectly) by
@@ -60,7 +60,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-muted-foreground">
             The verdict is advisory, not a guarantee. We can read the technical
-            evidence in an email&apos;s headers — who really sent it, what server
+            evidence in an email&apos;s headers: who really sent it, what server
             relayed it, whether the sender&apos;s domain authorizes that server.
             That&apos;s enough to catch the overwhelming majority of impersonation
             scams: fake banks, fake delivery services, lookalike domains, hijacked
@@ -69,10 +69,10 @@ export default function AboutPage() {
           <p className="text-muted-foreground">
             What we <em>can&apos;t</em> catch is when an attacker has already
             compromised a real account at a real vendor and is sending a real-looking
-            request from that real address. Every technical signal passes — because
+            request from that real address. Every technical signal passes, because
             from the email&apos;s perspective, nothing is wrong. That&apos;s why any
             time we see money or credentials in the message, we cap our verdict at
-            &quot;Caution — verify by phone.&quot; Use a phone number you already
+            &quot;Caution: verify by phone.&quot; Use a phone number you already
             trust, not one from the email.
           </p>
 
@@ -81,7 +81,7 @@ export default function AboutPage() {
           </h2>
           <p className="text-muted-foreground">
             The analysis runs entirely in your browser. There&apos;s no server, no
-            upload, no logging — your email never leaves your device. The engine
+            upload, no logging. Your email never leaves your device. The engine
             powering the verdict is an open-source port of an internal triage tool
             originally built for phishing analysts; you can read more in our{" "}
             <Link href="/methodology" className="underline-offset-4 hover:underline">

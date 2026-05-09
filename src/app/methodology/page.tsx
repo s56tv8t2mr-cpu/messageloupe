@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer"
 export const metadata: Metadata = {
   title: "Methodology",
   description:
-    "How Message Loupe analyzes an email — what we check, how we weight signals, what we cap, and what we deliberately miss.",
+    "How Message Loupe analyzes an email: what we check, how we weight signals, what we cap, and what we deliberately miss.",
   alternates: { canonical: "/methodology" },
 }
 
@@ -48,7 +48,7 @@ export default function MethodologyPage() {
               <strong className="text-foreground">Routing:</strong> the chain of
               servers (
               <code>Received:</code> headers) that handled the message, working
-              backwards to find the originating IP — including stepping past known
+              backwards to find the originating IP, including stepping past known
               security gateways so the real upstream sender is identified.
             </li>
             <li>
@@ -90,7 +90,7 @@ export default function MethodologyPage() {
           <p className="text-muted-foreground">
             If the message body mentions money, banking changes, wires, gift cards,
             credentials, or login info, we never let the verdict rise above
-            &quot;Caution — verify by phone.&quot; Even a perfectly-authenticated
+            &quot;Caution: verify by phone.&quot; Even a perfectly-authenticated
             email can be malicious if an attacker has compromised a real account at a
             real vendor. Header analysis is structurally blind to that case. The cap
             is our way of being honest about that blind spot.
@@ -101,9 +101,9 @@ export default function MethodologyPage() {
           </h2>
           <p className="text-muted-foreground">
             Regular forwarding replaces the original headers with the forwarder&apos;s
-            own, which destroys the evidence we need. If we detect a forward — by
+            own, which destroys the evidence we need. If we detect a forward (by
             subject prefix, by a forward-separator block in the body, or by a
-            Received chain that looks like a Sent-Items export — we short-circuit
+            Received chain that looks like a Sent-Items export), we short-circuit
             with a request to use &quot;Save Original&quot; or &quot;Show
             Original&quot; instead. We&apos;d rather refuse to answer than answer
             wrong on a forwarded phish.
@@ -117,18 +117,18 @@ export default function MethodologyPage() {
               <strong className="text-foreground">No spam scoring or
               sender-reputation blocking.</strong>{" "}
               We answer &quot;is this email pretending to be something it
-              isn&apos;t?&quot; — not &quot;is this email welcome?&quot; Those are
+              isn&apos;t?&quot;, not &quot;is this email welcome?&quot; Those are
               different questions, and your email provider&apos;s spam filter
               (imperfect though it is) already handles the second one. Cold sales
               outreach, real newsletters you forgot subscribing to, recruiter
-              cold-emails — those are <em>authentic but unwelcome</em>, and
+              cold-emails: those are &quot;authentic but unwelcome,&quot; and
               we&apos;ll correctly call them legitimate because they are.
             </li>
             <li>
               <strong className="text-foreground">No content classification by
               meaning.</strong>{" "}
-              We don&apos;t try to decide whether the email&apos;s <em>content</em> is
-              suspicious — only whether it carries trigger words for our cap rule.
+              We don&apos;t try to decide whether the email&apos;s actual content is
+              suspicious, only whether it carries trigger words for our cap rule.
               That&apos;s deliberate: a content-meaning model would need to phone home
               to a server, breaking the privacy promise.
             </li>

@@ -7,7 +7,7 @@ Message Loupe is a static web app for non-technical users who want a sanity chec
 ## Core promise
 
 - **Privacy.** All analysis runs in the user's browser via JavaScript. There is no server-side processing, no logging, no analytics, no cookies. The user's email is never transmitted anywhere.
-- **Honesty.** The verdict is advisory, not a guarantee. The engine can detect impersonation, lookalike domains, authentication failures, and suspicious links, but it is structurally blind to BEC sent from a compromised real account. When the message body mentions money or credentials, the verdict is capped at "Caution — verify by phone."
+- **Honesty.** The verdict is advisory, not a guarantee. The engine can detect impersonation, lookalike domains, authentication failures, and suspicious links, but it is structurally blind to BEC sent from a compromised real account. When the message body mentions money or credentials, the verdict is capped at "Caution: verify by phone."
 - **Forwarded-message guard.** A regular forward replaces the original headers with the forwarder's own. Message Loupe detects this and refuses to issue a verdict, asking the user to provide the original instead.
 
 ## Pages
