@@ -147,18 +147,28 @@ export default function MethodologyPage() {
             How we test ourselves
           </h2>
           <p className="text-muted-foreground">
-            The engine is a port of an internal triage tool that has been calibrated
-            against a curated set of real phishing samples and ground-truth analyst
-            verdicts. We carry that fixture set forward as a regression check whenever
-            the engine changes. If you find a sample where we get the wrong answer,
-            email it (as a saved file, never just the body) to{" "}
+            The rule engine ships with a regression suite: synthetic{" "}
+            <code>.eml</code> fixtures that exercise each verdict path
+            (authentication failures, brand and role impersonation, link flags,
+            the money/credential cap, the job-offer-plus-document-request pair,
+            the forwarded-message guard, and known-good ESP-routed mail). The
+            tests run on every change to make sure refactors don&apos;t silently
+            move a verdict from <em>danger</em> to <em>caution</em> on a
+            scenario we&apos;ve already documented. The fixtures are
+            constructed, not redacted real samples — they prove the engine
+            still produces the documented verdict for each rule path.
+          </p>
+          <p className="text-muted-foreground">
+            If you find a real-world email where we get the wrong answer, email
+            the saved file (never just the body — the headers are the evidence)
+            to{" "}
             <a
               href="mailto:hello@messageloupe.com"
               className="underline-offset-4 hover:underline"
             >
               hello@messageloupe.com
             </a>{" "}
-            and we&apos;ll add it to the test set.
+            and we&apos;ll turn it into a fixture.
           </p>
         </div>
       </main>
