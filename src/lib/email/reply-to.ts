@@ -78,6 +78,13 @@ export function assessReplyTo(parser: ParserResult): ReplyToCheck {
     return { email, domain, assessment: null, note: null }
   }
 
+  // Mailing lists legitimately set Reply-To to the list address on a
+  // different domain. List-Id presence is the canonical signal that this
+  // is bulk/list traffic and not a phishing campaign.
+  if (parser.listId) {
+    return { email, domain, assessment: null, note: null }
+  }
+
   if (onSkipList(fromDomain) || onSkipList(domain)) {
     return { email, domain, assessment: null, note: null }
   }
