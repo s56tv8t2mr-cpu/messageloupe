@@ -357,16 +357,12 @@ const SENDER_RULES: SenderRule[] = [
         : null,
   },
   {
-    match: ({ replyTo }) =>
-      replyTo.assessment === "strong"
-        ? { status: "fail", detail: "Reply-To impersonation" }
-        : null,
-  },
-  {
-    match: ({ replyTo }) =>
-      replyTo.assessment === "mismatch"
-        ? { status: "fail", detail: "Reply-To differs" }
-        : null,
+    match: ({ replyTo }) => {
+      if (!replyTo.assessment) return null
+      const detail =
+        replyTo.assessment === "strong" ? "Reply-To impersonation" : "Reply-To differs"
+      return { status: "fail", detail }
+    },
   },
   {
     match: ({ parser }) => {
