@@ -357,14 +357,16 @@ const SENDER_RULES: SenderRule[] = [
         : null,
   },
   {
-    match: ({ parser }) => {
-      const cross =
-        parser.replyToDomain &&
-        parser.sendingDomain &&
-        !sameRegistrable(parser.replyToDomain, parser.sendingDomain) &&
-        !parser.listId
-      return cross ? { status: "warn", detail: "Reply-To differs" } : null
-    },
+    match: ({ replyTo }) =>
+      replyTo.assessment === "strong"
+        ? { status: "fail", detail: "Reply-To impersonation" }
+        : null,
+  },
+  {
+    match: ({ replyTo }) =>
+      replyTo.assessment === "mismatch"
+        ? { status: "fail", detail: "Reply-To differs" }
+        : null,
   },
   {
     match: ({ parser }) => {

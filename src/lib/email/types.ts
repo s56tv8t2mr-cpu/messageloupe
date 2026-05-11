@@ -125,6 +125,15 @@ export interface ForwardDetection {
   reason?: "subject-prefix" | "body-separator" | "from-self"
 }
 
+export type ReplyToAssessment = "strong" | "mismatch" | null
+
+export interface ReplyToCheck {
+  email: string | null
+  domain: string | null
+  assessment: ReplyToAssessment
+  note: string | null
+}
+
 export interface Verdict {
   tier: VerdictTier
   headline: string
@@ -146,5 +155,6 @@ export interface Analysis {
   content: ContentClassification
   forward: ForwardDetection
   trust: SenderTrustSignals
+  replyTo: ReplyToCheck
   verdict: Verdict
 }
