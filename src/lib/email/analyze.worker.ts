@@ -15,10 +15,10 @@ export type AnalyzeResponse =
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope
 
-ctx.onmessage = (event: MessageEvent<AnalyzeRequest>) => {
+ctx.onmessage = async (event: MessageEvent<AnalyzeRequest>) => {
   const { id, source } = event.data
   try {
-    const result = analyze(source)
+    const result = await analyze(source)
     const response: AnalyzeResponse = { id, ok: true, result }
     ctx.postMessage(response)
   } catch (err) {
