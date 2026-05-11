@@ -233,12 +233,97 @@ describe("clean ESP-routed mail", () => {
 })
 
 describe("Reply-To mismatch", () => {
+  // Build a minimal EML with optional reply-to and list-id. Centralizing the
+  // header construction here keeps each test focused on the one input that
+  // distinguishes it from the others.
+  const replyToEml = (opts: {
+    from: string
+    fromDomain: string
+    replyTo?: string
+    listId?: string
+  }) =>
+    buildEml({
+      from: opts.from,
+      replyTo: opts.replyTo,
+      listId: opts.listId,
+      authResults: authResults({ domain: opts.fromDomain }),
+    })
+
+  // Negative cases: every "no flag" scenario asserts the same three things
+  // (null assessment, neither signal fires). Driving them from a table also
+  // collapses lines that would otherwise look identical to a duplication
+  // detector.
+  const NO_FLAG_CASES: Array<{
+    name: string
+    eml: () => string
+  }> = [
+    {
+      name: "Reply-To on ESP skip-list (sendgrid.net)",
+      eml: () =>
+        replyToEml({
+          from: "Acme <hello@acme.com>",
+          fromDomain: "acme.com",
+          replyTo: "reply@sendgrid.net",
+        }),
+    },
+    {
+      name: "Reply-To on noreply. subdomain",
+      eml: () =>
+        replyToEml({
+          from: "Acme <hello@acme.com>",
+          fromDomain: "acme.com",
+          replyTo: "do-not-reply@noreply.acme-mail.com",
+        }),
+    },
+    {
+      name: "List-Id present (mailing list)",
+      eml: () =>
+        replyToEml({
+          from: "Vendor <hello@vendor-a.example>",
+          fromDomain: "vendor-a.example",
+          replyTo: "list@vendor-b.example",
+          listId: "<announce.vendor-a.example>",
+        }),
+    },
+    {
+      name: "same registrable domain (subdomain → parent)",
+      eml: () =>
+        replyToEml({
+          from: "Acme News <hello@news.acme.com>",
+          fromDomain: "news.acme.com",
+          replyTo: "support@acme.com",
+        }),
+    },
+    {
+      name: "Reply-To matches From domain exactly",
+      eml: () =>
+        replyToEml({
+          from: "Acme <hello@acme.com>",
+          fromDomain: "acme.com",
+          replyTo: "support@acme.com",
+        }),
+    },
+    {
+      name: "no Reply-To header",
+      eml: () =>
+        replyToEml({ from: "Acme <hello@acme.com>", fromDomain: "acme.com" }),
+    },
+  ]
+
+  it.each(NO_FLAG_CASES)("$name → no flag", ({ eml }) => {
+    const a = analyze(eml())
+    const signals = a.verdict.reasons.map((r) => r.signal)
+    expect(a.replyTo.assessment).toBeNull()
+    expect(signals).not.toContain("replyto-mismatch")
+    expect(signals).not.toContain("replyto-strong-mismatch")
+  })
+
   it("same local-part, different domain → strong, danger", () => {
     const a = check(
-      buildEml({
+      replyToEml({
         from: "Andrew Campbell <andrew@longisland.com>",
+        fromDomain: "longisland.com",
         replyTo: "andrew@ceocoach-int.com",
-        authResults: authResults({ domain: "longisland.com" }),
       }),
       { tier: "danger", reason: "replyto-strong-mismatch" },
     )
@@ -248,89 +333,14 @@ describe("Reply-To mismatch", () => {
 
   it("different local-part and different domain → mismatch, danger", () => {
     const a = check(
-      buildEml({
+      replyToEml({
         from: "Vendor <hello@vendor-a.example>",
+        fromDomain: "vendor-a.example",
         replyTo: "ops@vendor-b-payments.example",
-        authResults: authResults({ domain: "vendor-a.example" }),
       }),
       { tier: "danger", reason: "replyto-mismatch" },
     )
     expect(a.replyTo.assessment).toBe("mismatch")
-  })
-
-  it("Reply-To on ESP skip-list (sendgrid.net) → no flag", () => {
-    const a = check(
-      buildEml({
-        from: "Acme <hello@acme.com>",
-        replyTo: "reply@sendgrid.net",
-        authResults: authResults({ domain: "acme.com" }),
-      }),
-      { notReason: "replyto-strong-mismatch" },
-    )
-    expect(a.replyTo.assessment).toBeNull()
-    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain("replyto-mismatch")
-  })
-
-  it("Reply-To on noreply. subdomain → no flag", () => {
-    const a = check(
-      buildEml({
-        from: "Acme <hello@acme.com>",
-        replyTo: "do-not-reply@noreply.acme-mail.com",
-        authResults: authResults({ domain: "acme.com" }),
-      }),
-      { notReason: "replyto-mismatch" },
-    )
-    expect(a.replyTo.assessment).toBeNull()
-  })
-
-  it("List-Id present (mailing list) suppresses the flag", () => {
-    const a = check(
-      buildEml({
-        from: "Vendor <hello@vendor-a.example>",
-        replyTo: "list@vendor-b.example",
-        listId: "<announce.vendor-a.example>",
-        authResults: authResults({ domain: "vendor-a.example" }),
-      }),
-      { notReason: "replyto-mismatch" },
-    )
-    expect(a.replyTo.assessment).toBeNull()
-    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain("replyto-strong-mismatch")
-  })
-
-  it("same registrable domain (subdomain → parent) → no flag", () => {
-    const a = check(
-      buildEml({
-        from: "Acme News <hello@news.acme.com>",
-        replyTo: "support@acme.com",
-        authResults: authResults({ domain: "news.acme.com" }),
-      }),
-      { notReason: "replyto-mismatch" },
-    )
-    expect(a.replyTo.assessment).toBeNull()
-    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain("replyto-strong-mismatch")
-  })
-
-  it("Reply-To matches From domain → no flag", () => {
-    const a = check(
-      buildEml({
-        from: "Acme <hello@acme.com>",
-        replyTo: "support@acme.com",
-        authResults: authResults({ domain: "acme.com" }),
-      }),
-      { notReason: "replyto-mismatch" },
-    )
-    expect(a.replyTo.assessment).toBeNull()
-  })
-
-  it("no Reply-To header → no flag", () => {
-    const a = analyze(
-      buildEml({
-        from: "Acme <hello@acme.com>",
-        authResults: authResults({ domain: "acme.com" }),
-      }),
-    )
-    expect(a.replyTo.assessment).toBeNull()
-    expect(a.replyTo.email).toBeNull()
   })
 })
 

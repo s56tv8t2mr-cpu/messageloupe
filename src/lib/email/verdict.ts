@@ -216,16 +216,9 @@ export function computeVerdict({
   //   mismatch — domains differ, local-parts don't match.
   // Both are high-severity per the validated playbook (~100% / ~89%
   // precision on 250 real phishing samples after skip list).
-  if (replyTo.assessment === "strong" && replyTo.note) {
+  if (replyTo.assessment && replyTo.note) {
     reasons.push({
-      signal: "replyto-strong-mismatch",
-      detail: replyTo.note,
-      weight: "high",
-    })
-    tier = escalate(tier, "danger")
-  } else if (replyTo.assessment === "mismatch" && replyTo.note) {
-    reasons.push({
-      signal: "replyto-mismatch",
+      signal: replyTo.assessment === "strong" ? "replyto-strong-mismatch" : "replyto-mismatch",
       detail: replyTo.note,
       weight: "high",
     })
