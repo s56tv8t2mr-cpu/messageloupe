@@ -17,6 +17,7 @@
 // Tuned against ~250 real phishing samples in a sibling project. Expected
 // precision after skip list: 100% on 'strong', ~89% on 'mismatch'.
 
+import { sameRegistrable } from "./domain"
 import type { ParserResult } from "./types"
 
 export type ReplyToAssessment = "strong" | "mismatch" | null
@@ -74,7 +75,10 @@ export function assessReplyTo(parser: ParserResult): ReplyToCheck {
     return { email, domain, assessment: null, note: null }
   }
 
-  if (domain.toLowerCase() === fromDomain.toLowerCase()) {
+  // Same registrable domain (including subdomain → parent like
+  // hello@news.acme.com / support@acme.com) is normal organizational
+  // routing, not phishing.
+  if (sameRegistrable(domain, fromDomain)) {
     return { email, domain, assessment: null, note: null }
   }
 
