@@ -18,13 +18,13 @@ import type {
   ContentClassification,
   ForwardDetection,
   ParserResult,
+  ReplyToCheck,
   SenderTrustSignals,
   Verdict,
   VerdictReason,
   VerdictTier,
 } from "./types"
 import { shouldCapVerdict } from "./classify-content"
-import { registrableDomain } from "./domain"
 
 const HIGH_RISK_LINK_FLAGS = new Set([
   "mismatch",
@@ -46,6 +46,7 @@ interface VerdictInputs {
   content: ContentClassification
   forward: ForwardDetection
   trust: SenderTrustSignals
+  replyTo: ReplyToCheck
 }
 
 export function computeVerdict({
@@ -55,6 +56,7 @@ export function computeVerdict({
   content,
   forward,
   trust,
+  replyTo,
 }: VerdictInputs): Verdict {
   if (forward.isForwarded) {
     return {
@@ -203,23 +205,31 @@ export function computeVerdict({
     tier = escalate(tier, "caution")
   }
 
-  // ---- Reply-To routing across distinct registrable domains ----
-  // Phishers commonly send via one infrastructure (e.g., MailerLite-routed
-  // domain A) while routing victim replies to a separate attacker-owned
-  // domain B. Legitimate newsletters keep Reply-To inside the same
-  // registrable as the sender. We carve out actual mailing lists via
-  // List-Id and the very common ESP "noreply / replies@<esp>" pattern.
-  if (parser.sendingDomain && parser.replyToDomain) {
-    const fromReg = registrableDomain(parser.sendingDomain)
-    const replyReg = registrableDomain(parser.replyToDomain)
-    if (fromReg && replyReg && fromReg !== replyReg && !parser.listId) {
-      reasons.push({
-        signal: "replyto-cross-domain",
-        detail: `Replies would go to ${parser.replyToDomain}, a different domain than the visible sender (${parser.sendingDomain}). Phishing campaigns frequently split sending and receiving across multiple attacker-controlled domains; legitimate businesses rarely do this. If both domains share a brand-like name on different TLDs, that's a strong signal of a coordinated impersonation campaign.`,
-        weight: "medium",
-      })
-      tier = escalate(tier, "caution")
-    }
+  // ---- Reply-To mismatch (two-tier: strong / mismatch) ----
+  // Phishers commonly send via one infrastructure (often a hijacked or
+  // lookalike sending domain) while routing victim replies to a separate
+  // attacker-owned address. `assessReplyTo` applies the ESP/notification
+  // skip list and distinguishes:
+  //   strong   — same local-part, different domain (andrew@a.com vs
+  //              andrew@b.com): hallmark of compromised-account /
+  //              brand-impersonation abuse.
+  //   mismatch — domains differ, local-parts don't match.
+  // Both are high-severity per the validated playbook (~100% / ~89%
+  // precision on 250 real phishing samples after skip list).
+  if (replyTo.assessment === "strong" && replyTo.note) {
+    reasons.push({
+      signal: "replyto-strong-mismatch",
+      detail: replyTo.note,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  } else if (replyTo.assessment === "mismatch" && replyTo.note) {
+    reasons.push({
+      signal: "replyto-mismatch",
+      detail: replyTo.note,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
   }
 
   // ---- Link flags ----

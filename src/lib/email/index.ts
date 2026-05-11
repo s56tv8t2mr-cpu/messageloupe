@@ -11,6 +11,7 @@ import { classifyContent } from "./classify-content"
 import { detectForward } from "./detect-forward"
 import { evaluateSenderTrust } from "./sender-trust"
 import { extractAttachments } from "./attachments"
+import { assessReplyTo } from "./reply-to"
 import { computeVerdict } from "./verdict"
 
 export { sameRegistrable } from "./domain"
@@ -47,9 +48,10 @@ export function analyze(source: string): Analysis {
   const content = classifyContent(`${parser.bodyText ?? ""}\n${parser.subject ?? ""}`)
   const forward = detectForward(parser)
   const trust = evaluateSenderTrust(parser)
-  const verdict = computeVerdict({ parser, links, attachments, content, forward, trust })
+  const replyTo = assessReplyTo(parser)
+  const verdict = computeVerdict({ parser, links, attachments, content, forward, trust, replyTo })
 
-  return { parser, links, attachments, content, forward, trust, verdict }
+  return { parser, links, attachments, content, forward, trust, replyTo, verdict }
 }
 
 export type {
@@ -65,4 +67,6 @@ export type {
   ContentClassification,
   ForwardDetection,
   SenderTrustSignals,
+  ReplyToCheck,
+  ReplyToAssessment,
 } from "./types"
