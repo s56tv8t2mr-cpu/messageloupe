@@ -283,6 +283,33 @@ describe("Reply-To mismatch", () => {
     expect(a.replyTo.assessment).toBeNull()
   })
 
+  it("List-Id present (mailing list) suppresses the flag", () => {
+    const a = check(
+      buildEml({
+        from: "Vendor <hello@vendor-a.example>",
+        replyTo: "list@vendor-b.example",
+        listId: "<announce.vendor-a.example>",
+        authResults: authResults({ domain: "vendor-a.example" }),
+      }),
+      { notReason: "replyto-mismatch" },
+    )
+    expect(a.replyTo.assessment).toBeNull()
+    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain("replyto-strong-mismatch")
+  })
+
+  it("same registrable domain (subdomain → parent) → no flag", () => {
+    const a = check(
+      buildEml({
+        from: "Acme News <hello@news.acme.com>",
+        replyTo: "support@acme.com",
+        authResults: authResults({ domain: "news.acme.com" }),
+      }),
+      { notReason: "replyto-mismatch" },
+    )
+    expect(a.replyTo.assessment).toBeNull()
+    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain("replyto-strong-mismatch")
+  })
+
   it("Reply-To matches From domain → no flag", () => {
     const a = check(
       buildEml({
