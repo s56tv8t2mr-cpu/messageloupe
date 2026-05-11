@@ -12,6 +12,7 @@ import { detectForward } from "./detect-forward"
 import { evaluateSenderTrust } from "./sender-trust"
 import { extractAttachments } from "./attachments"
 import { assessReplyTo } from "./reply-to"
+import { lookupMx } from "./mx-lookup"
 import { computeVerdict } from "./verdict"
 
 export { sameRegistrable } from "./domain"
@@ -35,9 +36,10 @@ export const FLAG_LABELS = RAW_FLAG_LABELS as Record<LinkFlag, FlagLabel>
  *   - Raw RFC-822 headers + body
  *   - Headers-only (e.g. from "Show Original" / "View Source")
  *
- * Throws if `source` is empty.
+ * Issues one DNS-over-HTTPS MX lookup for the visible sender domain
+ * (skipped for public webmail). Throws if `source` is empty.
  */
-export function analyze(source: string): Analysis {
+export async function analyze(source: string): Promise<Analysis> {
   if (!source || !source.trim()) {
     throw new Error("Empty source: paste headers or upload a .eml file.")
   }
@@ -49,9 +51,21 @@ export function analyze(source: string): Analysis {
   const forward = detectForward(parser)
   const trust = evaluateSenderTrust(parser)
   const replyTo = assessReplyTo(parser)
-  const verdict = computeVerdict({ parser, links, attachments, content, forward, trust, replyTo })
+  // Skip the MX lookup for public webmail — billions of gmail.com /
+  // outlook.com senders all share inbound MX with no signal value.
+  const mx = trust.fromPublicWebmail ? null : await lookupMx(parser.sendingDomain)
+  const verdict = computeVerdict({
+    parser,
+    links,
+    attachments,
+    content,
+    forward,
+    trust,
+    replyTo,
+    mx,
+  })
 
-  return { parser, links, attachments, content, forward, trust, replyTo, verdict }
+  return { parser, links, attachments, content, forward, trust, replyTo, mx, verdict }
 }
 
 export type {
@@ -69,4 +83,6 @@ export type {
   SenderTrustSignals,
   ReplyToCheck,
   ReplyToAssessment,
+  MxLookup,
+  MxRecord,
 } from "./types"

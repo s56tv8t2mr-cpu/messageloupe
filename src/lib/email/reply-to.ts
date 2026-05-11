@@ -6,7 +6,8 @@
 //
 //   strong   — From and Reply-To share the same local-part but differ in
 //              domain (e.g. andrew@longisland.com vs andrew@ceocoach-int.com).
-//              Hallmark of compromised-account / brand-impersonation abuse.
+//              Hallmark of brand-impersonation abuse — replies are redirected
+//              to an attacker-controlled mailbox.
 //   mismatch — Domains differ, local-parts don't match. Lower confidence,
 //              still worth surfacing.
 //
@@ -101,7 +102,7 @@ export function assessReplyTo(parser: ParserResult): ReplyToCheck {
       email,
       domain,
       assessment: "strong",
-      note: `Reply-To uses a different domain (${domain}) but the same name as the visible sender. This is a hallmark of compromised-account or brand-impersonation attacks.`,
+      note: `Reply-To uses a different domain (${domain}) but the same name as the visible sender — a common pattern in brand-impersonation attacks designed to make redirected replies look natural.`,
     }
   }
 

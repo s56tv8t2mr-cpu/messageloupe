@@ -17,6 +17,7 @@ import type {
   AttachmentInfo,
   ContentClassification,
   ForwardDetection,
+  MxLookup,
   ParserResult,
   ReplyToCheck,
   SenderTrustSignals,
@@ -25,6 +26,7 @@ import type {
   VerdictTier,
 } from "./types"
 import { shouldCapVerdict } from "./classify-content"
+import { sameRegistrable } from "./domain"
 
 const HIGH_RISK_LINK_FLAGS = new Set([
   "mismatch",
@@ -47,6 +49,28 @@ interface VerdictInputs {
   forward: ForwardDetection
   trust: SenderTrustSignals
   replyTo: ReplyToCheck
+  mx: MxLookup | null
+}
+
+// True iff the visible sender domain is authenticated by SPF, DKIM, or
+// DMARC pass aligned to the sender domain. Used to gate the MX-based
+// brand-impersonation reasons: a legitimate sender can host inbound mail
+// at Google and authorize SendGrid in SPF for outbound — that split is
+// normal and not impersonation. The auth gate is what converts an MX
+// mismatch from "suspicious" to "the domain is being spoofed."
+function senderAuthenticates(parser: ParserResult): boolean {
+  if (parser.dmarcResult === "pass") return true
+  if (
+    parser.spfResult === "pass" &&
+    sameRegistrable(parser.spfMailFromDomain, parser.sendingDomain)
+  )
+    return true
+  if (
+    parser.dkimResult === "pass" &&
+    sameRegistrable(parser.dkimHeaderDomain, parser.sendingDomain)
+  )
+    return true
+  return false
 }
 
 export function computeVerdict({
@@ -57,6 +81,7 @@ export function computeVerdict({
   forward,
   trust,
   replyTo,
+  mx,
 }: VerdictInputs): Verdict {
   if (forward.isForwarded) {
     return {
@@ -223,6 +248,42 @@ export function computeVerdict({
       weight: "high",
     })
     tier = escalate(tier, "danger")
+  }
+
+  // ---- MX-based brand-impersonation detection ----
+  // Discriminator: the visible sender domain's *inbound* MX records resolve
+  // to one provider (e.g. Google), but the *outbound* delivery came from an
+  // unrelated third-party ESP (e.g. SendGrid). Combined with no domain
+  // authentication, this is the signature of a forged-sender attack where
+  // the domain owner is the victim, not the source.
+  //
+  // Auth gate: if SPF/DKIM/DMARC pass aligned to the sender domain, the
+  // ESP is authorized — that's a normal split-inbound/outbound setup, not
+  // impersonation. Without the gate, every legitimately-authorized
+  // marketing email through SendGrid would flag.
+  const senderDomain = parser.sendingDomain
+  const service = parser.sendingService
+  if (
+    !senderAuthenticates(parser) &&
+    senderDomain &&
+    service &&
+    parser.serviceIdentified
+  ) {
+    if (mx?.status === "done" && mx.provider && mx.provider.toLowerCase() !== service.toLowerCase()) {
+      reasons.push({
+        signal: "brand-impersonation-confirmed",
+        detail: `${senderDomain}'s MX records point to ${mx.provider}, but this message was delivered by ${service}. The visible sender domain is being spoofed by a third party.`,
+        weight: "high",
+      })
+      tier = escalate(tier, "danger")
+    } else if (replyTo.assessment === "strong") {
+      reasons.push({
+        signal: "brand-impersonation-likely",
+        detail: `${service} delivered this message, but ${senderDomain} has no authentication tying it to ${service}. Combined with the Reply-To redirect, this looks like third-party brand impersonation.`,
+        weight: "medium",
+      })
+      tier = escalate(tier, "caution")
+    }
   }
 
   // ---- Link flags ----

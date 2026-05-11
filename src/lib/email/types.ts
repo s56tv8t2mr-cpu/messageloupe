@@ -134,6 +134,20 @@ export interface ReplyToCheck {
   note: string | null
 }
 
+export interface MxRecord {
+  priority: number | null
+  host: string
+}
+
+export interface MxLookup {
+  domain: string
+  hosts: string[]
+  records: MxRecord[]
+  provider: string | null
+  status: "pending" | "done" | "error"
+  error?: string
+}
+
 export interface Verdict {
   tier: VerdictTier
   headline: string
@@ -156,5 +170,6 @@ export interface Analysis {
   forward: ForwardDetection
   trust: SenderTrustSignals
   replyTo: ReplyToCheck
+  mx: MxLookup | null
   verdict: Verdict
 }
