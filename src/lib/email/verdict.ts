@@ -272,17 +272,10 @@ export function computeVerdict({
     if (mx?.status === "done" && mx.provider && mx.provider.toLowerCase() !== service.toLowerCase()) {
       reasons.push({
         signal: "brand-impersonation-confirmed",
-        detail: `${senderDomain}'s MX records point to ${mx.provider}, but this message was delivered by ${service}. The visible sender domain is being spoofed by a third party.`,
+        detail: `${senderDomain}'s MX records point to ${mx.provider}, but this message was delivered by ${service}. This strongly suggests the visible sender domain is being impersonated by a third party.`,
         weight: "high",
       })
       tier = escalate(tier, "danger")
-    } else if (replyTo.assessment === "strong") {
-      reasons.push({
-        signal: "brand-impersonation-likely",
-        detail: `${service} delivered this message, but ${senderDomain} has no authentication tying it to ${service}. Combined with the Reply-To redirect, this looks like third-party brand impersonation.`,
-        weight: "medium",
-      })
-      tier = escalate(tier, "caution")
     }
   }
 

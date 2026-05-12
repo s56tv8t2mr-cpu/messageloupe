@@ -110,6 +110,22 @@ export default function MethodologyPage() {
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
+            The one network request
+          </h2>
+          <p className="text-muted-foreground">
+            One exception to the &quot;nothing leaves the browser&quot; rule: when
+            a non-webmail sender domain is present, the analyzer queries
+            Google&apos;s DNS-over-HTTPS resolver for that domain&apos;s MX
+            records. Only the domain name is sent; no message content, headers,
+            recipient, or body is included, and because the request goes from
+            your browser directly to Google, your IP isn&apos;t exposed by a
+            Message Loupe server in the path. The MX answer is what tells us
+            whether the visible sender domain hosts inbound mail at one
+            provider while a third party delivered the message — the
+            discriminator for the brand-impersonation rule.
+          </p>
+
+          <h2 className="text-foreground mt-10 text-xl font-semibold">
             What we deliberately don&apos;t do
           </h2>
           <ul className="text-muted-foreground space-y-1.5">

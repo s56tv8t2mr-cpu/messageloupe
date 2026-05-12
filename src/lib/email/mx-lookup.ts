@@ -15,6 +15,12 @@
 // Provider classification is a closed list. First match wins; unmatched
 // hosts → provider: null (we won't claim a mismatch on a provider we don't
 // recognize).
+//
+// Lookup errors never affect the verdict. The verdict engine's
+// auth-alignment gate dominates: only an aligned SPF/DKIM/DMARC pass plus
+// a positively-classified MX/service mismatch fires the confirmed reason.
+// A timeout, HTTP error, NXDOMAIN, or null provider all leave the MX block
+// silent — there's no fallback that escalates without a successful lookup.
 
 export interface MxRecord {
   priority: number | null
@@ -39,7 +45,10 @@ interface ProviderPattern {
 const PROVIDER_MX_PATTERNS: readonly ProviderPattern[] = [
   {
     provider: "Google",
-    match: (h) => /(^|\.)aspmx\.l\.google\.com$|(^|\.)googlemail\.com$|(^|\.)google\.com$/i.test(h),
+    match: (h) =>
+      /(^|\.)aspmx\.l\.google\.com$|(^|\.)aspmx[0-9]*\.googlemail\.com$|(^|\.)googlemail\.com$/i.test(
+        h,
+      ),
   },
   {
     provider: "Microsoft 365",
@@ -75,7 +84,7 @@ const PROVIDER_MX_PATTERNS: readonly ProviderPattern[] = [
   },
   {
     provider: "Yahoo",
-    match: (h) => /(^|\.)yahoodns\.net$|(^|\.)yahoo\.com$/i.test(h),
+    match: (h) => /(^|\.)yahoodns\.net$/i.test(h),
   },
   {
     provider: "GoDaddy",
@@ -87,6 +96,9 @@ const PROVIDER_MX_PATTERNS: readonly ProviderPattern[] = [
   },
 ]
 
+// Session-memory cache only; no TTL, no persistence. Acceptable because the
+// analyzer is per-message and a stale MX would only mislabel during the same
+// browser session.
 const cache = new Map<string, Promise<MxLookup>>()
 
 /** Test-only: clear the in-flight/result cache between cases. */
@@ -109,13 +121,17 @@ interface DnsAnswer {
 }
 
 interface DnsResponse {
+  Status?: number
   Answer?: DnsAnswer[]
 }
 
 async function doLookup(domain: string): Promise<MxLookup> {
   try {
     const url = `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`
-    const res = await fetch(url, { headers: { Accept: "application/dns-json" } })
+    const res = await fetch(url, {
+      headers: { Accept: "application/dns-json" },
+      signal: AbortSignal.timeout(3000),
+    })
     if (!res.ok) {
       return {
         domain,
@@ -127,6 +143,18 @@ async function doLookup(domain: string): Promise<MxLookup> {
       }
     }
     const json = (await res.json()) as DnsResponse
+    // DNS-over-HTTPS Status: 0 = NOERROR, 3 = NXDOMAIN, others = various
+    // resolver failures. Any non-zero status means "no usable answer."
+    if (typeof json.Status === "number" && json.Status !== 0) {
+      return {
+        domain,
+        hosts: [],
+        records: [],
+        provider: null,
+        status: "error",
+        error: `DNS Status ${json.Status}`,
+      }
+    }
     const records: MxRecord[] = []
     for (const ans of json.Answer ?? []) {
       if (ans.type !== 15) continue
@@ -163,9 +191,14 @@ async function doLookup(domain: string): Promise<MxLookup> {
 }
 
 /**
- * Look up the MX records for `domain` over DNS-over-HTTPS. Returns null on
- * empty input. The result Promise is cached (per lowercase domain) for the
- * lifetime of the module so repeat lookups within a session are free.
+ * Lookup the MX records for the visible Header From domain. Do not pass
+ * Return-Path, SPF MAIL FROM, DKIM d=, or any inferred ESP/service domain —
+ * MX describes inbound mail routing for the visible sender, and only the
+ * visible sender's MX/delivery split is the discriminator.
+ *
+ * Returns null on empty input. The result Promise is cached (per lowercase
+ * domain) for the lifetime of the module so repeat lookups within a session
+ * are free.
  *
  * Public-webmail gating (don't bother looking up gmail.com etc.) is the
  * caller's responsibility — this module doesn't know which domains are
@@ -184,10 +217,14 @@ export function lookupMx(
 }
 
 /**
+ * Intentionally conservative string compare. The verdict engine layers an
+ * SPF/DKIM/DMARC alignment gate on top, which absorbs the equivalent-provider
+ * edge cases (Google Workspace inbound + Gmail outbound, Microsoft 365
+ * inbound + Outlook outbound, etc.) — those all authenticate, so the gate
+ * suppresses the false positive.
+ *
  * True iff the lookup completed, classified a provider, and that provider
- * doesn't match the ESP that actually delivered the message. The verdict
- * engine layers an authentication gate on top before treating this as a
- * confident impersonation signal.
+ * doesn't match the ESP that actually delivered the message.
  */
 export function mxConflictsWithDelivery(
   mx: MxLookup | null,

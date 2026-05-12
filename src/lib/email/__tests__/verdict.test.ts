@@ -415,9 +415,9 @@ describe("MX-based brand impersonation", () => {
   it("auth gate: SPF pass aligned with sender domain → NO impersonation reason", async () => {
     // Same shape as the confirmed case but the From domain authorizes the
     // ESP via aligned SPF. That's a normal split-inbound/outbound setup and
-    // must NOT fire either of the new reasons.
+    // must NOT fire the confirmed reason.
     mockFetchMxAnswer([mxAnswer(1, "aspmx.l.google.com")])
-    const a = await check(
+    await check(
       buildEml({
         from: "Andrew Campbell <andrew@longisland.com>",
         returnPath: "bounces@longisland.com",
@@ -432,30 +432,6 @@ describe("MX-based brand impersonation", () => {
       }),
       { notReason: "brand-impersonation-confirmed" },
     )
-    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain(
-      "brand-impersonation-likely",
-    )
-  })
-
-  it("MX unavailable + strong Reply-To + ESP + no auth → caution, brand-impersonation-likely", async () => {
-    // fetch resolves to an error; lookupMx returns status:'error'.
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("upstream", { status: 502 })),
-    )
-    const a = await check(
-      buildEml({
-        from: "Andrew Campbell <andrew@longisland.com>",
-        replyTo: "andrew@ceocoach-int.com",
-        returnPath: "bounces@sendgrid.net",
-        ...sendgridDelivery,
-        authResults:
-          "mx.recipient.org; spf=pass smtp.mailfrom=sendgrid.net; dkim=none; dmarc=fail header.from=longisland.com",
-      }),
-      { reason: "brand-impersonation-likely" },
-    )
-    expect(a.mx?.status).toBe("error")
-    expect(a.verdict.tier).not.toBe("safe")
   })
 
   it("public webmail sender skips the MX lookup entirely", async () => {
@@ -476,7 +452,7 @@ describe("MX-based brand impersonation", () => {
     // not fire the confirmed reason. Use a non-webmail domain so the lookup
     // actually runs.
     mockFetchMxAnswer([mxAnswer(1, "aspmx.l.google.com")])
-    const a = await check(
+    await check(
       buildEml({
         from: "Acme Newsletter <hello@news.acme.com>",
         returnPath: "bounces@news.acme.com",
@@ -493,9 +469,6 @@ describe("MX-based brand impersonation", () => {
         }),
       }),
       { notReason: "brand-impersonation-confirmed" },
-    )
-    expect(a.verdict.reasons.map((r) => r.signal)).not.toContain(
-      "brand-impersonation-likely",
     )
   })
 })

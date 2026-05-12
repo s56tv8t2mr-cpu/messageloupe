@@ -1,8 +1,15 @@
 // Public analysis API for Message Loupe.
 //
 // Single entry point: pass raw RFC-822 text (a .eml file's contents OR raw
-// headers + body OR just headers), receive a complete Analysis. All work
-// happens client-side; nothing leaves the browser.
+// headers + body OR just headers), receive a complete Analysis. Parsing,
+// link analysis, content classification, and verdict synthesis all run
+// client-side — the message contents, headers, and body never leave the
+// browser. The one exception is the MX lookup: when the visible sender
+// is a non-webmail domain, this module issues a single DNS-over-HTTPS
+// query to https://dns.google/resolve carrying only the sender domain
+// name (no headers, no body, no recipient, no message-id). The request
+// goes from the user's browser directly to Google; no Message Loupe
+// server is in the path.
 
 import { parseEmlLocally } from "./parser.js"
 import { extractLinks, FLAG_LABELS as RAW_FLAG_LABELS } from "./linkAnalyzer.js"
