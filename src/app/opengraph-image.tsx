@@ -9,8 +9,6 @@ export const dynamic = "force-static"
 // the static export. No runtime cost, no edge function.
 
 export default async function OpengraphImage() {
-  // Load Geist Bold once for the headline. Inter is a close enough
-  // fallback for the smaller body if Geist fetch ever fails.
   const [geistBold, geistRegular] = await Promise.all([
     fetch(
       "https://github.com/vercel/geist-font/raw/main/packages/next/dist/fonts/geist-sans/Geist-Bold.ttf",
@@ -50,11 +48,11 @@ export default async function OpengraphImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "72px 80px",
-          backgroundColor: "#F7F8FB",
+          backgroundColor: "#0A0D16",
           backgroundImage:
-            "radial-gradient(ellipse 800px 500px at 80% 0%, rgba(56,88,176,0.10), transparent 70%)",
+            "radial-gradient(ellipse 900px 600px at 85% -10%, rgba(108,140,230,0.22), transparent 65%), radial-gradient(ellipse 600px 400px at 0% 110%, rgba(108,140,230,0.08), transparent 60%)",
           fontFamily: "Geist, sans-serif",
-          color: "#1A1F2E",
+          color: "#F4F6FA",
         }}
       >
         {/* Brand row */}
@@ -62,15 +60,15 @@ export default async function OpengraphImage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 16,
+            gap: 14,
           }}
         >
           <svg
-            width="48"
-            height="48"
+            width="40"
+            height="40"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#3858B0"
+            stroke="#7B9CF0"
             strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -84,46 +82,67 @@ export default async function OpengraphImage() {
           </svg>
           <span
             style={{
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: 700,
               letterSpacing: "-0.02em",
+              color: "#E6E9F2",
             }}
           >
             Message Loupe
           </span>
         </div>
 
-        {/* Headline + tagline */}
+        {/* Verdict chip + headline + tagline */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 24,
+            gap: 28,
           }}
         >
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "8px 14px",
+                borderRadius: 999,
+                backgroundColor: "rgba(247, 89, 89, 0.12)",
+                border: "1px solid rgba(247, 89, 89, 0.32)",
+                color: "#FF8A8A",
+                fontSize: 18,
+                fontWeight: 700,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+              }}
+            >
+              Likely Fake
+            </div>
+          </div>
           <h1
             style={{
-              fontSize: 104,
+              fontSize: 112,
               fontWeight: 700,
-              letterSpacing: "-0.035em",
-              lineHeight: 1.02,
+              letterSpacing: "-0.04em",
+              lineHeight: 1.0,
               margin: 0,
+              color: "#FFFFFF",
             }}
           >
             Is this a fake email?
           </h1>
           <p
             style={{
-              fontSize: 32,
+              fontSize: 30,
               fontWeight: 400,
-              lineHeight: 1.35,
-              color: "#4B5366",
+              lineHeight: 1.4,
+              color: "#9AA3B8",
               margin: 0,
-              maxWidth: 920,
+              maxWidth: 940,
             }}
           >
-            A free, browser-only second opinion. Drop a saved email, get a
-            plain-English verdict. Nothing leaves your device.
+            Drop a saved email, get a plain-English verdict in seconds.
+            Runs in your browser. Nothing leaves your device.
           </p>
         </div>
 
@@ -137,7 +156,7 @@ export default async function OpengraphImage() {
             color: "#6B7387",
           }}
         >
-          <span style={{ fontWeight: 700, color: "#3858B0" }}>
+          <span style={{ fontWeight: 700, color: "#7B9CF0" }}>
             messageloupe.com
           </span>
           <span>by Babbitt &amp; Co.</span>
