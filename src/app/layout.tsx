@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 // One canonical description, reused across <meta>, OG, and Twitter so
 // validators (and humans) see the same thing regardless of where they look.
-const SHARE_TITLE = "Message Loupe: is this email real? Free phishing checker"
+const SHARE_TITLE = "Message Loupe: is this a fake email? Free phishing checker"
 const SHARE_DESCRIPTION =
   "Drop a saved email or paste raw headers and get a plain-English verdict (Safe, Caution, or Likely Fake) in seconds. Runs entirely in your browser."
 

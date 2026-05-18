@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og"
 
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
-export const alt = "Message Loupe: is this email real?"
+export const alt = "Message Loupe: is this a fake email?"
 export const dynamic = "force-static"
 
 // Generated at build time during `next build`; ships as a static PNG in
@@ -110,7 +110,7 @@ export default async function OpengraphImage() {
               margin: 0,
             }}
           >
-            Is this email real?
+            Is this a fake email?
           </h1>
           <p
             style={{
