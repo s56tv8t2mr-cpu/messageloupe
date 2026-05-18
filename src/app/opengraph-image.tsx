@@ -45,12 +45,21 @@ export default async function OpengraphImage() {
           width: "100%",
           height: "100%",
           display: "flex",
+          backgroundColor: "#0A0D16",
+          backgroundImage:
+            "radial-gradient(ellipse 900px 600px at 85% -10%, rgba(108,140,230,0.22), transparent 65%)",
+        }}
+      >
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "72px 80px",
-          backgroundColor: "#0A0D16",
           backgroundImage:
-            "radial-gradient(ellipse 900px 600px at 85% -10%, rgba(108,140,230,0.22), transparent 65%), radial-gradient(ellipse 600px 400px at 0% 110%, rgba(108,140,230,0.08), transparent 60%)",
+            "radial-gradient(ellipse 600px 400px at 0% 110%, rgba(108,140,230,0.08), transparent 60%)",
           fontFamily: "Geist, sans-serif",
           color: "#F4F6FA",
         }}
@@ -161,6 +170,7 @@ export default async function OpengraphImage() {
           </span>
           <span>by Babbitt &amp; Co.</span>
         </div>
+      </div>
       </div>
     ),
     {
