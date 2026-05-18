@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { ScanSearch, Code2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ThemeSwitcher } from "@/components/theme-switcher"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -44,6 +45,7 @@ export function SiteHeader() {
               GitHub
             </a>
           </Button>
+          <ThemeSwitcher />
         </nav>
       </div>
     </header>
