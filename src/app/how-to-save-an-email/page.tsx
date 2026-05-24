@@ -59,7 +59,7 @@ export default function HowToSaveAnEmailPage() {
             'Click "Download message."',
             "Drop the saved .eml file into Message Loupe.",
           ]}
-          alt="Headers-only alternative: same menu, choose Show original instead, then copy everything from the page that opens and paste it into Message Loupe&apos;s Paste headers tab."
+          alt="Use the same menu, choose Show original instead, then copy everything from the page that opens and paste it into Message Loupe&apos;s Paste headers tab."
         />
 
         <Section
@@ -72,7 +72,7 @@ export default function HowToSaveAnEmailPage() {
             'Choose "Save as."',
             "Drop the saved .eml file into Message Loupe.",
           ]}
-          alt="Headers-only alternative: open the email, click ⋯ → View → View message source. Copy the entire window contents and paste into the Paste headers tab."
+          alt="Open the email, click ⋯ → View → View message source. Copy the entire window contents and paste into the Paste headers tab."
         />
 
         <Section
@@ -82,7 +82,7 @@ export default function HowToSaveAnEmailPage() {
             "Drag the email from your inbox onto your desktop. It saves as a .eml file.",
             "Drop that file into Message Loupe.",
           ]}
-          alt="Headers-only alternative: open the email, then View → Message → All Headers. Copy the headers block and paste into the Paste headers tab."
+          alt="Open the email, then View → Message → All Headers. Copy the headers block and paste into the Paste headers tab."
         />
 
         <Section
@@ -93,7 +93,7 @@ export default function HowToSaveAnEmailPage() {
             "Drop that file into Message Loupe.",
             'If the file is a .msg and Message Loupe rejects it, switch to "Paste headers" instead.',
           ]}
-          alt="Headers-only alternative: open the email, then File → Properties (Windows) or Message → Internet headers (Mac). Copy the contents of the &apos;Internet headers&apos; box and paste into the Paste headers tab."
+          alt="Open the email, then File → Properties (Windows) or Message → Internet headers (Mac). Copy the contents of the &apos;Internet headers&apos; box and paste into the Paste headers tab."
           fwdAtt="Outlook desktop also supports Forward as Attachment: Home → More → Forward as Attachment. The forwarded message arrives with the original .eml attached."
         />
 
@@ -105,7 +105,7 @@ export default function HowToSaveAnEmailPage() {
             "Choose Save As → .eml.",
             "Drop the saved file into Message Loupe.",
           ]}
-          alt="Headers-only alternative: open the email, then View → Message Source. Copy and paste the full contents."
+          alt="Open the email, then View → Message Source. Copy and paste the full contents."
           fwdAtt="Thunderbird supports Forward As → Attachment via right-click on the message."
         />
 
@@ -130,8 +130,8 @@ export default function HowToSaveAnEmailPage() {
             <em>Desktop site</em>, then use the Gmail steps above.
           </li>
           <li>
-            If neither works, wait until you&apos;re at a computer.
-            Don&apos;t&nbsp;regular-forward the email to yourself, since that breaks the
+            If neither works, wait until you&apos;re at a computer. Don&apos;t
+            regular-forward the email to yourself, since that breaks the
             analysis.
           </li>
         </ul>
