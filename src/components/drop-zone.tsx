@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const ACCEPTED_EXTENSIONS = [".eml", ".txt", ".mbox"]
+const UNSUPPORTED_EXTENSIONS = [".msg", ".pst", ".ost"]
 
 interface DropZoneProps {
   onFile: (text: string, filename: string) => void
@@ -22,11 +23,17 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
   const handleFile = React.useCallback(
     (file: File) => {
       const lowerName = file.name.toLowerCase()
+      if (UNSUPPORTED_EXTENSIONS.some((ext) => lowerName.endsWith(ext))) {
+        onError(
+          `${file.name} is an Outlook mailbox file. Message Loupe only reads .eml files or pasted raw headers.`,
+        )
+        return
+      }
+
       const isAccepted =
         ACCEPTED_EXTENSIONS.some((ext) => lowerName.endsWith(ext)) ||
         file.type === "message/rfc822" ||
-        file.type === "text/plain" ||
-        file.type === ""
+        file.type === "text/plain"
       if (!isAccepted) {
         onError(
           `${file.name} doesn't look like a saved email. Try a .eml file, or switch to "Paste headers."`,
@@ -146,7 +153,7 @@ export function DropZone({ onFile, onError, disabled }: DropZoneProps) {
           <p className="text-muted-foreground max-w-md text-base leading-relaxed">
             <span className="font-mono text-sm">.eml</span> or{" "}
             <span className="font-mono text-sm">.txt</span> with raw headers. Up to
-            25 MB. Nothing leaves your browser.
+            25 MB.
           </p>
         </div>
 

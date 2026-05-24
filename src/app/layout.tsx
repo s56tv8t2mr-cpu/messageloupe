@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 // validators (and humans) see the same thing regardless of where they look.
 const SHARE_TITLE = "Message Loupe: is this a fake email? Free phishing checker"
 const SHARE_DESCRIPTION =
-  "Drop a saved email or paste raw headers and get a plain-English verdict (Safe, Caution, or Likely Fake) in seconds. Runs entirely in your browser."
+  "Drop a saved email or paste raw headers and get a plain-English verdict (Safe, Caution, or Likely Fake) in seconds. Your email is not uploaded."
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://messageloupe.com"),

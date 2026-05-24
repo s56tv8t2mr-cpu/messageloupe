@@ -1,6 +1,6 @@
 # Message Loupe
 
-> A free, browser-only second opinion on whether an email really came from where it claims. Drop a saved email or paste raw headers; get a 3-tier verdict (Safe / Caution / Danger) with plain-English reasoning. Nothing leaves the browser.
+> A free, browser-based second opinion on whether an email really came from where it claims. Drop a saved email or paste raw headers; get a 3-tier verdict (Safe / Caution / Danger) with plain-English reasoning. The email is not uploaded; the only scan-time network call is an optional sender-domain MX lookup.
 
 Message Loupe is a static web app for non-technical users who want a sanity check on a suspicious email. It is not enterprise email security; it is a public-good utility. The analysis engine is an open-source port of an internal triage tool originally built for phishing analysts, with the analyst-grade pivots stripped out and the verdict reduced to plain language.
 

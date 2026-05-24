@@ -40,8 +40,8 @@ export function PasteHeaders({ onSubmit, disabled }: PasteHeadersProps) {
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="text-muted-foreground text-xs">
           Get this from <em>Show Original</em> (Gmail), <em>View Source</em>, or your
-          mail program&apos;s &quot;Internet headers&quot; option. Nothing leaves your
-          browser.
+          mail program&apos;s &quot;Internet headers&quot; option. Your email is not
+          uploaded.
         </p>
         <Button
           onClick={() => onSubmit(text)}

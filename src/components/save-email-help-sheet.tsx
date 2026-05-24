@@ -31,9 +31,9 @@ export function SaveEmailHelpSheet({
         <SheetHeader>
           <SheetTitle>How to save an email for scanning</SheetTitle>
           <SheetDescription>
-            We need the original email: either the whole file (.eml or .msg) or just
-            the raw headers. Don&apos;t paste the email body or send a screenshot, since
-            those don&apos;t include the hidden routing info we check.
+            We need the original email: either a .eml file or the raw headers.
+            Don&apos;t paste the email body or send a screenshot, since those
+            don&apos;t include the hidden routing info we check.
           </SheetDescription>
         </SheetHeader>
 
@@ -81,8 +81,9 @@ export function SaveEmailHelpSheet({
           <Section
             title="Outlook desktop (Windows / Mac)"
             steps={[
-              "Drag the email from your inbox onto your desktop. It saves as .msg (Windows) or .eml (Mac).",
-              "If you only have .msg and the file mode rejects it, switch to \"Paste headers\". Open the email, choose File → Properties, and copy everything from the \"Internet headers\" box.",
+              "If Outlook can save the message as .eml, use that file.",
+              "If Outlook only gives you .msg, switch to \"Paste headers\" instead.",
+              "Open the email, choose File → Properties, and copy everything from the \"Internet headers\" box.",
             ]}
           />
 

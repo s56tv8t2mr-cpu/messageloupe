@@ -80,10 +80,12 @@ export default function AboutPage() {
             How it&apos;s built
           </h2>
           <p className="text-muted-foreground">
-            The analysis runs entirely in your browser. There&apos;s no server, no
-            upload, no logging. Your email never leaves your device. The engine
-            powering the verdict is an open-source port of an internal triage tool
-            originally built for phishing analysts; you can read more in our{" "}
+            The analysis runs in your browser. There&apos;s no server-side processing,
+            no upload, and no logging of your email. For non-webmail senders, your
+            browser may make one MX-record lookup for the sender domain; the message
+            contents and headers are never sent. The engine powering the verdict is
+            an open-source port of an internal triage tool originally built for
+            phishing analysts; you can read more in our{" "}
             <Link href="/methodology" className="underline-offset-4 hover:underline">
               methodology
             </Link>{" "}
