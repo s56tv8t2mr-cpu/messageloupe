@@ -399,7 +399,7 @@ function computeRoutingChip({ parser }: Analysis): ChipResult {
 
 function computeLinksChip({ links, parser }: Analysis): ChipResult {
   if (links.length === 0) {
-    if (!parser.bodyText) return { status: "unknown", detail: "Headers only" }
+    if (!parser.hasBodyContent) return { status: "unknown", detail: "Headers only" }
     return { status: "ok", detail: "No links" }
   }
 

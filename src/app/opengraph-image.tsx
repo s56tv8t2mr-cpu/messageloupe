@@ -142,7 +142,7 @@ export default async function OpengraphImage() {
             }}
           >
             Drop a saved email, get a plain-English verdict in seconds.
-            Runs in your browser. Nothing leaves your device.
+            No email upload. No tracking. Open source.
           </p>
         </div>
 

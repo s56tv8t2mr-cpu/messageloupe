@@ -30,11 +30,12 @@ export default function HowToSaveAnEmailPage() {
           How to save an email for scanning
         </h1>
         <p className="text-muted-foreground mt-3 text-base leading-relaxed">
-          Message Loupe needs the original email: either the whole file (
-          <code className="font-mono text-sm">.eml</code> or{" "}
-          <code className="font-mono text-sm">.msg</code>) or just the raw headers.
-          Don&apos;t paste the email body or send a screenshot, since those don&apos;t
-          include the hidden routing info we check.
+          Message Loupe needs the original email: either a{" "}
+          <code className="font-mono text-sm">.eml</code> file or the raw headers.
+          It cannot read Outlook <code className="font-mono text-sm">.msg</code> or{" "}
+          <code className="font-mono text-sm">.pst</code> files. Don&apos;t paste
+          the email body or send a screenshot, since those don&apos;t include the
+          hidden routing info we check.
         </p>
 
         <Alert variant="warning" className="mt-8">
@@ -89,9 +90,9 @@ export default function HowToSaveAnEmailPage() {
           id="outlook-desktop"
           title="Outlook desktop (Windows / Mac)"
           steps={[
-            "Drag the email from your inbox onto your desktop. On Windows it saves as .msg; on Mac it saves as .eml.",
-            "Drop that file into Message Loupe.",
-            'If the file is a .msg and Message Loupe rejects it, switch to "Paste headers" instead.',
+            "If Outlook can save the message as .eml, drop that file into Message Loupe.",
+            'If Outlook only gives you .msg, switch to "Paste headers" instead.',
+            "Open the email, choose File → Properties, and copy everything from the Internet headers box.",
           ]}
           alt="Open the email, then File → Properties (Windows) or Message → Internet headers (Mac). Copy the contents of the &apos;Internet headers&apos; box and paste into the Paste headers tab."
           fwdAtt="Outlook desktop also supports Forward as Attachment: Home → More → Forward as Attachment. The forwarded message arrives with the original .eml attached."

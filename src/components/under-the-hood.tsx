@@ -275,7 +275,7 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">
-              {parser.bodyText
+              {parser.hasBodyContent
                 ? "No links found in the message body."
                 : "Links can't be analyzed in headers-only mode. Upload the original .eml file to include link analysis."}
             </p>

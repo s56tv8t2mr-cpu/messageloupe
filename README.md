@@ -6,7 +6,9 @@ Live at [messageloupe.com](https://messageloupe.com).
 
 ## Privacy model
 
-Everything runs in the browser. The site is a static export served from a CDN with no backend, no analytics, no cookies, no logs. Email content never leaves the device — there is no server to send it to.
+The scanner runs in the browser. The site is a static export served from a CDN with no backend, no analytics, no cookies, no app database, and no server-side email processing. Email content never leaves the device.
+
+The one intentional network exception is an MX-record lookup: for non-webmail senders, the browser may ask Google Public DNS which provider handles mail for the visible sender domain. That request contains only the domain name, not the message contents, headers, links, verdict, or uploaded file.
 
 Concrete consequences:
 
@@ -58,7 +60,7 @@ Next.js 16 (App Router, static export) · React 19 · TypeScript · Tailwind v4 
 
 - **Forwarded messages**: regular forwarding overwrites the headers we need. We detect forwards and refuse to verdict them rather than answer wrong. Save the original `.eml` or use "Show Original" instead.
 - **`.eml` file size**: the file picker accepts up to 25 MB. Parsing happens in a Web Worker so the UI stays responsive on big files.
-- **Outlook `.msg`**: not supported. Save as `.eml` first, or paste the raw headers from "View Source".
+- **Outlook `.msg`**: not supported. Save as `.eml` first, or paste the raw headers from Outlook's "Internet headers" view.
 
 ## Contributing a sample we get wrong
 

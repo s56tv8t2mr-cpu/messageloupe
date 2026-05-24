@@ -49,6 +49,7 @@ export interface ParserResult {
   messageId: string
   bodyText: string
   bodyHtml: string
+  hasBodyContent: boolean
   allHeaders: string
   sendingService: string
   serviceIdentified: boolean

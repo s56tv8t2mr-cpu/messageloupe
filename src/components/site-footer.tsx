@@ -16,8 +16,8 @@ export function SiteFooter() {
           <p className="text-muted-foreground flex max-w-sm items-start gap-2 text-base leading-relaxed">
             <ShieldCheck className="text-success mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              Runs entirely in your browser. No upload, no logging, no tracking. Your
-              email never leaves your device.
+              No email upload, no logging, no tracking. Only an optional sender-domain
+              DNS lookup leaves the browser.
             </span>
           </p>
         </div>

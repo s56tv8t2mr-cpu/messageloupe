@@ -207,8 +207,8 @@ export function Scanner() {
 
       <p className="text-muted-foreground flex items-start gap-2 text-sm leading-relaxed">
         <ScanSearch className="text-primary mt-0.5 size-4 shrink-0" aria-hidden />
-        Everything happens in your browser. Your email is not uploaded, logged, or
-        analyzed by us. We never see it.
+        Your email is not uploaded, logged, or analyzed by us. For some senders,
+        your browser may ask public DNS for that domain&apos;s MX records.
       </p>
     </div>
   )

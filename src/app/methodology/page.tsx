@@ -52,6 +52,12 @@ export default function MethodologyPage() {
               security gateways so the real upstream sender is identified.
             </li>
             <li>
+              <strong className="text-foreground">MX records:</strong> for
+              non-webmail senders, your browser may ask Google Public DNS which
+              provider handles mail for the visible sender domain. We compare that
+              inbound provider with the service that delivered the message.
+            </li>
+            <li>
               <strong className="text-foreground">Links:</strong> the URLs in the
               message body, checked for visible/actual mismatches, raw IP hosts,
               punycode-encoded lookalikes, .cm typosquats, and known shorteners.
@@ -135,11 +141,12 @@ export default function MethodologyPage() {
             <li>
               <strong className="text-foreground">No reputation lookups.</strong> We
               don&apos;t query VirusTotal, urlscan, abuse.ch, or anything else with
-              the contents of your email. The benefits aren&apos;t worth the leak.
+              the contents of your email. The optional DNS lookup sends only the sender
+              domain for MX records, not the message, headers, links, or verdict.
             </li>
             <li>
               <strong className="text-foreground">No tracking.</strong> No analytics,
-              no cookies, no logs. The site is a static page served from a CDN.
+              no cookies, no application logs. The site is a static page served from a CDN.
             </li>
           </ul>
 

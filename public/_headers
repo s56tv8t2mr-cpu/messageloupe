@@ -4,7 +4,7 @@
 # No Workers, no Functions, no middleware — pure CDN.
 #
 # A site that analyzes email authenticity must itself be exemplary on web
-# security hygiene. Strict CSP, no third-party connect, no embedding.
+# security hygiene. Strict CSP, only DNS-over-HTTPS third-party connect, no embedding.
 
 /*
   X-Frame-Options: DENY
@@ -12,7 +12,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
   Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://dns.google; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'
 
 # Long-cache fingerprinted assets.
 /_next/static/*

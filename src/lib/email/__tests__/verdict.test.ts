@@ -212,6 +212,17 @@ describe("content classification cap", () => {
       { tier: "caution", capped: true },
     )
   })
+
+  it("HTML-only money language → caution (capped)", async () => {
+    await check(
+      cleanEsp({
+        body: "",
+        htmlBody:
+          "<p>Your invoice is ready. Please wire payment to the updated bank account.</p>",
+      }),
+      { tier: "caution", capped: true },
+    )
+  })
 })
 
 describe("job-offer scams", () => {
@@ -504,5 +515,19 @@ describe("input validation", () => {
   it("empty source throws", async () => {
     await expect(analyze("")).rejects.toThrow()
     await expect(analyze("   \n\n   ")).rejects.toThrow()
+  })
+
+  it("headers-only input is tracked as having no body", async () => {
+    const a = await analyze(
+      [
+        "Received: from sender.example.com (sender.example.com [203.0.113.45]) by mx.example.com with ESMTPS; Mon, 01 Jan 2024 11:59:55 -0500",
+        `Authentication-Results: ${authResults({ domain: "example.com" })}`,
+        "From: Test Sender <sender@example.com>",
+        "To: recipient@example.org",
+        "Subject: Headers only",
+      ].join("\r\n"),
+    )
+    expect(a.parser.hasBodyContent).toBe(false)
+    expect(a.parser.bodyText).toBe("")
   })
 })
