@@ -26,6 +26,9 @@ export function SiteFooter() {
           <Link href="/how-to-save-an-email" className="text-muted-foreground hover:text-foreground">
             How to save an email
           </Link>
+          <Link href="/business" className="text-muted-foreground hover:text-foreground">
+            For teams
+          </Link>
           <Link href="/methodology" className="text-muted-foreground hover:text-foreground">
             Methodology
           </Link>
