@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import {
   AlertTriangle,
   ArrowRight,
+  Building2,
   CheckCircle2,
   ClipboardCopy,
   Code2,
@@ -111,6 +112,45 @@ export default function Home() {
             </p>
           </div>
           <Scanner />
+        </section>
+
+        <section className="border-border/60 border-y bg-muted/20">
+          <div className="mx-auto grid w-full max-w-5xl gap-5 px-4 py-8 md:grid-cols-[0.9fr_1.1fr] md:px-6 md:py-10">
+            <div className="flex flex-col gap-2">
+              <h2 className="text-foreground text-2xl font-semibold tracking-tight">
+                Built for the office inbox next
+              </h2>
+              <p className="text-muted-foreground max-w-md leading-relaxed">
+                The team product starts with a private scanner and grows into Gmail
+                and Outlook workflows for payment-risk checks.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <QuickStep
+                icon={<Building2 />}
+                title="Pilot workflow"
+                text="A small team sends suspicious emails through one review path."
+              />
+              <QuickStep
+                icon={<Mail />}
+                title="Inbox add-ins"
+                text="Gmail and Outlook prototypes are the next product surface."
+              />
+              <QuickStep
+                icon={<ShieldCheck />}
+                title="Metadata only"
+                text="Future team records keep verdict details, not message contents."
+              />
+            </div>
+            <div className="md:col-start-2">
+              <Button asChild variant="link" className="h-auto px-0">
+                <Link href="/business">
+                  Message Loupe for teams
+                  <ArrowRight data-icon="inline-end" />
+                </Link>
+              </Button>
+            </div>
+          </div>
         </section>
 
         <section className="mx-auto grid w-full max-w-5xl gap-4 px-4 pb-16 md:grid-cols-3 md:px-6 md:pb-24">
