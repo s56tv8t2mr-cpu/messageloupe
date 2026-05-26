@@ -1,0 +1,132 @@
+X-Forwarded-Encrypted: i=2; AFNElJ8kDRyspsux+qsmvyhLSRGw2hkiPYyNXhbTGbg0i7/ijkfzaFwqiiMdv3UZ8nbHd2VwgZIki9dh@alluresecurity.com
+X-Received: by 2002:a05:690e:4802:b0:654:acd4:9c10 with SMTP id 956f58d0204a3-65ec96129ecmr13175718d50.13.1779818734532;
+Tue, 26 May 2026 11:05:34 -0700 (PDT)
+X-BeenThere: support@alluresecurity.com; h="AUV6zMNLPfWgKAkAWftfGrr26cZkEtRU6O+P8UHSo0xvUFJpoA=="
+Received: by 2002:a05:690e:4198:b0:65e:41a4:54cc with SMTP id
+956f58d0204a3-65e41a45a44ls7817456d50.1.-pod-prod-05-us; Tue, 26 May 2026
+11:05:33 -0700 (PDT)
+X-Forwarded-Encrypted: i=2; AFNElJ/eI+X0FX7uunNcEnvfZoNMyDEQrpYO9hb5z4yD9LDUiWATwr1shaHb3cpPFK+PysYkuwAikiMf@alluresecurity.com
+X-Received: by 2002:a05:690e:4198:b0:65c:6220:5fca with SMTP id 956f58d0204a3-65ec9954abemr17154154d50.47.1779818733293;
+Tue, 26 May 2026 11:05:33 -0700 (PDT)
+Return-Path: <epowers@raleighcountyfcu.com>
+Received: from DM5PR21CU001.outbound.protection.outlook.com (mail-centralusazlp170110009.outbound.protection.outlook.com. [2a01:111:f403:c111::9])
+by mx.google.com with ESMTPS id 956f58d0204a3-65ecffd6ddcsi9929090d50.303.2026.05.26.11.05.31
+for <support@alluresecurity.com>
+(version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+Tue, 26 May 2026 11:05:33 -0700 (PDT)
+Received-SPF: pass (google.com: domain of epowers@raleighcountyfcu.com designates 2a01:111:f403:c111::9 as permitted sender) client-ip=2a01:111:f403:c111::9;
+Authentication-Results: mx.google.com;
+arc=fail (signature failed);
+spf=pass (google.com: domain of epowers@raleighcountyfcu.com designates 2a01:111:f403:c111::9 as permitted sender) smtp.mailfrom=epowers@raleighcountyfcu.com
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+b=lYB8CQOzlcibuHB6XHemxIFtinnuT1laJ1xK+Rl0I0lf90pPQCKDnmnHNhTiTDkv8oDJw95BoY5PbrNW0dBQO5OhM7eEiHPl+HSYJ8/MrFFS9b2/gPeVf8ICndHTJS350l7V8d42PfZ/FZCIDvX1hFgZdMFdBIQKSc7AVNxUU7aPV/4Y9e7sKVqSAM/SjBEnlpPE8yo/vcHbKUss3xLb6Lrtx/6DXZTfKG/M752AzLgWlE7smiN7hy9b7IXsSEpMChosMbdcRDgqYc0PeixXkdRUf1ywfq1eU7lMgxOSh71Fpg6hyIXwzkKAFWPlSmhvX38VO43Iaa3BN4K0yf1R4A==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+s=arcselector10001;
+h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+bh=4j8NOpOOU6cEBO+IrxQF/vBOgCIxiuoiDaFdpL6eWHs=;
+b=XiYzMMrI4p3lqxbnEvkmaMjwwiNaB0Uh4eXxV8WV5qqZp2DjrjMIKEAgWfCBXMxk+9YSpJjUZzHlklqvW0Fic/V0Az+WGkv3Im9vImNpdO8yyXNL2AzEpRw5GT4AfvElqIJ2JgNYZB4/E/Rt+TzosZ91e0ptaaM620tUEyYQdzqS4KE8bYhc//K/8iGfht13ZuCyjjCa/GskrEllXdJbM09XcUyoJKncCcF1s/rEyjqTXFP5r5ZefGCxnZP1yg/l+CGzzO5wfeTNXWkNC/dl5YDBHAyVRxTBkAe1Uw7aJg41wJuEB32umh0kFi6jDQSSz6vwmuQ9hjr3FR5b/QIPAw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+smtp.mailfrom=raleighcountyfcu.com; dmarc=pass action=none
+header.from=raleighcountyfcu.com; dkim=pass header.d=raleighcountyfcu.com;
+arc=none
+X-Microsoft-Antispam-Message-Info: igZgfYOZHE/X95z6mFlPERyF6SKwWHwBr43tHMcXip0SjdL3wKVK0Zm4MzKMgkjyXkxjcsqYTx1EQbalGmjWMZq6TgyhDrg1RwWKFi0ctT+nlQAhE4pvyhWUxncqG8aSw3YZnmmmMKp8Bh55Xn2PDW+AcVmw9W6szMebQ5RzVwCpT9YjD0BBIVQxDE8Ovea31GI55bXvP1uOZf9m1MgqQE1xFpqzg+2rFwYBPqLPT3AmG4iszJhxRX7bMfo1JFStYbOA8hZuD7aBEgG8XlnhF5qFOSbG29oSguJkjWd0ANPvx6/L6AZ9k7ossDxWbcGzjUWPUmqr/2UIS8VZAng2WFkl0ZN6jIq451j5fFRjIpi+3ooGvkOTmGRlbziCeOj2m0tVq51cXmHiOnOYo7ELKqePxCIYY6YcEp5TdC2nkalx87FT8rUUq5+VvpAOBFqL/a1TyvfDeZREVR6I8EQghNG85M2LCjFMJsK8rEr0o7ijBEedrtxaS93857nAMYNjvqzS+y+rz/XJ/SsqStzic9TiqItt3Hocl2+p8NZtXL+wH/earbmlMvNGZzRaQhEEQTYPD9lkUcTmUJNQIDYGqwE/1TYzR45aL9fiTXlEpgtBzZ8Pq+xnlCwpD+l1NyJP1jxoyWuTUxlzTxgUlBOH+A==
+Received: from IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM (2603:10b6:208:598::13)
+by DS4PPF85D2C6564.NAMP223.PROD.OUTLOOK.COM (2603:10b6:f:fc00::b0) with
+Microsoft SMTP Server (version=TLS1_2,
+cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 + Transport Decrypted) id
+15.21.71.11; Tue, 26 May 2026 18:04:20 +0000
+Authentication-Results: dkim=none (message not signed)
+header.d=none;dmarc=none action=none header.from=raleighcountyfcu.com;
+Received: from IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM
+([fe80::55c5:b487:21d3:e23a]) by IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM
+([fe80::55c5:b487:21d3:e23a%5]) with mapi id 15.21.0071.011; Tue, 26 May 2026
+18:04:20 +0000
+From: Emily Powers <epowers@raleighcountyfcu.com>
+To: Emily Powers <epowers@raleighcountyfcu.com>
+Subject: Raleigh County FCU
+Thread-Topic: Raleigh County FCU
+Thread-Index: AQHc7TdHNF0G2C/+JkakJxibRJrmUrYgliv3gAADeRc=
+Date: Tue, 26 May 2026 18:04:20 +0000
+Message-ID: <IA1P223MB1399EA94BF2AE38EB1B67DF4CA0B2@IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM>
+References: <PH0PR17MB4878BA90F513F9E6917FFAFD8162A@PH0PR17MB4878.namprd17.prod.outlook.com>
+<PH0PR17MB487832151CC91AE66109A9208163A@PH0PR17MB4878.namprd17.prod.outlook.com>
+<PH0PR17MB487856B4CA71FD484E5A5A3C8163A@PH0PR17MB4878.namprd17.prod.outlook.com>
+<PH0PR17MB48789FCCD5F95D2CA6DAC1188163A@PH0PR17MB4878.namprd17.prod.outlook.com>
+<PH7PR10MB7731E9689FE7A9BC2CB59119904BA@PH7PR10MB7731.namprd10.prod.outlook.com>
+<DM6PR22MB19157D8654CDF200C956CABBD4012@DM6PR22MB1915.namprd22.prod.outlook.com>
+<DM6PR22MB191591F20B360433DB871426D4012@DM6PR22MB1915.namprd22.prod.outlook.com>
+<DM6PR22MB191563B8047E31BBBC7B5AD6D40B2@DM6PR22MB1915.namprd22.prod.outlook.com>
+<IA1P223MB1399001F2F52E8FE19C64EF5CA0B2@IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM>
+In-Reply-To: <IA1P223MB1399001F2F52E8FE19C64EF5CA0B2@IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM>
+Accept-Language: en-US
+Content-Language: en-US
+msip_labels:
+MIME-Version: 1.0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: IA1P223MB1399:EE_|DS4PPF85D2C6564:EE_
+Return-Path: epowers@raleighcountyfcu.com
+X-MS-Office365-Filtering-Correlation-Id: 877c33da-f40b-4adc-38a2-08debb5135d5
+X-MS-TNEF-Correlator: bafe9f66-cc08-48ac-897d-61bfacbf11d3
+Microsoft.Exchange.RMSApaAgent.ProtectionTemplateId:
+c026002d-cda6-401e-bfad-28de214d0fba
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+BCL:0;ARA:13230040|4022899009|376014|7416014|6049299003|1800799024|366016|3122999024|13003099007|38070700021|8096899003|18002099003|22082099003|56012099006|4143699003;
+X-Forefront-Antispam-Report:
+CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM;PTR:;CAT:NONE;SFS:(13230040)(4022899009)(376014)(7416014)(6049299003)(1800799024)(366016)(3122999024)(13003099007)(38070700021)(8096899003)(18002099003)(22082099003)(56012099006)(4143699003);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+=?utf-8?B?N2pKMnZKS1NWdDE2NG5pT0dudit3MS9QM3pRR1BGcGdIMkJwclhWSGp6ZW1X?=
+=?utf-8?B?SFRRWU4wYy9seUVLQTQxK2JMOTFKQVdJeFQ4RUpXRFovQUJ0RWFHcmZCa0NP?=
+=?utf-8?B?Q0xFNnJqL2hWK05zQjV4K3JSd09iSlg2VHQ5MUFDMDMvY0pWdiszRWQxU2pX?=
+=?utf-8?B?L3ovSEJ5YWliNUJjRUJGTFR0b3VUVFlCN09seEJyWWExQjgvdEFpQUJlak1s?=
+=?utf-8?B?Qzl2MTR1cDg4NWplRjN2MDlVZXYyVmdOaFY5NzlzRm1YODVMeDZ4Q3hqTFQy?=
+=?utf-8?B?eGZtTXprcnVOcWwvWTR2SENWTjBTcXRkZEsxRXRxcmo5dXZEVUFhb1F2K1FO?=
+=?utf-8?B?eHZRRTZNdHVzSGc1RHc1bVdQRHNrNFBxMGhvc2VzcjVIOW51cUJ1STBuZE4v?=
+=?utf-8?B?R3VqeC9UTzBQTk43WG93ZllwcUMyK1BsUTVkbmtnUlFBZnQ4U0E1UmwrT1c1?=
+=?utf-8?B?S1BHUWo0ZC9CWSt1NHNpcUYwQ1B4blBPdm5STllsejNrRktleHFXaTlVcjRG?=
+=?utf-8?B?STVPdktYOFY3aHd4eW8zUzVtd3NPMkhKaUhSdkpjdmwzaDZNeWMvdjVxLzN0?=
+=?utf-8?B?dnpSamEwME55SkVwTGNVR05CVlNWQnh2ZWhSK3NJMzVISnE2Nlo4eG8zTGhm?=
+=?utf-8?B?NWJ6b3FvMkRwbkRsVnVFN2p4ZGNXcG1HV0ZYcEo2QzVpOFJPK1N5aHE0a2I1?=
+=?utf-8?B?S1B4K0hnNFErTUdEQUlEK2lSVCsreXRCY3BoeHF3VzZ1L2hJa0RZTWp1SlFU?=
+=?utf-8?B?VlhnMGdKY0FFK2FPYUREeDBmOExyUTJScVNEakU0OWtVL0ZJYUJJb2RDQzhw?=
+=?utf-8?B?MEVORndOSUNKYnJ2SkpGdXo5MzRXMWpBZ3BXbnhQbkNIUDhzNnJCTDZPVFZy?=
+=?utf-8?B?ZDNoM3JsRVlIYmh5VThhUi9aRVdLWjlqTFBjdVAvMzVCcjhSZ3AzWGxuemVo?=
+=?utf-8?B?YUJBaFhPSU9rM0tsUkw0aHUwU2RBOHFBVFNORFg5c1h5Q0FuZ1RENEluR2c1?=
+=?utf-8?B?TC9jaFprZ1E1Q2w5bEQ1Z3Z4QUJrS01pNldVRTBjbEEwWWNSVzk0RDJWWHVO?=
+=?utf-8?B?SmV1R0x3WXcvQ05FY3JhQk5xSVB1UE9HaXE4aHRwcyt3bVhqYVB1enhzOEVX?=
+=?utf-8?B?RnRhWThna2RKUlRYczBGb1NhN0ZURmliSzIweS83OE51MnJYT0s5ZEtRSENH?=
+=?utf-8?B?aEdBUlpLbzB4am5STVlWcXEzR29CNnM2aGdjUVN4aGxMSXQ0TGdOZlZBMnRv?=
+=?utf-8?B?WHFGVmV5N04yVWJjL3E4Z1MxYTJVRnFxbVhneGwxdlBEQXFNemxpWWU2WnNl?=
+=?utf-8?B?M3ZYc28rZHZ0WUR0Y3o3Y3Q0MzB5UmVFMGhCUE1mLzNMMUxIUzdqMzZrS1Zx?=
+=?utf-8?B?NGVOY05uZnNrMFNwZTQ1THpKR2lIYndXMHdvS3RadTVJNnI0c0UwM2dVaXZM?=
+=?utf-8?B?OTgvY29lUlZpNkpZb1R1YUhhaG9CbDh2bGdTTW5qazJrSUgveHRITzRpdGo4?=
+=?utf-8?B?UWxrd29DeFV5YWs3M05vOUdnZEtZR1JoMHdPOUdyNTVUS2tNRCsvRmRWNXli?=
+=?utf-8?B?am9yWHdyVDNhMmVKampVb2xPWGw4a0JEb1F0cE9uMEttL3haWmFhS3pOY2xK?=
+=?utf-8?B?alZ0bUNSR3ltckRRKzlFcC9DVS9sbkcwcmxOczV2OHQzc0c3cUFYMndNZGZ1?=
+=?utf-8?B?bWRQUmN2NEgxUWRlQjRMcVVwVG1xTk1HMVVEQkhBT3N5N3oxdTg0dHJDekYy?=
+=?utf-8?B?clppeVlEYkd6bGVPWk5FWE1NZS90TnBTM3huL2tFeVUzaUlQTzlLdW5tSVps?=
+=?utf-8?B?M1dJblRkQkNXQ1EzRC8zUlNaUFg0ZHd5VWg5Mk9HdmYwcHlDZHI3ZlM0Nkor?=
+=?utf-8?B?b0M1Y3h2dkJuUzhxYklKaHYxSHREUDlLL0t4YUF3T1I3VlorY0FINURzbENR?=
+=?utf-8?B?UFJFZUlOTnFVbXd6alhDWG9NWHRYNEtXRkdka1M5dWJkVVZ4eEY0VXV5WHF0?=
+=?utf-8?B?L1h1ZE9GMzVuKzdXUm1LL2hVaWVaSjhmSHpTU0svYkdwWWhhb05FbVpORHdH?=
+=?utf-8?B?MUJYaFAzK0VjVDhEd29CcFFIV2xnRnFOVFl5QVR3YzU0WlBqb1V5dHV0TVRr?=
+=?utf-8?B?ZjY4TnM3NzBHVHByeWdzOW5qUUN1ZzZhY2pkbHc4aVl5UllCbEtTNmI5TkdS?=
+=?utf-8?B?NnVocVc3alBEcWloR0hGNVhTK2o0WW1XTFNsOW1HL2Jkc3haNVRFQ2VBZ2JG?=
+=?utf-8?B?MGgxOXEzdnN4VTc3ZUVXelJBYTNraVFiSzdWU095cU9aMVdFL2l0RnBPbUtP?=
+=?utf-8?B?QXg5V2JpbHIra1lCdzY2ejdoWCszbEVaWVBrbFk1L2tpc1NSTG9kUT09?=
+Content-Type: multipart/mixed;
+boundary="_986fefa6-fc1d-4228-bda3-d25b539dbbad_"
+Content-Class: rpmsg.message
+X-MS-Has-Attach: yes
+X-OriginatorOrg: raleighcountyfcu.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 May 2026 18:04:20.1042
+(UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 50870cc3-f6ef-4703-80cf-1aaa08028e31
+X-MS-Exchange-CrossTenant-AuthSource: IA1P223MB1399.NAMP223.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-Network-Message-Id: 877c33da-f40b-4adc-38a2-08debb5135d5
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: b8uldrYlb5+WSzt6sZiCqBWVLucE4zCE60AMUm5vRTcSzge0LrVIDt1I+jN4s61WhKIEl5RAdqCaE0cSY30hBj15bz/Qx4M9jwb06VSufiM=

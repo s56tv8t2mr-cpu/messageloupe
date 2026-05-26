@@ -41,6 +41,9 @@ export interface ParserResult {
   sendingEmail: string | null
   sendingName: string
   sendingDomain: string | null
+  recipientEmail: string | null
+  recipientDomain: string | null
+  contentClass: string | null
   returnPath: string | null
   returnPathDomain: string | null
   replyTo: string | null

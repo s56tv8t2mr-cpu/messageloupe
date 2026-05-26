@@ -230,6 +230,30 @@ export function computeVerdict({
     tier = escalate(tier, "caution")
   }
 
+  // ---- Encrypted self-send (compromised-mailbox RMS phish) ----
+  // Pattern: an attacker who has popped a real Microsoft 365 mailbox sends
+  // an RMS-rights-protected message from that mailbox to itself, then routes
+  // it onward. The encryption hides the payload (typically a fake "click to
+  // read" Microsoft login form) from any content scanner. Because the
+  // message originates in the real tenant, SPF/DKIM/DMARC all check out.
+  //
+  // Either signal alone is benign: people email themselves notes; orgs use
+  // RMS for legitimate internal traffic. The combination is the tell —
+  // legitimate users do not send themselves encrypted email as a workflow.
+  const fromMailbox = parser.sendingEmail?.toLowerCase().trim() ?? null
+  const toMailbox = parser.recipientEmail?.toLowerCase().trim() ?? null
+  const isSelfSend = Boolean(fromMailbox && toMailbox && fromMailbox === toMailbox)
+  const isRmsEncrypted = parser.contentClass === "rpmsg.message"
+  if (isSelfSend && isRmsEncrypted) {
+    reasons.push({
+      signal: "rms-self-send",
+      detail:
+        `This message was sent from ${parser.sendingEmail} to the same mailbox and is encrypted with Microsoft Rights Management (Content-Class: rpmsg.message). Legitimate users don't send themselves rights-protected mail as a workflow. This pattern is associated with compromised-mailbox phishing: an attacker who controls the real account uses encryption to hide a fake "click to read message" login prompt from content scanners.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
   // ---- Reply-To mismatch (two-tier: strong / mismatch) ----
   // Phishers commonly send via one infrastructure (often a hijacked or
   // lookalike sending domain) while routing victim replies to a separate

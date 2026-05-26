@@ -23,6 +23,8 @@ interface BuildOpts {
   body?: string
   /** When provided, the body is wrapped in multipart/alternative with this as the text/html part. */
   htmlBody?: string
+  /** When provided, emits a Content-Class header (used by Outlook RMS detection). */
+  contentClass?: string
   extraHeaders?: Record<string, string>
 }
 
@@ -74,6 +76,7 @@ export function buildEml(opts: BuildOpts = {}): string {
     dkimSignature,
     body = "Hello, this is a test message body.",
     htmlBody,
+    contentClass,
     extraHeaders = {},
   } = opts
 
@@ -84,6 +87,7 @@ export function buildEml(opts: BuildOpts = {}): string {
   if (returnPath !== undefined) lines.push(`Return-Path: <${returnPath}>`)
   if (replyTo) lines.push(`Reply-To: ${replyTo}`)
   if (listId) lines.push(`List-Id: ${listId}`)
+  if (contentClass) lines.push(`Content-Class: ${contentClass}`)
   if (dkimSignature) lines.push(`DKIM-Signature: ${dkimSignature}`)
   for (const [name, value] of Object.entries(extraHeaders)) lines.push(`${name}: ${value}`)
   lines.push(`From: ${from}`)

@@ -99,11 +99,18 @@ export const parseEmlLocally = (text) => {
   const spfHeader = getHeader('Received-SPF');
   const authResults = getHeader('Authentication-Results');
   const fromHeader = getHeader('From') || '';
+  const toHeader = getHeader('To') || '';
   const returnPath = getHeader('Return-Path')?.replace(/[<>]/g, '') || null;
   const replyToHeader = getHeader('Reply-To') || null;
   const listIdHeader = getHeader('List-Id') || null;
   const sendingEmail = extractEmailAddress(fromHeader) || fromHeader || null;
   const sendingDomain = extractDomain(fromHeader);
+  const recipientEmail = extractEmailAddress(toHeader);
+  const recipientDomain = extractDomain(toHeader);
+  // Outlook/M365 marks rights-protected (RMS-encrypted) messages with
+  // Content-Class: rpmsg.message. The body of such a message is opaque
+  // to any analyzer — combined with other signals it's a strong tell.
+  const contentClass = getHeader('Content-Class')?.toLowerCase() || null;
   const returnPathDomain = extractDomain(returnPath);
   const replyTo = replyToHeader ? (extractEmailAddress(replyToHeader) || replyToHeader.replace(/[<>]/g, '').trim()) : null;
   const replyToDomain = extractDomain(replyToHeader);
@@ -407,6 +414,9 @@ export const parseEmlLocally = (text) => {
     sendingEmail,
     sendingName: fromHeader.split('<')[0]?.replace(/"/g, '')?.trim() || 'Unknown',
     sendingDomain,
+    recipientEmail,
+    recipientDomain,
+    contentClass,
     returnPath,
     returnPathDomain,
     replyTo,
