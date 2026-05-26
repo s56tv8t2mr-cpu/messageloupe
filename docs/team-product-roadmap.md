@@ -61,12 +61,14 @@ References:
 - Start with a Workspace add-on that reads only the open message after user action.
 - Render a compact card: tier, top reasons, and "verify outside email" instruction.
 - Send only verdict metadata to the dashboard after the user chooses to report or save it.
+- Prototype scaffold: `integrations/gmail-workspace-addon/`.
 
 ### Phase 4: Outlook add-in
 
 - Start with an Outlook task pane command for the selected message.
 - Use admin deployment for pilots.
 - Add compose/send-time checks later for risky outbound replies, payment changes, and external recipients.
+- Prototype scaffold: `integrations/outlook-add-in/`.
 
 ## Pricing hypothesis
 
