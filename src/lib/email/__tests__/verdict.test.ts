@@ -12,6 +12,8 @@
 // verdicts override with `mockFetchMxAnswer()` per case.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { readFileSync } from "node:fs"
+import { resolve } from "node:path"
 
 import { analyze } from "../index"
 import { __resetMxCacheForTests } from "../mx-lookup"
@@ -529,5 +531,75 @@ describe("input validation", () => {
     )
     expect(a.parser.hasBodyContent).toBe(false)
     expect(a.parser.bodyText).toBe("")
+  })
+})
+
+// Real-eml regression fixtures live in __tests__/fixtures/. Each is a
+// case the analyzer should catch but didn't at the time it was added.
+describe("real-eml regression cases", () => {
+  it("raleighcountyfcu RMS self-send (compromised M365 mailbox) → danger", async () => {
+    const eml = readFileSync(
+      resolve(__dirname, "fixtures/raleighcountyfcu-rms-self-send.eml"),
+      "utf8",
+    )
+    const a = await analyze(eml)
+    expect(a.verdict.tier).toBe("danger")
+    expect(a.verdict.reasons.map((r) => r.signal)).toContain("rms-self-send")
+  })
+})
+
+describe("encrypted self-send (RMS) compromise pattern", () => {
+  const selfMailbox = "epowers@example-fcu.com"
+  const selfAuth = authResults({
+    domain: "example-fcu.com",
+    dkim: "none",
+    dmarc: "none",
+  })
+
+  it("From == To AND Content-Class: rpmsg.message → danger, rms-self-send", async () => {
+    await check(
+      buildEml({
+        from: `Emily Powers <${selfMailbox}>`,
+        to: `Emily Powers <${selfMailbox}>`,
+        authResults: selfAuth,
+        contentClass: "rpmsg.message",
+      }),
+      { tier: "danger", reason: "rms-self-send" },
+    )
+  })
+
+  it("self-send alone (no RMS) does NOT fire rms-self-send", async () => {
+    await check(
+      buildEml({
+        from: `Emily Powers <${selfMailbox}>`,
+        to: `Emily Powers <${selfMailbox}>`,
+        authResults: selfAuth,
+      }),
+      { notReason: "rms-self-send" },
+    )
+  })
+
+  it("RMS alone (different recipient) does NOT fire rms-self-send", async () => {
+    await check(
+      buildEml({
+        from: `Emily Powers <${selfMailbox}>`,
+        to: "Other Person <other@example-fcu.com>",
+        authResults: selfAuth,
+        contentClass: "rpmsg.message",
+      }),
+      { notReason: "rms-self-send" },
+    )
+  })
+
+  it("self-send + RMS but different case → still fires (case-insensitive match)", async () => {
+    await check(
+      buildEml({
+        from: `Emily Powers <${selfMailbox.toUpperCase()}>`,
+        to: `Emily Powers <${selfMailbox}>`,
+        authResults: selfAuth,
+        contentClass: "rpmsg.message",
+      }),
+      { tier: "danger", reason: "rms-self-send" },
+    )
   })
 })

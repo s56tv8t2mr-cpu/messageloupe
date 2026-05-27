@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Message Loupe</title>
+    <script defer src="./taskpane.js"></script>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        padding: 18px;
+      }
+
+      main {
+        display: grid;
+        gap: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      p {
+        margin: 0;
+        color: CanvasText;
+        opacity: 0.72;
+        line-height: 1.45;
+      }
+
+      dl {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+      }
+
+      dt {
+        font-size: 12px;
+        opacity: 0.65;
+      }
+
+      dd {
+        margin: 2px 0 0;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Message Loupe</h1>
+      <p id="status">Loading the selected message...</p>
+      <dl>
+        <div>
+          <dt>From</dt>
+          <dd id="from">-</dd>
+        </div>
+        <div>
+          <dt>Subject</dt>
+          <dd id="subject">-</dd>
+        </div>
+        <div>
+          <dt>Prototype status</dt>
+          <dd>Task pane only. Verdict logic is not wired in yet.</dd>
+        </div>
+      </dl>
+    </main>
+  </body>
+</html>

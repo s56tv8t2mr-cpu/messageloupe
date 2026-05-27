@@ -33,6 +33,9 @@ export function SiteHeader() {
         </Link>
         <nav className="flex items-center gap-1">
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+            <Link href="/business">For teams</Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link href="/methodology">Methodology</Link>
           </Button>
           <Button asChild variant="ghost" size="sm">
