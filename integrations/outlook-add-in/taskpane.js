@@ -1,8 +1,6 @@
-const officeHost = window.Office;
+const officeHost = globalThis.Office;
 
-if (!officeHost) {
-  setText("status", "Office.js is not loaded. Add the hosted Office.js script when sideloading this prototype.");
-} else {
+if (officeHost) {
   officeHost.onReady(function () {
     const item = officeHost.context?.mailbox?.item;
 
@@ -20,6 +18,8 @@ if (!officeHost) {
       setText("from", "(sender unavailable)");
     }
   });
+} else {
+  setText("status", "Office.js is not loaded. Add the hosted Office.js script when sideloading this prototype.");
 }
 
 function setText(id, value) {
