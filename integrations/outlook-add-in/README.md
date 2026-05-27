@@ -13,6 +13,10 @@ The first Outlook version should be user-invoked from the message-read surface. 
 - `taskpane.js`: Office.js prototype that reads basic selected-message fields.
 - `public/add-in-icons/`: PNG icons referenced by the Outlook manifest.
 
+The sample HTML intentionally does not load the hosted Office.js script directly.
+When this moves from scaffold to a real sideloaded add-in, serve the task pane from
+the app and follow Microsoft's current Office.js loading guidance for that host.
+
 ## Next implementation step
 
 Serve `taskpane.html` over HTTPS, update the manifest URLs, sideload in Outlook, and verify it can read the selected message in Outlook on the web, new Outlook for Windows, and classic Outlook where available.

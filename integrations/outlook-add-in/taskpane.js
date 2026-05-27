@@ -1,23 +1,29 @@
-Office.onReady(function () {
-  var item = Office.context && Office.context.mailbox && Office.context.mailbox.item;
+const officeHost = window.Office;
 
-  if (!item) {
-    setText("status", "No selected message is available.");
-    return;
-  }
+if (!officeHost) {
+  setText("status", "Office.js is not loaded. Add the hosted Office.js script when sideloading this prototype.");
+} else {
+  officeHost.onReady(function () {
+    const item = officeHost.context?.mailbox?.item;
 
-  setText("status", "Selected message loaded.");
-  setText("subject", item.subject || "(no subject)");
+    if (!item) {
+      setText("status", "No selected message is available.");
+      return;
+    }
 
-  if (item.from && item.from.displayName) {
-    setText("from", item.from.displayName + " <" + item.from.emailAddress + ">");
-  } else {
-    setText("from", "(sender unavailable)");
-  }
-});
+    setText("status", "Selected message loaded.");
+    setText("subject", item.subject || "(no subject)");
+
+    if (item.from?.displayName) {
+      setText("from", item.from.displayName + " <" + item.from.emailAddress + ">");
+    } else {
+      setText("from", "(sender unavailable)");
+    }
+  });
+}
 
 function setText(id, value) {
-  var element = document.getElementById(id);
+  const element = document.getElementById(id);
   if (element) {
     element.textContent = value;
   }

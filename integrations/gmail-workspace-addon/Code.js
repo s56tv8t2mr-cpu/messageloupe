@@ -13,7 +13,7 @@ function buildHomepage() {
 }
 
 function onGmailMessageOpen(e) {
-  var message = getCurrentMessage_(e);
+  const message = getCurrentMessage_(e);
 
   if (!message) {
     return CardService.newCardBuilder()
@@ -42,9 +42,9 @@ function onGmailMessageOpen(e) {
 }
 
 function getCurrentMessage_(e) {
-  var gmailEvent = (e && (e.gmail || e.messageMetadata)) || {};
-  var accessToken = gmailEvent.accessToken;
-  var messageId = gmailEvent.messageId;
+  const gmailEvent = (e && (e.gmail || e.messageMetadata)) || {};
+  const accessToken = gmailEvent.accessToken;
+  const messageId = gmailEvent.messageId;
 
   if (!accessToken || !messageId) {
     return null;

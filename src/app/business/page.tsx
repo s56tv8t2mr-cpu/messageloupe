@@ -182,9 +182,9 @@ function ConsoleRow({
   value,
   strong,
 }: {
-  label: string
-  value: string
-  strong?: boolean
+  readonly label: string
+  readonly value: string
+  readonly strong?: boolean
 }) {
   return (
     <div className="grid gap-1 rounded-md bg-muted/40 px-3 py-2 text-sm">
@@ -194,7 +194,11 @@ function ConsoleRow({
   )
 }
 
-function Signal({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+function Signal({
+  icon,
+  title,
+  text,
+}: Readonly<{ icon: ReactNode; title: string; text: string }>) {
   return (
     <div className="border-border/70 rounded-lg border p-4">
       <div className="text-foreground mb-2 flex items-center gap-2 font-semibold">
@@ -208,7 +212,11 @@ function Signal({ icon, title, text }: { icon: ReactNode; title: string; text: s
   )
 }
 
-function WorkflowStep({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+function WorkflowStep({
+  icon,
+  title,
+  text,
+}: Readonly<{ icon: ReactNode; title: string; text: string }>) {
   return (
     <div className="grid gap-2 border-l border-border/70 pl-4">
       <div className="text-foreground flex items-center gap-2 font-semibold">
@@ -247,7 +255,11 @@ function PrivacyModel() {
   )
 }
 
-function PlanRow({ title, price, text }: { title: string; price: string; text: string }) {
+function PlanRow({
+  title,
+  price,
+  text,
+}: Readonly<{ title: string; price: string; text: string }>) {
   return (
     <div className="grid gap-2 p-4 sm:grid-cols-[120px_120px_1fr] sm:items-center">
       <div className="text-foreground font-semibold">{title}</div>
