@@ -17,6 +17,7 @@ const MONEY_PATTERNS: RegExp[] = [
   /\b(?:routing|account)\s+number\b/i,
   /\b(?:swift|iban|bic)\b/i,
   /\bbank\s+(?:account|change|details|info)\b/i,
+  /\bbanking\s+(?:details|information|info)\b/i,
   /\bchange(?:\s+of|\s+in)?\s+(?:bank|payment|banking)\b/i,
   /\bgift\s+cards?\b/i,
   /\bvanilla\s+(?:gift|prepaid)\b/i,
@@ -26,8 +27,15 @@ const MONEY_PATTERNS: RegExp[] = [
   /\bpast\s+due\b/i,
   /\bpayment\s+(?:due|required|overdue|info|details)\b/i,
   /\bdirect\s+deposit\b/i,
-  /\bpayroll\s+(?:change|update)\b/i,
+  /\bpayroll\s+(?:change|update|processed)\b/i,
+  /\b(?:update|change)\s+(?:to\s+)?(?:my\s+|your\s+)?banking\s+information\b/i,
   /\b(?:remit|remittance)\b/i,
+  /\baging\s+report\b/i,
+  /\bar\s+report\b/i,
+  /\baccounts?\s+receivable\b/i,
+  /\bamounts?\s+due\b/i,
+  /\bpayable\s+contact\s+emails?\b/i,
+  /\bloan\s+(?:payments?|modification|payoff|ending)\b/i,
   /\bw-?9\b/i,
   /\bach\s+form\b/i,
   /\bsend\s+(?:money|funds|payment)\b/i,
@@ -102,6 +110,14 @@ const JOB_OFFER_PATTERNS: RegExp[] = [
   /\bcustomer\s+service\s+(advisor|representative|agent)\s+(role|position|job)?/i,
   /\bremote\s+(?:position|role|job|opportunity)\b/i,
   /\bwork[\s-]?from[\s-]?home\s+(role|position|opportunity)/i,
+  /\bpartnership\s+opportunit(?:y|ies)\b/i,
+  /\bbrand\s+ambassador\s+program\b/i,
+  /\bmodeling\s+role\b/i,
+  /\bcontract\s+letter\s+of\s+agreement\b/i,
+  /\bletter\s+of\s+agreement\b/i,
+  /\brate\s+per\s+post\b/i,
+  /\bgifted\s+products?\b/i,
+  /\bcommission\s+on\s+sales\b/i,
 ]
 
 // Document / PII requests — combined with offer/onboarding language, a
@@ -126,6 +142,37 @@ const DOCUMENT_REQUEST_PATTERNS: RegExp[] = [
   /\bpassport[\s-]?size\s+(photo|photograph|picture)/i,
   /\bsend\s+(?:us\s+)?(?:a\s+)?(?:scan|photo|copy)\s+of\s+your\s+/i,
   /\bemail\s+(?:us\s+)?(?:a\s+)?(?:scan|photo|copy)\s+of\s+your\s+/i,
+  /\bfill,\s*sign\s+and\s+send\s+back\b/i,
+  /\bsign\s+and\s+send\s+back\b/i,
+]
+
+// Early-stage BEC often avoids links, attachments, and money words. It tries
+// to start a private thread before asking for wire, payroll, gift-card, or
+// data movement. These phrases are deliberately narrow because "can we talk?"
+// alone would be too broad.
+const BEC_OPENER_PATTERNS: RegExp[] = [
+  /\bdo\s+you\s+have\s+a\s+minute\s+for\s+a\s+quick\s+(chat|call)\b/i,
+  /\bwhen\s+is\s+a\s+good\s+time\s+to\s+reach\s+you\s+for\s+a\s+quick\s+call\b/i,
+  /\bwhat\s+is\s+your\s+schedule\s+like\s+this\s+morning\b/i,
+  /\bare\s+you\s+currently\s+in\s+the\s+office\b/i,
+  /\bwe\s+would\s+like\s+you\s+to\s+look\s+into\s+a\s+small\s+situation\b/i,
+  /\ba\s+situation\s+was\s+raised\b/i,
+  /\bkindly\s+write\s+back\s+and\s+let\s+me\s+know\b/i,
+]
+
+// Fake secure-message and document-portal lures frequently authenticate for
+// a real but unrelated domain, then push the victim to a third-party app.
+// The verdict engine only escalates this when a third-party link is present.
+const SECURE_DOCUMENT_LURE_PATTERNS: RegExp[] = [
+  /\bnew\s+document\(s\)\s+(?:cd\s+)?posted\s+to\s+the\s+portal\b/i,
+  /\bdocuments?\s+posted\s+to\s+the\s+portal\b/i,
+  /\bclosing\s+disclosure\s+package\b/i,
+  /\bwiring\s+instructions\b/i,
+  /\bview\s+(?:closing\s+)?document\(s\)\b/i,
+  /\bview\s+message\b/i,
+  /\bopen\s+message\b/i,
+  /\bsecure\s+message\b/i,
+  /\bpowered\s+by\s+zixcorp\b/i,
 ]
 
 const matchAny = (text: string, patterns: RegExp[]): boolean =>
@@ -139,6 +186,8 @@ export function classifyContent(text: string): ContentClassification {
     hasUrgency: matchAny(target, URGENCY_PATTERNS),
     hasJobOffer: matchAny(target, JOB_OFFER_PATTERNS),
     hasDocumentRequest: matchAny(target, DOCUMENT_REQUEST_PATTERNS),
+    hasBecOpener: matchAny(target, BEC_OPENER_PATTERNS),
+    hasSecureDocumentLure: matchAny(target, SECURE_DOCUMENT_LURE_PATTERNS),
   }
 }
 

@@ -107,6 +107,7 @@ export function computeVerdict({
 
   let tier: VerdictTier = "safe"
   const reasons: VerdictReason[] = []
+  const hasThirdPartyLink = links.some((link) => link.flags.includes("thirdParty"))
 
   // ---- Authentication signals ----
   if (parser.dmarcResult === "fail") {
@@ -162,6 +163,20 @@ export function computeVerdict({
     reasons.push({
       signal: "no-auth",
       detail: "No clear authentication results. The sender domain doesn't enforce DMARC, and SPF/DKIM didn't return a pass.",
+      weight: "low",
+    })
+    tier = escalate(tier, "caution")
+  }
+
+  if (
+    parser.spfResult === "pass" &&
+    parser.dkimResult !== "pass" &&
+    (!parser.dmarcResult || parser.dmarcResult === "none")
+  ) {
+    reasons.push({
+      signal: "spf-only-auth",
+      detail:
+        "Only SPF passed. DKIM and DMARC did not provide a passing sender-domain check, so the sender is not strongly authenticated.",
       weight: "low",
     })
     tier = escalate(tier, "caution")
@@ -249,6 +264,36 @@ export function computeVerdict({
       signal: "rms-self-send",
       detail:
         `This message was sent from ${parser.sendingEmail} to the same mailbox and is encrypted with Microsoft Rights Management (Content-Class: rpmsg.message). Legitimate users don't send themselves rights-protected mail as a workflow. This pattern is associated with compromised-mailbox phishing: an attacker who controls the real account uses encryption to hide a fake "click to read message" login prompt from content scanners.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Early-stage BEC opener ----
+  // Many real BECs start as a cleanly-authenticated, link-free "quick chat"
+  // message so the money request happens in the next reply, outside scanners.
+  // Keep this at caution by default, but escalate if the same message already
+  // contains money/payment movement.
+  if (content.hasBecOpener) {
+    reasons.push({
+      signal: content.hasMoney ? "bec-opener-with-money" : "bec-opener",
+      detail: content.hasMoney
+        ? "This message uses a common executive-impersonation opener and includes money or payment language. That pairing is a high-risk business email compromise pattern."
+        : "This message uses a common executive-impersonation opener: a vague request for a quick chat or help with a small situation. Treat it as suspicious until you verify the sender through a channel you already trust.",
+      weight: content.hasMoney ? "high" : "medium",
+    })
+    tier = escalate(tier, content.hasMoney ? "danger" : "caution")
+  }
+
+  // ---- Secure document / message lure to an unrelated host ----
+  // Legitimate secure-message systems exist, so the content alone is not
+  // enough. The dangerous shape is document-portal wording plus a link whose
+  // registrable domain does not match the sender.
+  if (content.hasSecureDocumentLure && hasThirdPartyLink) {
+    reasons.push({
+      signal: "off-brand-document-link",
+      detail:
+        "This email says a secure message or document is waiting, but the link points to a different third-party site. Fake document portals are commonly used to steal credentials.",
       weight: "high",
     })
     tier = escalate(tier, "danger")

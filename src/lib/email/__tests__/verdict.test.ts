@@ -105,6 +105,17 @@ describe("authentication failures", () => {
   it("no auth results at all → caution with no-auth", async () => {
     await check(buildEml({}), { tier: "caution", reason: "no-auth" })
   })
+
+  it("SPF-only custom-domain auth → caution", async () => {
+    await check(
+      buildEml({
+        from: "Derek Baker <dbaker@purduefedcu.com>",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=purduefedcu.com; dkim=none; dmarc=none header.from=purduefedcu.com",
+      }),
+      { tier: "caution", reason: "spf-only-auth" },
+    )
+  })
 })
 
 describe("display-name impersonation", () => {
@@ -113,6 +124,40 @@ describe("display-name impersonation", () => {
       buildEml({
         from: "PayPal Service <service@random-payments.com>",
         authResults: authResults({ domain: "random-payments.com" }),
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation: Brooks Running display from Gmail → danger", async () => {
+    await check(
+      buildEml({
+        from: "Brooks Running <br.brooksrunning@gmail.com>",
+        authResults: authResults({ domain: "gmail.com" }),
+        body:
+          "On behalf of Brooks Running, we would like to extend a partnership opportunity.",
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation: Rocket Mortgage display from unrelated domain → danger", async () => {
+    await check(
+      buildEml({
+        from: "Rocket Mortgage <office@frgwillhelp.com>",
+        authResults: authResults({ domain: "frgwillhelp.com" }),
+        body: "This message is from Rocket Mortgage.",
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation: Southern Company display from lookalike domain → danger", async () => {
+    await check(
+      buildEml({
+        from: "Southern Company <contact@southernscompany.com>",
+        authResults: authResults({ domain: "southernscompany.com" }),
+        body: "We are excited to offer you a modeling role for an upcoming shoot.",
       }),
       { tier: "danger", reason: "brand-impersonation" },
     )
@@ -225,6 +270,28 @@ describe("content classification cap", () => {
       { tier: "caution", capped: true },
     )
   })
+
+  it("clean auth + banking information update → caution (capped)", async () => {
+    await check(
+      cleanEsp({
+        from: "Holly Straub <holly@gmail.com>",
+        body:
+          "I would like to request an update to my banking information before the next payroll is processed.",
+      }),
+      { tier: "caution", capped: true },
+    )
+  })
+
+  it("clean auth + AR report request → caution (capped)", async () => {
+    await check(
+      cleanEsp({
+        from: "Senior Executive <office.execs@seniorexecutivehost.com>",
+        body:
+          "Please send the most recent AR report and include customer payable contact emails.",
+      }),
+      { tier: "caution", capped: true },
+    )
+  })
 })
 
 describe("job-offer scams", () => {
@@ -246,6 +313,67 @@ describe("job-offer scams", () => {
         body: "Welcome to the team! Your offer letter is attached. Looking forward to your start date.",
       }),
       { tier: "caution", reason: "job-offer-content" },
+    )
+  })
+
+  it("brand ambassador partnership outreach → caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Creator Team <creator@agency.example>",
+        body:
+          "We would like to offer you a brand ambassador program with gifted products and commission on sales.",
+      }),
+      { tier: "caution", reason: "job-offer-content" },
+    )
+  })
+
+  it("contract letter that must be signed and sent back → danger", async () => {
+    await check(
+      buildEml({
+        from: "Gaskin Larry <gaskinlarry@polarispartnersjobs.com>",
+        authResults: authResults({ domain: "polarispartnersjobs.com" }),
+        body:
+          "Attached above is your contract letter of agreement. You are required to fill, sign and send back for validation.",
+      }),
+      { tier: "danger", reason: "job-offer-with-document-request" },
+    )
+  })
+})
+
+describe("BEC openers and document lures", () => {
+  it("quick-chat small-situation opener → caution", async () => {
+    await check(
+      buildEml({
+        from: "Frank Sands <fsands@sandscapitalv.com>",
+        authResults: authResults({ domain: "sandscapitalv.com" }),
+        body:
+          "Do you have a minute for a quick chat? We would like you to look into a small situation for us. Kindly write back and let me know.",
+      }),
+      { tier: "caution", reason: "bec-opener" },
+    )
+  })
+
+  it("BEC opener with wire/payment language → danger", async () => {
+    await check(
+      buildEml({
+        from: "Robert Nelsen <rtn@archventurep.com>",
+        authResults: authResults({ domain: "archventurep.com" }),
+        body:
+          "Thanks for writing back. A situation was raised by my team. We need to remit a balance of $864,000 and I need you to instruct finance to wire said amount.",
+      }),
+      { tier: "danger", reason: "bec-opener-with-money" },
+    )
+  })
+
+  it("secure document portal with unrelated link → danger", async () => {
+    await check(
+      buildEml({
+        from: "Sam North <s.north@exeter.ac.uk>",
+        authResults: authResults({ domain: "exeter.ac.uk" }),
+        htmlBody:
+          '<p>Rocket Mortgage</p><p>New Document(s) CD Posted to the portal for loan ending in 7027.</p><p><a href="https://rocket-fileshare-mgt.lovable.app/">View Closing Document(s)</a></p>',
+      }),
+      { tier: "danger", reason: "off-brand-document-link" },
     )
   })
 })

@@ -114,6 +114,8 @@ export interface ContentClassification {
   hasUrgency: boolean
   hasJobOffer: boolean
   hasDocumentRequest: boolean
+  hasBecOpener: boolean
+  hasSecureDocumentLure: boolean
 }
 
 export interface SenderTrustSignals {
