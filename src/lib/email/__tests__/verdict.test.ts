@@ -378,6 +378,46 @@ describe("BEC openers and document lures", () => {
   })
 })
 
+describe("text-only fake invoice and refund scams", () => {
+  it("recipient-side spam verdict prevents header-only sample from looking safe", async () => {
+    const analysis = await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        returnPath: "notice@sender.example.test",
+        replyTo: "Alex Example <notice@sender.example.test>",
+        subject: "your order was placed successfully",
+        authResults:
+          "mx.recipient.example.test; dkim=pass header.d=mail.example.test header.a=rsa-sha256",
+        received: [
+          "from outbound.example.test (outbound.example.test [203.0.113.73]) by mx.recipient.example.test with ESMTPS; Wed, 20 May 2026 15:07:20 +0000",
+        ],
+        extraHeaders: {
+          "X-Spam": "Yes",
+          "X-Spamd-Result":
+            "default: False [6.25 / 25.00]; BAYES_SPAM(4.10)[99.00%]; MISSING_TO(1.00)[]",
+          "X-Rspamd-Server": "mx1.recipient.example.test",
+        },
+        body: "-----BEGIN PGP MESSAGE-----\nopaque recipient-side encrypted body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "danger", reason: "recipient-spam-verdict" },
+    )
+
+    expect(analysis.parser.recipientSpamScore).toBe(6.25)
+  })
+
+  it("fake antivirus renewal phone scam → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Billing Notice <notice@sender.example.test>",
+        subject: "your order was placed successfully",
+        body:
+          "Renewal Date: 2026-05-20. We are pleased to confirm the renewal of your McAfee Plan for 60 Months. A charge of $499.00 has been made. Client Service Contact: 1.555.010.0199. For any adjustments to your subscription or to cancel, please contact our support.",
+      }),
+      { tier: "danger", reason: "subscription-refund-scam" },
+    )
+  })
+})
+
 describe("forwarded-message guard", () => {
   const exampleAuth = authResults({ domain: "example.com" })
 

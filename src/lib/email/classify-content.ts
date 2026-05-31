@@ -178,6 +178,25 @@ const SECURE_DOCUMENT_LURE_PATTERNS: RegExp[] = [
 const matchAny = (text: string, patterns: RegExp[]): boolean =>
   patterns.some((p) => p.test(text))
 
+const SECURITY_SUBSCRIPTION_BRANDS =
+  /\b(mc\s*afee|mcafee|norton|lifelock|geek\s+squad|total\s+secure|total\s+security|antivirus|anti-virus)\b/i
+
+function hasSubscriptionRefundScam(text: string): boolean {
+  const subscriptionOrOrder =
+    /\b(?:subscription|membership|renewal|auto[\s-]?renewal|order\s*#?|order\s+(?:id|number)|item\s+purchased)\b/i.test(text)
+  const chargeOrAmount =
+    /\b(?:amount\s+charged|charged|charge\s+of|payment\s+mode|transaction\s+details|invoice|tax)\b/i.test(text)
+    || /\$\s?\d/.test(text)
+  const phoneSupport =
+    /\b(?:support|client\s+service|contact|helpline|customer\s+care|billing)\b.{0,50}\b(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/i.test(text)
+  return (
+    SECURITY_SUBSCRIPTION_BRANDS.test(text) &&
+    subscriptionOrOrder &&
+    chargeOrAmount &&
+    phoneSupport
+  )
+}
+
 export function classifyContent(text: string): ContentClassification {
   const target = text || ""
   return {
@@ -188,6 +207,7 @@ export function classifyContent(text: string): ContentClassification {
     hasDocumentRequest: matchAny(target, DOCUMENT_REQUEST_PATTERNS),
     hasBecOpener: matchAny(target, BEC_OPENER_PATTERNS),
     hasSecureDocumentLure: matchAny(target, SECURE_DOCUMENT_LURE_PATTERNS),
+    hasSubscriptionRefundScam: hasSubscriptionRefundScam(target),
   }
 }
 

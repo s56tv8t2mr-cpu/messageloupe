@@ -109,6 +109,23 @@ export function computeVerdict({
   const reasons: VerdictReason[] = []
   const hasThirdPartyLink = links.some((link) => link.flags.includes("thirdParty"))
 
+  // ---- Recipient-side spam verdicts ----
+  // When a trusted recipient-side filter (for example Proton/Rspamd) has
+  // already marked the message as spam, do not let clean-looking auth make
+  // the result appear safe. This is especially important for header-only
+  // exports where the readable scam body may be encrypted or unavailable.
+  if (parser.recipientSpamVerdict === "spam") {
+    reasons.push({
+      signal: "recipient-spam-verdict",
+      detail:
+        parser.recipientSpamScore !== null
+          ? `The recipient-side spam filter marked this message as spam with score ${parser.recipientSpamScore}.`
+          : "The recipient-side spam filter marked this message as spam.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
   // ---- Authentication signals ----
   if (parser.dmarcResult === "fail") {
     reasons.push({
@@ -294,6 +311,19 @@ export function computeVerdict({
       signal: "off-brand-document-link",
       detail:
         "This email says a secure message or document is waiting, but the link points to a different third-party site. Fake document portals are commonly used to steal credentials.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Fake antivirus / subscription renewal refund scams ----
+  // Text-only refund scams often contain no malware and no link. The hook is
+  // an alarming renewal/order/charge notice plus a phone number to cancel.
+  if (content.hasSubscriptionRefundScam) {
+    reasons.push({
+      signal: "subscription-refund-scam",
+      detail:
+        "This message matches a fake antivirus/subscription renewal pattern: an unexpected order or charge, a security-product brand, and a phone-number/cancel hook. These are commonly used to push victims into refund or remote-support scams.",
       weight: "high",
     })
     tier = escalate(tier, "danger")

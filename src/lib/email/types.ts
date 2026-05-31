@@ -70,6 +70,9 @@ export interface ParserResult {
   dkimHeaderDomain: string | null
   dmarcResult: string | null
   authSummary: string
+  recipientSpamVerdict: "spam" | null
+  recipientSpamScore: number | null
+  recipientSpamSource: string | null
   spoofingLikely: boolean
   senderDomainNote: string
   authHeaderFromDomain: string | null
@@ -116,6 +119,7 @@ export interface ContentClassification {
   hasDocumentRequest: boolean
   hasBecOpener: boolean
   hasSecureDocumentLure: boolean
+  hasSubscriptionRefundScam: boolean
 }
 
 export interface SenderTrustSignals {
