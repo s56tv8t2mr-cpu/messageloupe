@@ -329,6 +329,91 @@ export function computeVerdict({
     tier = escalate(tier, "danger")
   }
 
+  // ---- Wire / ACH payment lure ----
+  // Plain invoice language is common and should stay at caution. The stronger
+  // signal is wire/ACH/routing/remittance language paired with another risky
+  // delivery shape: an attachment, an unrelated link, or an auth failure.
+  const hasAuthFailure =
+    parser.dkimResult === "fail" ||
+    parser.dmarcResult === "fail" ||
+    parser.spfResult === "fail" ||
+    parser.spfResult === "softfail" ||
+    parser.spfResult === "permerror"
+  if (
+    !content.hasFraudReportContext &&
+    content.hasWireTransferLure &&
+    (attachments.length > 0 || hasThirdPartyLink || hasAuthFailure)
+  ) {
+    reasons.push({
+      signal: "wire-transfer-lure",
+      detail:
+        "This message combines wire, ACH, routing, or remittance language with a risky delivery shape such as an attachment, unrelated link, or authentication failure. That combination is a common wire-fraud and invoice-redirection pattern.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Fake invoice / payment request ----
+  // A bare invoice attachment is too common to call fake. A payment-request
+  // invoice plus a missing/non-passing DMARC result is a stronger BEC shape.
+  if (
+    !content.hasFraudReportContext &&
+    content.hasInvoicePaymentRequest &&
+    attachments.length > 0 &&
+    (!senderAuthenticates(parser) || parser.spfResult === "neutral")
+  ) {
+    reasons.push({
+      signal: "invoice-payment-request",
+      detail:
+        "This message asks for invoice payment and includes an attachment, while the sender is not strongly authenticated. That combination is a common fake-invoice and payment-redirection pattern.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Coercive invoice / payment threat ----
+  if (!content.hasFraudReportContext && content.hasCoercivePaymentThreat) {
+    reasons.push({
+      signal: "coercive-payment-threat",
+      detail:
+        "This message combines payment or invoice language with coercive threats such as final notice, legal action, exposure, or public disclosure. That is a high-risk pressure tactic.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Fake bank notice / account-opening lure ----
+  if (
+    !content.hasFraudReportContext &&
+    content.hasBankNoticeLure &&
+    !senderAuthenticates(parser)
+  ) {
+    reasons.push({
+      signal: "bank-notice-lure",
+      detail:
+        "This looks like a bank notice or account-opening message, but the sender is not strongly authenticated. Treat bank-account notices as high risk unless verified through the bank's official site or phone number.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Job offer signed as a known firm but sent from another domain ----
+  if (
+    !content.hasFraudReportContext &&
+    content.hasJobOffer &&
+    content.mentionsPolarisPartners &&
+    content.hasRiskyWorkFromHomeJobLure &&
+    !sameRegistrable(parser.sendingDomain, "polarispartners.com")
+  ) {
+    reasons.push({
+      signal: "job-brand-signature-impersonation",
+      detail:
+        "This job-offer message references Polaris Partners, but the sender domain is not a Polaris Partners domain. Fake job offers often impersonate real firms in the email body or signature rather than the From name.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
   // ---- Reply-To mismatch (two-tier: strong / mismatch) ----
   // Phishers commonly send via one infrastructure (often a hijacked or
   // lookalike sending domain) while routing victim replies to a separate
@@ -475,6 +560,15 @@ export function computeVerdict({
       : content.hasCredentials
         ? "This message asks about credentials or login info."
         : "This message asks for copies of personal documents."
+    reasons.push({
+      signal: content.hasMoney
+        ? "financial-action-content"
+        : content.hasCredentials
+          ? "credential-request-content"
+          : "document-request-content",
+      detail: capReason,
+      weight: "medium",
+    })
     tier = "caution"
   }
 

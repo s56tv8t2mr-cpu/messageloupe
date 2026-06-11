@@ -56,10 +56,11 @@ describe("team report metadata", () => {
       channel: "web-scanner",
       reporterId: "user_456",
       organizationId: "org_789",
-      verdictTier: "caution",
+      verdictTier: "danger",
       senderDomain: "example.com",
       riskFlags: {
         hasMoneyLanguage: true,
+        hasWireTransferLure: true,
         linkCount: 1,
         suspiciousLinkCount: 1,
       },

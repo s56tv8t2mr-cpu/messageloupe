@@ -120,6 +120,13 @@ export interface ContentClassification {
   hasBecOpener: boolean
   hasSecureDocumentLure: boolean
   hasSubscriptionRefundScam: boolean
+  hasWireTransferLure: boolean
+  hasInvoicePaymentRequest: boolean
+  hasCoercivePaymentThreat: boolean
+  hasFraudReportContext: boolean
+  hasBankNoticeLure: boolean
+  mentionsPolarisPartners: boolean
+  hasRiskyWorkFromHomeJobLure: boolean
 }
 
 export interface SenderTrustSignals {

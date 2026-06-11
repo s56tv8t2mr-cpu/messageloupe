@@ -181,6 +181,60 @@ const matchAny = (text: string, patterns: RegExp[]): boolean =>
 const SECURITY_SUBSCRIPTION_BRANDS =
   /\b(mc\s*afee|mcafee|norton|lifelock|geek\s+squad|total\s+secure|total\s+security|antivirus|anti-virus)\b/i
 
+function hasInvoicePaymentRequest(text: string): boolean {
+  const invoice = /\b(?:invoice|bill|statement|balance\s+due|amount\s+due)\b/i.test(text)
+  const paymentRequest =
+    /\b(?:request\s+for\s+payment|payment\s+request|payment\s+(?:required|due|needed|overdue)|please\s+(?:process|send|make)\s+(?:the\s+)?payment|pay\s+this\s+invoice)\b/i.test(text)
+  return invoice && paymentRequest
+}
+
+function hasCoercivePaymentThreat(text: string): boolean {
+  const paymentOrInvoice = /\b(?:invoice|payment|wire|routing|balance\s+due|amount\s+due)\b/i.test(text)
+  const coercion =
+    /\b(?:final\s+notice|legal\s+action|lawsuit|expos(?:e|ure)|public\s+disclosure|release\s+(?:of\s+)?(?:facts|information|records)|damaging\s+(?:facts|information)|reputational\s+harm)\b/i.test(text)
+  return paymentOrInvoice && coercion
+}
+
+function hasFraudReportContext(text: string): boolean {
+  return (
+    /\b(?:re:\s*)?fraudulent\s+email\b/i.test(text) ||
+    /\b(?:received|got|forwarding|reporting|reported|notifying|alerting)\b.{0,80}\b(?:fraudulent|fake|impersonat(?:e|ed|ing|ion))\b/i.test(text) ||
+    /\b(?:fraudulent|fake|impersonat(?:e|ed|ing|ion))\b.{0,80}\b(?:email|message|sender|domain)\b/i.test(text)
+  )
+}
+
+function hasBankNoticeLure(text: string): boolean {
+  const bankNotice =
+    /\bnotice\s+is\s+available\s+to\s+view\b/i.test(text) ||
+    /\b(?:bank|client\s+service)\b.{0,60}\bnotice\b/i.test(text)
+  const accountOrTransfer =
+    /\b(?:new\s+account|account\s+(?:opening|opened|created)|ach|bank\s+account|wire|routing)\b/i.test(text)
+  return bankNotice && accountOrTransfer
+}
+
+function hasRiskyWorkFromHomeJobLure(text: string): boolean {
+  return /\bresume\s+approval\b/i.test(text) ||
+    /\bwork[\s-]?from[\s-]?home\b/i.test(text) ||
+    /\byour\s+(?:resume|application)\s+(?:has\s+been\s+)?(?:approved|accepted)\b/i.test(text)
+}
+
+function hasWireTransferLure(text: string): boolean {
+  const bankAccountContext =
+    /\bbank\s+account\s+(?:number|details?|info|information|instructions?)\b/i.test(text) ||
+    /\baccount\s+number\b.{0,60}\b(?:routing|wire|ach|beneficiar(?:y|ies)|bank)\b/i.test(text) ||
+    /\b(?:routing|wire|ach|beneficiar(?:y|ies)|bank)\b.{0,60}\baccount\s+number\b/i.test(text)
+  const wireAction =
+    /\bwire(?:\s+(?:transfer|instructions?|details?|info|payment))?\b/i.test(text) ||
+    /\bach\s+(?:transfer|payment|debit|form|instructions?)\b/i.test(text) ||
+    /\brouting\s+number\b/i.test(text) ||
+    /\b(?:swift|iban|bic)\b/i.test(text) ||
+    /\bbeneficiar(?:y|ies)\b/i.test(text) ||
+    bankAccountContext
+  const paymentContext =
+    /\b(?:invoice|payment|money|funds?|transfer|bank|account|clearing|beneficiary|payee|due|quote)\b/i.test(text)
+  return wireAction && paymentContext
+}
+
 function hasSubscriptionRefundScam(text: string): boolean {
   const subscriptionOrOrder =
     /\b(?:subscription|membership|renewal|auto[\s-]?renewal|order\s*#?|order\s+(?:id|number)|item\s+purchased)\b/i.test(text)
@@ -208,6 +262,13 @@ export function classifyContent(text: string): ContentClassification {
     hasBecOpener: matchAny(target, BEC_OPENER_PATTERNS),
     hasSecureDocumentLure: matchAny(target, SECURE_DOCUMENT_LURE_PATTERNS),
     hasSubscriptionRefundScam: hasSubscriptionRefundScam(target),
+    hasWireTransferLure: hasWireTransferLure(target),
+    hasInvoicePaymentRequest: hasInvoicePaymentRequest(target),
+    hasCoercivePaymentThreat: hasCoercivePaymentThreat(target),
+    hasFraudReportContext: hasFraudReportContext(target),
+    hasBankNoticeLure: hasBankNoticeLure(target),
+    mentionsPolarisPartners: /\bpolaris\s+partners\b/i.test(target),
+    hasRiskyWorkFromHomeJobLure: hasRiskyWorkFromHomeJobLure(target),
   }
 }
 

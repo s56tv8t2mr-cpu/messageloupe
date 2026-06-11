@@ -38,6 +38,7 @@ export interface TeamReportMetadata {
     hasUrgencyLanguage: boolean
     hasDocumentRequest: boolean
     hasSubscriptionRefundScam: boolean
+    hasWireTransferLure: boolean
     linkCount: number
     suspiciousLinkCount: number
     attachmentCount: number
@@ -96,6 +97,7 @@ export function createTeamReportMetadata(
       hasUrgencyLanguage: analysis.content.hasUrgency,
       hasDocumentRequest: analysis.content.hasDocumentRequest,
       hasSubscriptionRefundScam: analysis.content.hasSubscriptionRefundScam,
+      hasWireTransferLure: analysis.content.hasWireTransferLure,
       linkCount: analysis.links.length,
       suspiciousLinkCount: analysis.links.filter((link) => link.flags.length > 0).length,
       attachmentCount: analysis.attachments.length,

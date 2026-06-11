@@ -338,6 +338,30 @@ describe("job-offer scams", () => {
       { tier: "danger", reason: "job-offer-with-document-request" },
     )
   })
+
+  it("job offer signed as Polaris Partners from unrelated sender → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Beth Fletcher <beth@example-sports.test>",
+        subject: "Resume approval work from home",
+        body:
+          "We are pleased to approve your remote position. Please review the offer letter and reply to continue onboarding.\n\nRegards,\nPolaris Partners",
+      }),
+      { tier: "danger", reason: "job-brand-signature-impersonation" },
+    )
+  })
+
+  it("third-party recruiter mentioning Polaris Partners stays caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Recruiter <recruiter@search-firm.example>",
+        subject: "Interview invitation",
+        body:
+          "I am a third-party recruiter coordinating an interview invitation for a possible role at Polaris Partners.",
+      }),
+      { tier: "caution", reason: "job-offer-content", notReason: "job-brand-signature-impersonation" },
+    )
+  })
 })
 
 describe("BEC openers and document lures", () => {
@@ -378,6 +402,156 @@ describe("BEC openers and document lures", () => {
   })
 })
 
+describe("wire-transfer and invoice-redirection lures", () => {
+  it("invoice payment request with weak DMARC and attachment → danger", async () => {
+    await check(
+      buildEml({
+        from: "Roberta Edwards <redwards@vendor-team.example>",
+        subject: "Request for Payment; Invoice",
+        authResults:
+          "mx.recipient.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
+        body: [
+          "Please process this payment request for the attached invoice.",
+          "",
+          "Content-Type: application/pdf; name=\"leadership-bill.pdf\"",
+          "Content-Disposition: attachment; filename=\"leadership-bill.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "danger", reason: "invoice-payment-request" },
+    )
+  })
+
+  it("aligned SPF/DKIM invoice with no DMARC stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Known Vendor <billing@vendor.example>",
+        subject: "Request for Payment; Invoice",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=vendor.example; dkim=pass header.i=@vendor.example; dmarc=none header.from=vendor.example",
+        body: [
+          "Please process this payment request for the attached invoice.",
+          "",
+          "Content-Type: application/pdf; name=\"invoice.pdf\"",
+          "Content-Disposition: attachment; filename=\"invoice.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "invoice-payment-request" },
+    )
+  })
+
+  it("wire payment request with an attachment → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Vendor Billing <billing@news.vendor.example>",
+        subject: "Request for Payment; Invoice",
+        body: [
+          "Please process this invoice by ACH transfer using the routing number in the attached remittance instructions.",
+          "",
+          "Content-Type: application/pdf; name=\"leadership-bill.pdf\"",
+          "Content-Disposition: attachment; filename=\"leadership-bill.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "danger", reason: "wire-transfer-lure" },
+    )
+  })
+
+  it("final notice with wire routing language and an unrelated payment link → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "ASLC Group <clearing@aslc-group.example>",
+        subject: "FINAL NOTICE - payment transfer required",
+        htmlBody:
+          '<p>Please remit the invoice by wire transfer using the routing instructions in the portal.</p><p><a href="https://settlement-upload.example.net/notice">Review payment notice</a></p>',
+      }),
+      { tier: "danger", reason: "wire-transfer-lure" },
+    )
+  })
+
+  it("coercive final notice with exposure threat → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "ASLC Group <clearing@aslc-group.example>",
+        subject: "FINAL NOTICE",
+        body:
+          "Final notice: payment is required for this invoice. Failure to resolve this may result in legal action and exposure of damaging facts about the recipient.",
+      }),
+      { tier: "danger", reason: "coercive-payment-threat" },
+    )
+  })
+
+  it("ordinary invoice language without wire/routing details stays capped caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Known Vendor <billing@news.vendor.example>",
+        subject: "Invoice available",
+        body: "Your invoice balance is due this week. Please use your normal payment process.",
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
+    )
+  })
+
+  it("attached invoice with remit language but no bank details stays caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Known Vendor <billing@news.vendor.example>",
+        subject: "Monthly invoice",
+        body: [
+          "Please remit payment by the due date listed on the attached invoice.",
+          "",
+          "Content-Type: application/pdf; name=\"monthly-invoice.pdf\"",
+          "Content-Disposition: attachment; filename=\"monthly-invoice.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
+    )
+  })
+
+  it("attached invoice with a customer account number stays caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Known Vendor <billing@news.vendor.example>",
+        subject: "Monthly statement",
+        body: [
+          "Customer account number: 123456. Your invoice balance is due this week.",
+          "",
+          "Content-Type: application/pdf; name=\"monthly-statement.pdf\"",
+          "Content-Disposition: attachment; filename=\"monthly-statement.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
+    )
+  })
+
+  it("fraud-report discussion with quoted wire details does not fire wire-lure danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Helpful Recipient <recipient.example@example.com>",
+        subject: "RE: Fraudulent email",
+        body: [
+          "I received a fraudulent email impersonating your company and wanted to help.",
+          "The fake message included ACH transfer and routing number details, but I did not act on it.",
+          "",
+          "Content-Type: application/pdf; name=\"fraud-evidence.pdf\"",
+          "Content-Disposition: attachment; filename=\"fraud-evidence.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", notReason: "wire-transfer-lure" },
+    )
+  })
+})
+
 describe("text-only fake invoice and refund scams", () => {
   it("recipient-side spam verdict prevents header-only sample from looking safe", async () => {
     const analysis = await check(
@@ -414,6 +588,20 @@ describe("text-only fake invoice and refund scams", () => {
           "Renewal Date: 2026-05-20. We are pleased to confirm the renewal of your McAfee Plan for 60 Months. A charge of $499.00 has been made. Client Service Contact: 1.555.010.0199. For any adjustments to your subscription or to cancel, please contact our support.",
       }),
       { tier: "danger", reason: "subscription-refund-scam" },
+    )
+  })
+
+  it("bank notice for account opening with weak auth → danger", async () => {
+    await check(
+      buildEml({
+        from: "Client Service <clientservice@bank.example>",
+        subject: "A notice is available to view",
+        authResults:
+          "mx.recipient.org; spf=none smtp.mailfrom=bank.example; dkim=none; dmarc=none header.from=bank.example",
+        body:
+          "A notice is available to view from your bank. The notice concerns a new account opening and ACH activity.",
+      }),
+      { tier: "danger", reason: "bank-notice-lure" },
     )
   })
 })

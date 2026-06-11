@@ -205,10 +205,12 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
         content.hasUrgency ||
         content.hasJobOffer ||
         content.hasDocumentRequest ||
-        content.hasSubscriptionRefundScam) && (
+        content.hasSubscriptionRefundScam ||
+        content.hasWireTransferLure) && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-muted-foreground text-sm">Detected in this message:</span>
           {content.hasMoney ? <Badge variant="warning">Money / banking</Badge> : null}
+          {content.hasWireTransferLure ? <Badge variant="warning">Wire / payment risk</Badge> : null}
           {content.hasCredentials ? <Badge variant="warning">Credentials / login</Badge> : null}
           {content.hasSubscriptionRefundScam ? <Badge variant="warning">Refund / renewal scam</Badge> : null}
           {content.hasJobOffer ? <Badge variant="warning">Job offer</Badge> : null}
