@@ -181,6 +181,21 @@ const IMPERSONATED_BRANDS: BrandRule[] = [
     display: /\bzelle\b/i,
     legitimate: [/(^|\.)zellepay\.com$/i, /(^|\.)zelle\.com$/i],
   },
+  {
+    brand: "Rocket Mortgage",
+    display: /\brocket\s+mortgage\b/i,
+    legitimate: [/(^|\.)rocketmortgage\.com$/i, /(^|\.)rocketcompanies\.com$/i],
+  },
+  {
+    brand: "Brooks Running",
+    display: /\bbrooks\s+running\b/i,
+    legitimate: [/(^|\.)brooksrunning\.com$/i],
+  },
+  {
+    brand: "Southern Company",
+    display: /\bsouthern\s+company\b/i,
+    legitimate: [/(^|\.)southerncompany\.com$/i],
+  },
 ]
 
 // Public webmail domains. By itself, not suspicious — billions of real
