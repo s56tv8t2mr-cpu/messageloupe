@@ -128,9 +128,16 @@ export const parseEmlLocally = (text) => {
   );
   const spamScore = xSpamdResult?.match(/\[([+-]?\d+(?:\.\d+)?)\s*\//)?.[1] || null;
   const recipientSpamVerdict = xSpam === 'yes' && hasTrustedRecipientSpamContext ? 'spam' : null;
-  const recipientSpamSource = recipientSpamVerdict
-    ? xRspamdServer || (xPmSpamAction ? 'Proton Mail / Rspamd' : 'recipient spam filter')
-    : null;
+  let recipientSpamSource = null;
+  if (recipientSpamVerdict) {
+    if (xRspamdServer) {
+      recipientSpamSource = xRspamdServer;
+    } else if (xPmSpamAction) {
+      recipientSpamSource = 'Proton Mail / Rspamd';
+    } else {
+      recipientSpamSource = 'recipient spam filter';
+    }
+  }
 
   const spfResult = parseAuthResult(authResults, 'spf')
     || spfHeader?.match(/^(pass|fail|softfail|neutral|none|temperror|permerror)/i)?.[1]?.toLowerCase()

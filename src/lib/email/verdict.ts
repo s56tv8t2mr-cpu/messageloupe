@@ -115,12 +115,13 @@ export function computeVerdict({
   // the result appear safe. This is especially important for header-only
   // exports where the readable scam body may be encrypted or unavailable.
   if (parser.recipientSpamVerdict === "spam") {
+    let detail = "The recipient-side spam filter marked this message as spam."
+    if (parser.recipientSpamScore !== null) {
+      detail = `The recipient-side spam filter marked this message as spam with score ${parser.recipientSpamScore}.`
+    }
     reasons.push({
       signal: "recipient-spam-verdict",
-      detail:
-        parser.recipientSpamScore !== null
-          ? `The recipient-side spam filter marked this message as spam with score ${parser.recipientSpamScore}.`
-          : "The recipient-side spam filter marked this message as spam.",
+      detail,
       weight: "high",
     })
     tier = escalate(tier, "danger")
@@ -582,17 +583,17 @@ export function computeVerdict({
   let capReason: string | undefined
   if (shouldCapVerdict(content) && tier === "safe") {
     capped = true
-    capReason = content.hasMoney
-      ? "This message mentions money, payment, or banking changes."
-      : content.hasCredentials
-        ? "This message asks about credentials or login info."
-        : "This message asks for copies of personal documents."
+    let capSignal = "document-request-content"
+    capReason = "This message asks for copies of personal documents."
+    if (content.hasMoney) {
+      capSignal = "financial-action-content"
+      capReason = "This message mentions money, payment, or banking changes."
+    } else if (content.hasCredentials) {
+      capSignal = "credential-request-content"
+      capReason = "This message asks about credentials or login info."
+    }
     reasons.push({
-      signal: content.hasMoney
-        ? "financial-action-content"
-        : content.hasCredentials
-          ? "credential-request-content"
-          : "document-request-content",
+      signal: capSignal,
       detail: capReason,
       weight: "medium",
     })

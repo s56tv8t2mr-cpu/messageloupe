@@ -181,18 +181,51 @@ const matchAny = (text: string, patterns: RegExp[]): boolean =>
 const SECURITY_SUBSCRIPTION_BRANDS =
   /\b(mc\s*afee|mcafee|norton|lifelock|geek\s+squad|total\s+secure|total\s+security|antivirus|anti-virus)\b/i
 
+const INVOICE_PAYMENT_REQUEST_PATTERNS: RegExp[] = [
+  /\brequest\s+for\s+payment\b/i,
+  /\bpayment\s+request\b/i,
+  /\bpayment\s+(?:required|due|needed|overdue)\b/i,
+  /\bplease\s+(?:process|send|make)\s+(?:the\s+)?payment\b/i,
+  /\bpay\s+this\s+invoice\b/i,
+]
+
+const COERCIVE_PAYMENT_THREAT_PATTERNS: RegExp[] = [
+  /\bfinal\s+notice\b/i,
+  /\blegal\s+action\b/i,
+  /\blawsuit\b/i,
+  /\bexpos(?:e|ure)\b/i,
+  /\bpublic\s+disclosure\b/i,
+  /\brelease\s+(?:of\s+)?(?:facts|information|records)\b/i,
+  /\bdamaging\s+(?:facts|information)\b/i,
+  /\breputational\s+harm\b/i,
+]
+
+const SUPPORT_CONTACT_PATTERN =
+  /\b(?:support|client\s+service|contact|helpline|customer\s+care|billing)\b/gi
+
+const PHONE_NUMBER_PATTERN =
+  /\b(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/i
+
+function hasSupportPhoneProximity(text: string): boolean {
+  SUPPORT_CONTACT_PATTERN.lastIndex = 0
+  let match = SUPPORT_CONTACT_PATTERN.exec(text)
+  while (match) {
+    const termEnd = match.index + match[0].length
+    const window = text.slice(termEnd, termEnd + 50)
+    if (PHONE_NUMBER_PATTERN.test(window)) return true
+    match = SUPPORT_CONTACT_PATTERN.exec(text)
+  }
+  return false
+}
+
 function hasInvoicePaymentRequest(text: string): boolean {
   const invoice = /\b(?:invoice|bill|statement|balance\s+due|amount\s+due)\b/i.test(text)
-  const paymentRequest =
-    /\b(?:request\s+for\s+payment|payment\s+request|payment\s+(?:required|due|needed|overdue)|please\s+(?:process|send|make)\s+(?:the\s+)?payment|pay\s+this\s+invoice)\b/i.test(text)
-  return invoice && paymentRequest
+  return invoice && matchAny(text, INVOICE_PAYMENT_REQUEST_PATTERNS)
 }
 
 function hasCoercivePaymentThreat(text: string): boolean {
   const paymentOrInvoice = /\b(?:invoice|payment|wire|routing|balance\s+due|amount\s+due)\b/i.test(text)
-  const coercion =
-    /\b(?:final\s+notice|legal\s+action|lawsuit|expos(?:e|ure)|public\s+disclosure|release\s+(?:of\s+)?(?:facts|information|records)|damaging\s+(?:facts|information)|reputational\s+harm)\b/i.test(text)
-  return paymentOrInvoice && coercion
+  return paymentOrInvoice && matchAny(text, COERCIVE_PAYMENT_THREAT_PATTERNS)
 }
 
 function hasFraudReportContext(text: string): boolean {
@@ -253,8 +286,7 @@ function hasSubscriptionRefundScam(text: string): boolean {
   const chargeOrAmount =
     /\b(?:amount\s+charged|charged|charge\s+of|payment\s+mode|transaction\s+details|invoice|tax)\b/i.test(text)
     || /\$\s?\d/.test(text)
-  const phoneSupport =
-    /\b(?:support|client\s+service|contact|helpline|customer\s+care|billing)\b.{0,50}\b(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/i.test(text)
+  const phoneSupport = hasSupportPhoneProximity(text)
   return (
     SECURITY_SUBSCRIPTION_BRANDS.test(text) &&
     subscriptionOrOrder &&

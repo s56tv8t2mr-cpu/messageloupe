@@ -645,6 +645,30 @@ describe("text-only fake invoice and refund scams", () => {
     )
   })
 
+  it("subscription invoice with separate footer phone stays caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Norton Billing <billing@norton.example>",
+        subject: "Subscription invoice",
+        body:
+          "Your Norton subscription invoice is available. Visit your account portal for support options and normal account management resources.\n\nCompany directory: 1.555.010.0199",
+      }),
+      { tier: "caution", notReason: "subscription-refund-scam" },
+    )
+  })
+
+  it("subscription refund scam catches a later nearby contact number", async () => {
+    await check(
+      cleanEsp({
+        from: "McAfee Billing <billing@sender.example.test>",
+        subject: "your order was placed successfully",
+        body:
+          "Your McAfee subscription renewal has been processed for $499. Visit support options online for account resources. To cancel this membership, contact 1.555.010.0199.",
+      }),
+      { tier: "danger", reason: "subscription-refund-scam" },
+    )
+  })
+
   it("bank notice for account opening with weak auth → danger", async () => {
     await check(
       buildEml({
