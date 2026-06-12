@@ -47,6 +47,8 @@ export interface TeamReportMetadata {
   }
   linkHosts: string[]
   mxProvider: string | null
+  senderDomainAgeDays: number | null
+  senderDomainAgeStatus: string | null
 }
 
 const FORBIDDEN_FIELD_NAMES = new Set([
@@ -108,6 +110,8 @@ export function createTeamReportMetadata(
     },
     linkHosts,
     mxProvider: analysis.mx?.provider ?? null,
+    senderDomainAgeDays: analysis.rdap?.ageDays ?? null,
+    senderDomainAgeStatus: analysis.rdap?.status ?? null,
   }
 
   assertTeamReportMetadataOnly(metadata)

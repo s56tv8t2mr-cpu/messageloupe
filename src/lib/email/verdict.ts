@@ -19,6 +19,7 @@ import type {
   ForwardDetection,
   MxLookup,
   ParserResult,
+  RdapLookup,
   ReplyToCheck,
   SenderTrustSignals,
   Verdict,
@@ -50,6 +51,7 @@ interface VerdictInputs {
   trust: SenderTrustSignals
   replyTo: ReplyToCheck
   mx: MxLookup | null
+  rdap: RdapLookup | null
 }
 
 // True iff the visible sender domain is authenticated by SPF, DKIM, or
@@ -110,6 +112,7 @@ export function computeVerdict({
   trust,
   replyTo,
   mx,
+  rdap,
 }: VerdictInputs): Verdict {
   if (forward.isForwarded) {
     return {
@@ -136,6 +139,15 @@ export function computeVerdict({
   let tier: VerdictTier = "safe"
   const reasons: VerdictReason[] = []
   const hasThirdPartyLink = links.some((link) => link.flags.includes("thirdParty"))
+  const hasHighRiskBusinessContent =
+    content.hasMoney ||
+    content.hasCredentials ||
+    content.hasJobOffer ||
+    content.hasDocumentRequest ||
+    content.hasWireTransferLure ||
+    content.hasInvoicePaymentRequest ||
+    content.hasBankNoticeLure ||
+    content.hasSubscriptionRefundScam
 
   if (forward.suspectedReason) {
     reasons.push({
@@ -481,6 +493,32 @@ export function computeVerdict({
       weight: "high",
     })
     tier = escalate(tier, "danger")
+  }
+
+  // ---- Newly registered sender domain ----
+  // Domain age is not proof by itself: new companies and campaigns use new
+  // domains. It becomes high-risk when paired with business-action language
+  // and weak sender authentication.
+  if (rdap?.status === "done" && rdap.ageDays !== null && rdap.ageDays <= 30) {
+    if (
+      rdap.ageDays <= 14 &&
+      hasHighRiskBusinessContent &&
+      !senderAuthenticates(parser)
+    ) {
+      reasons.push({
+        signal: "new-sender-domain-high-risk",
+        detail: `${rdap.domain} appears to have been registered about ${rdap.ageDays} day${rdap.ageDays === 1 ? "" : "s"} ago, and this message asks for a sensitive business action without strong sender authentication. Newly registered domains are common in BEC and invoice-redirection attempts.`,
+        weight: "high",
+      })
+      tier = escalate(tier, "danger")
+    } else {
+      reasons.push({
+        signal: "new-sender-domain",
+        detail: `${rdap.domain} appears to have been registered about ${rdap.ageDays} day${rdap.ageDays === 1 ? "" : "s"} ago. New sender domains deserve extra scrutiny, especially for money, login, or document requests.`,
+        weight: "medium",
+      })
+      tier = escalate(tier, "caution")
+    }
   }
 
   // ---- Job offer signed as a known firm but sent from another domain ----

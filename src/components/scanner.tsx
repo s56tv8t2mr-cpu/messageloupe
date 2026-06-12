@@ -208,7 +208,8 @@ export function Scanner() {
       <p className="text-muted-foreground flex items-start gap-2 text-sm leading-relaxed">
         <ScanSearch className="text-primary mt-0.5 size-4 shrink-0" aria-hidden />
         Your email is not uploaded, logged, or analyzed by us. For some senders,
-        your browser may ask public DNS for that domain&apos;s MX records.
+        your browser may ask public DNS for that domain&apos;s MX records or public
+        RDAP for that domain&apos;s registration age.
       </p>
     </div>
   )

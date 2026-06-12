@@ -172,6 +172,14 @@ export interface MxLookup {
   error?: string
 }
 
+export interface RdapLookup {
+  domain: string
+  registeredAt: string | null
+  ageDays: number | null
+  status: "done" | "no-date" | "error"
+  error?: string
+}
+
 export interface Verdict {
   tier: VerdictTier
   headline: string
@@ -195,5 +203,6 @@ export interface Analysis {
   trust: SenderTrustSignals
   replyTo: ReplyToCheck
   mx: MxLookup | null
+  rdap: RdapLookup | null
   verdict: Verdict
 }

@@ -8,7 +8,7 @@ Live at [messageloupe.com](https://messageloupe.com).
 
 The scanner runs in the browser. The site is a static export served from a CDN with no backend, no analytics, no cookies, no app database, and no server-side email processing. Email content never leaves the device.
 
-The one intentional network exception is an MX-record lookup: for non-webmail senders, the browser may ask Google Public DNS which provider handles mail for the visible sender domain. That request contains only the domain name, not the message contents, headers, links, verdict, or uploaded file.
+The intentional network exceptions are domain-only MX and RDAP lookups: for non-webmail senders, the browser may ask Google Public DNS which provider handles mail for the visible sender domain and public RDAP when that domain was registered. Those requests contain only the domain name, not the message contents, headers, links, verdict, or uploaded file.
 
 Concrete consequences:
 

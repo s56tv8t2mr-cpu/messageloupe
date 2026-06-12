@@ -43,12 +43,11 @@ export default function PrivacyPage() {
             third party.
           </p>
           <p className="text-muted-foreground">
-            <strong className="text-foreground">One DNS lookup may happen.</strong>{" "}
+            <strong className="text-foreground">Domain lookups may happen.</strong>{" "}
             For non-webmail senders, your browser may ask Google Public DNS for the
-            sender domain&apos;s MX records. That request contains only the domain name,
-            not the email contents, headers, links, verdict, or your uploaded file. We
-            use it only to compare the sender&apos;s inbound mail provider with the
-            service that delivered the message.
+            sender domain&apos;s MX records and public RDAP for that domain&apos;s
+            registration age. Those requests contain only the domain name, not the
+            email contents, headers, links, verdict, or your uploaded file.
           </p>
           <p className="text-muted-foreground">
             <strong className="text-foreground">No analytics, no cookies, no
@@ -70,7 +69,7 @@ export default function PrivacyPage() {
           <ul className="text-muted-foreground space-y-1.5">
             <li>We do not upload, log, store, or transmit your email.</li>
             <li>We do not call third-party reputation services with your email data.</li>
-            <li>We do not send message contents, headers, links, or verdicts to DNS.</li>
+            <li>We do not send message contents, headers, links, or verdicts to DNS or RDAP.</li>
             <li>We do not set cookies (other than what your browser may set automatically; none from us).</li>
             <li>We do not have a database. There is nothing to leak.</li>
           </ul>
@@ -99,8 +98,8 @@ export default function PrivacyPage() {
               GitHub
             </a>
             . Open your browser&apos;s network tab while you analyze a sample email;
-            the only scan-time request you should see is an optional MX lookup to
-            <code>dns.google</code> for the sender domain.
+            the only scan-time requests you should see are optional domain-only
+            lookups to <code>dns.google</code> and <code>rdap.org</code>.
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
