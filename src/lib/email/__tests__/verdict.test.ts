@@ -57,6 +57,29 @@ const mxAnswer = (priority: number, host: string): MockDnsAnswer => ({
   data: `${priority} ${host}.`,
 })
 
+function knownVendorAttachedInvoice({
+  subject,
+  bodyLine,
+  filename,
+}: {
+  subject: string
+  bodyLine: string
+  filename: string
+}): string {
+  return cleanEsp({
+    from: "Known Vendor <billing@news.vendor.example>",
+    subject,
+    body: [
+      bodyLine,
+      "",
+      `Content-Type: application/pdf; name="${filename}"`,
+      `Content-Disposition: attachment; filename="${filename}"`,
+      "",
+      "JVBERi0xLjQK",
+    ].join("\r\n"),
+  })
+}
+
 beforeEach(() => {
   __resetMxCacheForTests()
   mockFetchMxAnswer([])
@@ -498,17 +521,10 @@ describe("wire-transfer and invoice-redirection lures", () => {
 
   it("attached invoice with remit language but no bank details stays caution", async () => {
     await check(
-      cleanEsp({
-        from: "Known Vendor <billing@news.vendor.example>",
+      knownVendorAttachedInvoice({
         subject: "Monthly invoice",
-        body: [
-          "Please remit payment by the due date listed on the attached invoice.",
-          "",
-          "Content-Type: application/pdf; name=\"monthly-invoice.pdf\"",
-          "Content-Disposition: attachment; filename=\"monthly-invoice.pdf\"",
-          "",
-          "JVBERi0xLjQK",
-        ].join("\r\n"),
+        bodyLine: "Please remit payment by the due date listed on the attached invoice.",
+        filename: "monthly-invoice.pdf",
       }),
       { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
     )
@@ -516,17 +532,10 @@ describe("wire-transfer and invoice-redirection lures", () => {
 
   it("attached invoice with a customer account number stays caution", async () => {
     await check(
-      cleanEsp({
-        from: "Known Vendor <billing@news.vendor.example>",
+      knownVendorAttachedInvoice({
         subject: "Monthly statement",
-        body: [
-          "Customer account number: 123456. Your invoice balance is due this week.",
-          "",
-          "Content-Type: application/pdf; name=\"monthly-statement.pdf\"",
-          "Content-Disposition: attachment; filename=\"monthly-statement.pdf\"",
-          "",
-          "JVBERi0xLjQK",
-        ].join("\r\n"),
+        bodyLine: "Customer account number: 123456. Your invoice balance is due this week.",
+        filename: "monthly-statement.pdf",
       }),
       { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
     )
