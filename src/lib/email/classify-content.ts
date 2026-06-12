@@ -218,6 +218,18 @@ function hasRiskyWorkFromHomeJobLure(text: string): boolean {
     /\byour\s+(?:resume|application)\s+(?:has\s+been\s+)?(?:approved|accepted)\b/i.test(text)
 }
 
+function hasOpaqueEncryptedBody(text: string): boolean {
+  return /-----BEGIN\s+PGP\s+MESSAGE-----/i.test(text) ||
+    /\brpmsg\.message\b/i.test(text)
+}
+
+function hasTransactionNoticeLure(text: string): boolean {
+  return (
+    /\b(?:txn|transaction|invoice|order|receipt|statement|billing|charge|amount)\b/i.test(text) &&
+    /\b(?:issued|updated|available|posted|ready|processed|placed|confirmed|breakdown|notice)\b/i.test(text)
+  )
+}
+
 function hasWireTransferLure(text: string): boolean {
   const bankAccountContext =
     /\bbank\s+account\s+(?:number|details?|info|information|instructions?)\b/i.test(text) ||
@@ -269,6 +281,8 @@ export function classifyContent(text: string): ContentClassification {
     hasBankNoticeLure: hasBankNoticeLure(target),
     mentionsPolarisPartners: /\bpolaris\s+partners\b/i.test(target),
     hasRiskyWorkFromHomeJobLure: hasRiskyWorkFromHomeJobLure(target),
+    hasOpaqueEncryptedBody: hasOpaqueEncryptedBody(target),
+    hasTransactionNoticeLure: hasTransactionNoticeLure(target),
   }
 }
 

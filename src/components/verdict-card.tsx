@@ -206,11 +206,13 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
         content.hasJobOffer ||
         content.hasDocumentRequest ||
         content.hasSubscriptionRefundScam ||
-        content.hasWireTransferLure) && (
+        content.hasWireTransferLure ||
+        content.hasOpaqueEncryptedBody) && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-muted-foreground text-sm">Detected in this message:</span>
           {content.hasMoney ? <Badge variant="warning">Money / banking</Badge> : null}
           {content.hasWireTransferLure ? <Badge variant="warning">Wire / payment risk</Badge> : null}
+          {content.hasOpaqueEncryptedBody ? <Badge variant="warning">Encrypted body</Badge> : null}
           {content.hasCredentials ? <Badge variant="warning">Credentials / login</Badge> : null}
           {content.hasSubscriptionRefundScam ? <Badge variant="warning">Refund / renewal scam</Badge> : null}
           {content.hasJobOffer ? <Badge variant="warning">Job offer</Badge> : null}

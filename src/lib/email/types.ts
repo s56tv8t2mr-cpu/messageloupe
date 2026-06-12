@@ -127,6 +127,8 @@ export interface ContentClassification {
   hasBankNoticeLure: boolean
   mentionsPolarisPartners: boolean
   hasRiskyWorkFromHomeJobLure: boolean
+  hasOpaqueEncryptedBody: boolean
+  hasTransactionNoticeLure: boolean
 }
 
 export interface SenderTrustSignals {

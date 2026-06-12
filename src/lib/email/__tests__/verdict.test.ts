@@ -553,6 +553,60 @@ describe("wire-transfer and invoice-redirection lures", () => {
 })
 
 describe("text-only fake invoice and refund scams", () => {
+  it("PGP-opaque transaction notice from public webmail → danger", async () => {
+    await check(
+      buildEml({
+        from: "Transaction Notice <notice1234@hotmail.com>",
+        subject: "Updated transaction breakdown issued TXN/ABC/1A",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque encrypted invoice body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "danger", reason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("PGP-opaque transaction notice from a private domain stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Known Billing <billing@example.com>",
+        subject: "Updated transaction breakdown issued",
+        authResults: authResults({ domain: "example.com" }),
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque encrypted invoice body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "caution", reason: "opaque-encrypted-body", notReason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("PGP-opaque business message without transaction lure stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Known Contact <contact@example.com>",
+        subject: "Encrypted note",
+        authResults: authResults({ domain: "example.com" }),
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque personal body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "caution", reason: "opaque-encrypted-body", notReason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("PGP-opaque public-webmail project breakdown stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Personal Contact <contact@hotmail.com>",
+        subject: "Project breakdown",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque project body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "caution", reason: "opaque-encrypted-body", notReason: "encrypted-transaction-lure" },
+    )
+  })
+
   it("recipient-side spam verdict prevents header-only sample from looking safe", async () => {
     const analysis = await check(
       buildEml({

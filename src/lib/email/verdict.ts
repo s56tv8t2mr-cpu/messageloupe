@@ -329,6 +329,33 @@ export function computeVerdict({
     tier = escalate(tier, "danger")
   }
 
+  // ---- Opaque encrypted invoice / transaction lures ----
+  // Proton exports and some secure-mail flows can leave the message body as
+  // a PGP armored blob. When the visible subject looks transactional and the
+  // sender is public webmail, do not let clean Hotmail/Gmail auth become a
+  // "Safe" verdict; the actual invoice/refund content is hidden from us.
+  if (
+    content.hasOpaqueEncryptedBody &&
+    content.hasTransactionNoticeLure &&
+    trust.fromPublicWebmail
+  ) {
+    reasons.push({
+      signal: "encrypted-transaction-lure",
+      detail:
+        "The readable content is hidden inside an encrypted body, while the visible subject looks like a transaction, invoice, order, or billing notice from a public webmail sender. Fake invoice and refund scams can use this shape to bypass content filters.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  } else if (content.hasOpaqueEncryptedBody && tier === "safe") {
+    reasons.push({
+      signal: "opaque-encrypted-body",
+      detail:
+        "The message body is encrypted or otherwise opaque, so Message Loupe cannot inspect the actual content. Treat it as unverified unless you expected an encrypted message from this sender.",
+      weight: "medium",
+    })
+    tier = escalate(tier, "caution")
+  }
+
   // ---- Wire / ACH payment lure ----
   // Plain invoice language is common and should stay at caution. The stronger
   // signal is wire/ACH/routing/remittance language paired with another risky

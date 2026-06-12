@@ -67,6 +67,7 @@ export async function analyze(source: string): Promise<Analysis> {
       parser.bodyText,
       stripHtmlForClassification(parser.bodyHtml ?? ""),
       parser.subject,
+      parser.contentClass,
     ].join("\n"),
   )
   const forward = detectForward(parser)

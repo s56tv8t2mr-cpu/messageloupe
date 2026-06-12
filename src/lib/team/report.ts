@@ -39,6 +39,8 @@ export interface TeamReportMetadata {
     hasDocumentRequest: boolean
     hasSubscriptionRefundScam: boolean
     hasWireTransferLure: boolean
+    hasOpaqueEncryptedBody: boolean
+    hasTransactionNoticeLure: boolean
     linkCount: number
     suspiciousLinkCount: number
     attachmentCount: number
@@ -98,6 +100,8 @@ export function createTeamReportMetadata(
       hasDocumentRequest: analysis.content.hasDocumentRequest,
       hasSubscriptionRefundScam: analysis.content.hasSubscriptionRefundScam,
       hasWireTransferLure: analysis.content.hasWireTransferLure,
+      hasOpaqueEncryptedBody: analysis.content.hasOpaqueEncryptedBody,
+      hasTransactionNoticeLure: analysis.content.hasTransactionNoticeLure,
       linkCount: analysis.links.length,
       suspiciousLinkCount: analysis.links.filter((link) => link.flags.length > 0).length,
       attachmentCount: analysis.attachments.length,
