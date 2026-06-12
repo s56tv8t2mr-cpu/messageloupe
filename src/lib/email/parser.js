@@ -1,6 +1,7 @@
 import { isValidPublicIp } from './ipClassifiers.js';
 import { matchProvider } from './providers.js';
 import { isSecurityGateway } from './securityGateways.js';
+import { decodeEncodedWords } from './encodedWords.js';
 
 export { isGoogleIp } from './ipClassifiers.js';
 
@@ -24,6 +25,70 @@ const extractDomain = (value) => {
   return match ? match[0].toLowerCase() : null;
 };
 
+const REGISTRABLE_SUFFIXES = [
+  'co.uk', 'org.uk', 'ac.uk', 'gov.uk',
+  'com.au', 'net.au', 'org.au',
+  'com.br', 'com.cn', 'com.hk', 'com.mx', 'com.my', 'com.ng', 'com.sg', 'com.tr', 'com.vn',
+  'co.jp', 'co.nz', 'co.za'
+];
+
+const registrableDomain = (host) => {
+  if (!host) return null;
+  const lower = host.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  const suffix = REGISTRABLE_SUFFIXES.find((s) => lower.endsWith(`.${s}`));
+  if (suffix) {
+    const label = lower.slice(0, -suffix.length - 1).split('.').pop();
+    return label ? `${label}.${suffix}` : lower;
+  }
+  const parts = lower.split('.').filter(Boolean);
+  return parts.length >= 2 ? parts.slice(-2).join('.') : lower;
+};
+
+const sameRegistrableDomain = (a, b) => {
+  const left = registrableDomain(a);
+  const right = registrableDomain(b);
+  return Boolean(left && right && left === right);
+};
+
+const hostFromAuthservId = (value) => {
+  const firstToken = value
+    ?.split(';')[0]
+    ?.replace(/\([^)]*\)/g, ' ')
+    ?.trim()
+    ?.split(/\s+/)[0]
+    ?.replace(/\.$/, '');
+  return extractDomain(firstToken);
+};
+
+const topReceivedByHosts = (receivedEntries) => {
+  const firstReceived = receivedEntries[0];
+  if (!firstReceived) return [];
+  return [firstReceived].flatMap(({ value }) => {
+    const hosts = [];
+    const pattern = /\bby\s+([a-z0-9.-]+\.[a-z]{2,})/gi;
+    let match = pattern.exec(value);
+    while (match) {
+      hosts.push(match[1].toLowerCase().replace(/\.$/, ''));
+      match = pattern.exec(value);
+    }
+    return hosts;
+  });
+};
+
+const selectTrustedAuthResults = (entries, receivedEntries) => {
+  const byHosts = topReceivedByHosts(receivedEntries);
+  return entries.find((entry) => {
+    const authservHost = hostFromAuthservId(entry.value);
+    if (!authservHost) return false;
+    return byHosts.some((host) => (
+      authservHost === host ||
+      authservHost.endsWith(`.${host}`) ||
+      host.endsWith(`.${authservHost}`) ||
+      sameRegistrableDomain(authservHost, host)
+    ));
+  }) || null;
+};
+
 const parseAuthResult = (value, token) => (
   value?.match(new RegExp(`${token}=([a-z]+)`, 'i'))?.[1]?.toLowerCase() || null
 );
@@ -36,28 +101,49 @@ const parseHeaderMatch = (value, patterns) => {
   return null;
 };
 
+const decodeHtmlCodePoint = (value, radix) => {
+  const codePoint = parseInt(value, radix);
+  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10FFFF) return '';
+  try {
+    return String.fromCodePoint(codePoint);
+  } catch {
+    return '';
+  }
+};
+
+const stripHtmlToText = (html) => (
+  (html || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_m, hex) => decodeHtmlCodePoint(hex, 16))
+    .replace(/&#(\d+);/g, (_m, code) => decodeHtmlCodePoint(code, 10))
+    .replace(/\s+/g, ' ')
+    .trim()
+);
+
+const looksLikeHtml = (content, contentType = '') => (
+  /text\/html/i.test(contentType) ||
+  /<(?:html|body|table|div|p|br|a|img|span|strong|em|i|b)\b/i.test(content || '')
+);
+
+const appendDecodedPart = (existing, content) => {
+  if (!content) return existing;
+  return existing ? `${existing}\n${content}` : content;
+};
+
 export const parseEmlLocally = (text) => {
   const [headersPart, ...bodyParts] = text.split(/\r?\n\r?\n/);
   const rawBody = bodyParts.join('\n\n');
   const headerLines = headersPart.split(/\r?\n/);
 
-  const getHeader = (name) => {
-    const prefix = `${name.toLowerCase()}:`;
-    for (let i = 0; i < headerLines.length; i++) {
-      if (headerLines[i].toLowerCase().startsWith(prefix)) {
-        let result = headerLines[i].substring(name.length + 1).trim();
-        let j = i + 1;
-        while (j < headerLines.length && /^\s/.test(headerLines[j])) {
-          result += ` ${headerLines[j].trim()}`;
-          j++;
-        }
-        return result;
-      }
-    }
-    return null;
-  };
-
-  const getHeaders = (name) => {
+  const getHeaderEntries = (name) => {
     const results = [];
     const prefix = `${name.toLowerCase()}:`;
     for (let i = 0; i < headerLines.length; i++) {
@@ -68,10 +154,20 @@ export const parseEmlLocally = (text) => {
           result += ` ${headerLines[j].trim()}`;
           j++;
         }
-        results.push(result);
+        results.push({ value: result, index: i });
       }
     }
     return results;
+  };
+
+  const getHeader = (name) => {
+    const first = getHeaderEntries(name)[0];
+    if (first) return first.value;
+    return null;
+  };
+
+  const getHeaders = (name) => {
+    return getHeaderEntries(name).map((entry) => entry.value);
   };
 
   const decodeBody = (content, encoding) => {
@@ -95,18 +191,26 @@ export const parseEmlLocally = (text) => {
     return content;
   };
 
-  const allReceived = getHeaders('Received');
+  const receivedEntries = getHeaderEntries('Received');
+  const allReceived = receivedEntries.map((entry) => entry.value);
   const spfHeader = getHeader('Received-SPF');
-  const authResults = getHeader('Authentication-Results');
-  const fromHeader = getHeader('From') || '';
-  const toHeader = getHeader('To') || '';
-  const returnPath = getHeader('Return-Path')?.replace(/[<>]/g, '') || null;
-  const replyToHeader = getHeader('Reply-To') || null;
+  const authResultsEntries = getHeaderEntries('Authentication-Results');
+  const fromHeader = decodeEncodedWords(getHeader('From') || '');
+  const toHeader = decodeEncodedWords(getHeader('To') || '');
+  const duplicateCriticalHeaders = ['From', 'Subject', 'Return-Path'].filter((name) => (
+    getHeaderEntries(name).length > 1
+  ));
+  const returnPath = decodeEncodedWords(getHeader('Return-Path') || '')?.replace(/[<>]/g, '') || null;
+  const replyToHeader = decodeEncodedWords(getHeader('Reply-To') || '') || null;
   const listIdHeader = getHeader('List-Id') || null;
   const sendingEmail = extractEmailAddress(fromHeader) || fromHeader || null;
   const sendingDomain = extractDomain(fromHeader);
   const recipientEmail = extractEmailAddress(toHeader);
   const recipientDomain = extractDomain(toHeader);
+  const trustedAuthResultsEntry = selectTrustedAuthResults(authResultsEntries, receivedEntries);
+  const authResults = trustedAuthResultsEntry?.value || null;
+  const ignoredAuthResultsCount = authResultsEntries.length - (trustedAuthResultsEntry ? 1 : 0);
+  const authResultsTrusted = Boolean(trustedAuthResultsEntry);
   // Outlook/M365 marks rights-protected (RMS-encrypted) messages with
   // Content-Class: rpmsg.message. The body of such a message is opaque
   // to any analyzer — combined with other signals it's a strong tell.
@@ -417,21 +521,34 @@ export const parseEmlLocally = (text) => {
         if (innerBoundary && innerBoundary !== boundary) {
           processMimeParts(partBody, innerBoundary, depth + 1);
         }
-      } else if (innerType.includes('text/plain') && !bodyText) {
-        bodyText = decodeBody(partBody, encoding);
-      } else if (innerType.includes('text/html') && !bodyHtml) {
-        bodyHtml = decodeBody(partBody, encoding);
+      } else if (innerType.includes('text/plain')) {
+        bodyText = appendDecodedPart(bodyText, decodeBody(partBody, encoding));
+      } else if (innerType.includes('text/html')) {
+        const decodedHtml = decodeBody(partBody, encoding);
+        bodyHtml = appendDecodedPart(bodyHtml, decodedHtml);
+        bodyText = appendDecodedPart(bodyText, stripHtmlToText(decodedHtml));
       }
     }
   };
 
-  const mainBoundaryMatch = (getHeader('Content-Type') || '').match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
+  const rootContentType = getHeader('Content-Type') || '';
+  const mainBoundaryMatch = rootContentType.match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
   const boundary = mainBoundaryMatch?.[1] || mainBoundaryMatch?.[2];
   if (boundary) processMimeParts(rawBody, boundary);
-  else bodyText = decodeBody(rawBody, getHeader('Content-Transfer-Encoding'));
+  else {
+    const decodedBody = decodeBody(rawBody, getHeader('Content-Transfer-Encoding'));
+    if (looksLikeHtml(decodedBody, rootContentType)) {
+      bodyHtml = decodedBody;
+      bodyText = stripHtmlToText(decodedBody);
+    } else {
+      bodyText = decodedBody;
+    }
+  }
+
+  const hasImageContent = /<img\b|Content-Type:\s*image\//i.test(`${bodyHtml}\n${text}`);
 
   return {
-    subject: getHeader('Subject'),
+    subject: decodeEncodedWords(getHeader('Subject') || '') || null,
     sendingEmail,
     sendingName: fromHeader.split('<')[0]?.replace(/"/g, '')?.trim() || 'Unknown',
     sendingDomain,
@@ -446,7 +563,9 @@ export const parseEmlLocally = (text) => {
     messageId: msgId,
     bodyText,
     bodyHtml,
+    hasImageContent,
     hasBodyContent: Boolean(bodyText || bodyHtml),
+    duplicateCriticalHeaders,
     allHeaders: headersPart,
     sendingService: sendingService || 'No clear email service identified',
     serviceIdentified: Boolean(sendingService),
@@ -464,6 +583,8 @@ export const parseEmlLocally = (text) => {
     dkimHeaderDomain,
     dmarcResult,
     authSummary,
+    authResultsTrusted,
+    ignoredAuthResultsCount,
     recipientSpamVerdict,
     recipientSpamScore: spamScore ? Number(spamScore) : null,
     recipientSpamSource,

@@ -134,10 +134,64 @@ describe("authentication failures", () => {
       buildEml({
         from: "Derek Baker <dbaker@purduefedcu.com>",
         authResults:
-          "mx.recipient.org; spf=pass smtp.mailfrom=purduefedcu.com; dkim=none; dmarc=none header.from=purduefedcu.com",
+          "mx.example.org; spf=pass smtp.mailfrom=purduefedcu.com; dkim=none; dmarc=none header.from=purduefedcu.com",
       }),
       { tier: "caution", reason: "spf-only-auth" },
     )
+  })
+
+  it("sender-supplied Authentication-Results are ignored", async () => {
+    await check(
+      buildEml({
+        from: "Trusted Sender <sender@example.com>",
+        authResults:
+          "mail.attacker.test; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass header.from=example.com",
+      }),
+      { tier: "caution", reason: "untrusted-auth-results" },
+    )
+  })
+
+  it("forged upstream Received host does not make forged Authentication-Results trusted", async () => {
+    await check(
+      buildEml({
+        from: "Trusted Sender <sender@example.com>",
+        received: [
+          "from mx.example.org (mx.example.org [203.0.113.10]) by inbox.example.org with ESMTPS; Mon, 01 Jan 2024 12:00:00 -0500",
+          "from attacker.example (attacker.example [198.51.100.22]) by mail.attacker.test with ESMTPS; Mon, 01 Jan 2024 11:59:55 -0500",
+        ],
+        authResults:
+          "mail.attacker.test; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass header.from=example.com",
+      }),
+      { tier: "caution", reason: "untrusted-auth-results" },
+    )
+  })
+
+  it("recipient-domain authserv is ignored when top Received host is unrelated", async () => {
+    await check(
+      buildEml({
+        from: "Trusted Sender <sender@example.com>",
+        received: [
+          "from mail.other-provider.test (mail.other-provider.test [203.0.113.10]) by inbox.other-provider.test with ESMTPS; Mon, 01 Jan 2024 12:00:00 -0500",
+          "from sender.example.com (sender.example.com [203.0.113.45]) by mail.other-provider.test with ESMTPS; Mon, 01 Jan 2024 11:59:55 -0500",
+        ],
+        authResults:
+          "mx.example.org; spf=pass smtp.mailfrom=example.com; dkim=pass header.i=@example.com; dmarc=pass header.from=example.com",
+      }),
+      { tier: "caution", reason: "untrusted-auth-results" },
+    )
+  })
+
+  it("duplicate critical headers → danger", async () => {
+    const eml = buildEml({
+      from: "Billing <billing@example.com>",
+      subject: "Invoice",
+      authResults: authResults({ domain: "example.com" }),
+    }).replace(
+      "From: Billing <billing@example.com>",
+      "From: Billing <billing@example.com>\r\nFrom: Trusted CEO <ceo@example.com>",
+    )
+
+    await check(eml, { tier: "danger", reason: "duplicate-critical-headers" })
   })
 })
 
@@ -147,6 +201,28 @@ describe("display-name impersonation", () => {
       buildEml({
         from: "PayPal Service <service@random-payments.com>",
         authResults: authResults({ domain: "random-payments.com" }),
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation decodes RFC 2047 display names", async () => {
+    await check(
+      buildEml({
+        from: "=?UTF-8?B?UGF5UGFs?= <security@random-sender.example>",
+        authResults: authResults({ domain: "random-sender.example" }),
+        body: "Please review your account security notice.",
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation collapses split RFC 2047 display names", async () => {
+    await check(
+      buildEml({
+        from: "=?UTF-8?B?UGF5?= =?UTF-8?B?UGFs?= <security@random-sender.example>",
+        authResults: authResults({ domain: "random-sender.example" }),
+        body: "Please review your account security notice.",
       }),
       { tier: "danger", reason: "brand-impersonation" },
     )
@@ -294,6 +370,35 @@ describe("content classification cap", () => {
     )
   })
 
+  it("tag-split HTML keywords still classify as money content", async () => {
+    await check(
+      cleanEsp({
+        body: "",
+        htmlBody: "<p>Please review this in<i></i>voice before approval.</p>",
+      }),
+      { tier: "caution", reason: "financial-action-content" },
+    )
+  })
+
+  it("zero-width keyword evasion still classifies as money content", async () => {
+    await check(
+      cleanEsp({
+        body: "Please review this in\u200bvoice before approval.",
+      }),
+      { tier: "caution", reason: "financial-action-content" },
+    )
+  })
+
+  it("image-only body never returns safe", async () => {
+    await check(
+      cleanEsp({
+        body: "",
+        htmlBody: '<html><body><img src="cid:qr-code"></body></html>',
+      }),
+      { tier: "caution", reason: "low-readable-content" },
+    )
+  })
+
   it("clean auth + banking information update → caution (capped)", async () => {
     await check(
       cleanEsp({
@@ -432,12 +537,32 @@ describe("wire-transfer and invoice-redirection lures", () => {
         from: "Roberta Edwards <redwards@vendor-team.example>",
         subject: "Request for Payment; Invoice",
         authResults:
-          "mx.recipient.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
+          "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
         body: [
           "Please process this payment request for the attached invoice.",
           "",
           "Content-Type: application/pdf; name=\"leadership-bill.pdf\"",
           "Content-Disposition: attachment; filename=\"leadership-bill.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "danger", reason: "invoice-payment-request" },
+    )
+  })
+
+  it("invoice payment request decodes RFC 2047 subject", async () => {
+    await check(
+      buildEml({
+        from: "Roberta Edwards <redwards@vendor-team.example>",
+        subject: "=?UTF-8?Q?Request_for_Payment=3B_Invoice?=",
+        authResults:
+          "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
+        body: [
+          "Please see the attached file.",
+          "",
+          "Content-Type: application/pdf; name=\"request.pdf\"",
+          "Content-Disposition: attachment; filename=\"request.pdf\"",
           "",
           "JVBERi0xLjQK",
         ].join("\r\n"),
@@ -452,7 +577,7 @@ describe("wire-transfer and invoice-redirection lures", () => {
         from: "Known Vendor <billing@vendor.example>",
         subject: "Request for Payment; Invoice",
         authResults:
-          "mx.recipient.org; spf=pass smtp.mailfrom=vendor.example; dkim=pass header.i=@vendor.example; dmarc=none header.from=vendor.example",
+          "mx.example.org; spf=pass smtp.mailfrom=vendor.example; dkim=pass header.i=@vendor.example; dmarc=none header.from=vendor.example",
         body: [
           "Please process this payment request for the attached invoice.",
           "",
@@ -568,7 +693,7 @@ describe("text-only fake invoice and refund scams", () => {
         from: "Transaction Notice <notice1234@hotmail.com>",
         subject: "Updated transaction breakdown issued TXN/ABC/1A",
         authResults:
-          "mx.recipient.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
+          "mx.example.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
         body:
           "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque encrypted invoice body\n-----END PGP MESSAGE-----",
       }),
@@ -608,7 +733,7 @@ describe("text-only fake invoice and refund scams", () => {
         from: "Personal Contact <contact@hotmail.com>",
         subject: "Project breakdown",
         authResults:
-          "mx.recipient.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
+          "mx.example.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
         body:
           "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque project body\n-----END PGP MESSAGE-----",
       }),
@@ -684,7 +809,7 @@ describe("text-only fake invoice and refund scams", () => {
         from: "Client Service <clientservice@bank.example>",
         subject: "A notice is available to view",
         authResults:
-          "mx.recipient.org; spf=none smtp.mailfrom=bank.example; dkim=none; dmarc=none header.from=bank.example",
+          "mx.example.org; spf=none smtp.mailfrom=bank.example; dkim=none; dmarc=none header.from=bank.example",
         body:
           "A notice is available to view from your bank. The notice concerns a new account opening and ACH activity.",
       }),
@@ -696,19 +821,42 @@ describe("text-only fake invoice and refund scams", () => {
 describe("forwarded-message guard", () => {
   const exampleAuth = authResults({ domain: "example.com" })
 
-  it("subject prefix Fwd: → forwarded tier, no verdict issued", async () => {
-    await check(buildEml({ subject: "Fwd: Suspicious email", authResults: exampleAuth }), {
+  it("subject prefix Fwd: without original header structure → forwarded tier", async () => {
+    await check(buildEml({ subject: "Fwd: Suspicious email", received: [] }), {
       tier: "forwarded",
     })
   })
 
-  it("body separator '----- Forwarded message -----' → forwarded tier", async () => {
+  it("body separator without original header structure → forwarded tier", async () => {
     await check(
       buildEml({
+        received: [],
+        body: "FYI:\n\n---------- Forwarded message ----------\nFrom: stranger@phish.example\nSubject: Urgent",
+      }),
+      { tier: "forwarded" },
+    )
+  })
+
+  it("normal user forward with top-level auth still returns forwarded", async () => {
+    await check(
+      buildEml({
+        subject: "Fwd: Suspicious email",
         authResults: exampleAuth,
         body: "FYI:\n\n---------- Forwarded message ----------\nFrom: stranger@phish.example\nSubject: Urgent",
       }),
       { tier: "forwarded" },
+    )
+  })
+
+  it("subject prefix Fwd: with original headers still gets normal verdict", async () => {
+    await check(
+      buildEml({
+        subject: "Fwd: urgent wire request",
+        authResults: exampleAuth,
+        body:
+          "Do you have a minute for a quick chat? I need you to wire payment for this invoice today.",
+      }),
+      { tier: "danger", reason: "bec-opener-with-money" },
     )
   })
 })
@@ -946,6 +1094,7 @@ describe("MX-based brand impersonation", () => {
           mailfrom: "news.acme.com",
           dkim: "pass",
           dmarc: "pass",
+          authservId: "inbox.recipient.org",
         }),
       }),
       { notReason: "brand-impersonation-confirmed" },

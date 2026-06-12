@@ -57,7 +57,7 @@ export function authResults(opts: {
     dmarc = "pass",
     mailfrom = domain,
     headerFrom = domain,
-    authservId = "mx.recipient.org",
+    authservId = "mx.example.org",
   } = opts
   return `${authservId}; spf=${spf} smtp.mailfrom=${mailfrom}; dkim=${dkim} header.i=@${domain}; dmarc=${dmarc} header.from=${headerFrom}`
 }

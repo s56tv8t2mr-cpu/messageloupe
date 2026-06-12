@@ -52,7 +52,9 @@ export interface ParserResult {
   messageId: string
   bodyText: string
   bodyHtml: string
+  hasImageContent: boolean
   hasBodyContent: boolean
+  duplicateCriticalHeaders: string[]
   allHeaders: string
   sendingService: string
   serviceIdentified: boolean
@@ -70,6 +72,8 @@ export interface ParserResult {
   dkimHeaderDomain: string | null
   dmarcResult: string | null
   authSummary: string
+  authResultsTrusted: boolean
+  ignoredAuthResultsCount: number
   recipientSpamVerdict: "spam" | null
   recipientSpamScore: number | null
   recipientSpamSource: string | null
@@ -142,6 +146,7 @@ export interface SenderTrustSignals {
 export interface ForwardDetection {
   isForwarded: boolean
   reason?: "subject-prefix" | "body-separator" | "from-self"
+  suspectedReason?: "subject-prefix" | "body-separator"
 }
 
 export type ReplyToAssessment = "strong" | "mismatch" | null
