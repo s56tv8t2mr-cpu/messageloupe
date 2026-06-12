@@ -118,6 +118,27 @@ export const parseEmlLocally = (text) => {
   const msgId = getHeader('Message-ID') || '';
   const lowerMsgId = msgId.toLowerCase();
 
+  const xSpam = getHeader('X-Spam')?.trim().toLowerCase() || null;
+  const xSpamdResult = getHeader('X-Spamd-Result') || null;
+  const xRspamdServer = getHeader('X-Rspamd-Server') || null;
+  const xPmSpamAction = getHeader('X-Pm-Spam-Action') || null;
+  const hasTrustedRecipientSpamContext = Boolean(
+    xSpamdResult &&
+    (xPmSpamAction || /(?:rspamd|mailin|proton|recipient|mx[0-9.-]*\.)/i.test(xRspamdServer || ''))
+  );
+  const spamScore = xSpamdResult?.match(/\[([+-]?\d+(?:\.\d+)?)\s*\//)?.[1] || null;
+  const recipientSpamVerdict = xSpam === 'yes' && hasTrustedRecipientSpamContext ? 'spam' : null;
+  let recipientSpamSource = null;
+  if (recipientSpamVerdict) {
+    if (xRspamdServer) {
+      recipientSpamSource = xRspamdServer;
+    } else if (xPmSpamAction) {
+      recipientSpamSource = 'Proton Mail / Rspamd';
+    } else {
+      recipientSpamSource = 'recipient spam filter';
+    }
+  }
+
   const spfResult = parseAuthResult(authResults, 'spf')
     || spfHeader?.match(/^(pass|fail|softfail|neutral|none|temperror|permerror)/i)?.[1]?.toLowerCase()
     || null;
@@ -443,6 +464,9 @@ export const parseEmlLocally = (text) => {
     dkimHeaderDomain,
     dmarcResult,
     authSummary,
+    recipientSpamVerdict,
+    recipientSpamScore: spamScore ? Number(spamScore) : null,
+    recipientSpamSource,
     spoofingLikely,
     senderDomainNote,
     authHeaderFromDomain,

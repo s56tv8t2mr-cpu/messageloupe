@@ -107,6 +107,25 @@ export function computeVerdict({
 
   let tier: VerdictTier = "safe"
   const reasons: VerdictReason[] = []
+  const hasThirdPartyLink = links.some((link) => link.flags.includes("thirdParty"))
+
+  // ---- Recipient-side spam verdicts ----
+  // When a trusted recipient-side filter (for example Proton/Rspamd) has
+  // already marked the message as spam, do not let clean-looking auth make
+  // the result appear safe. This is especially important for header-only
+  // exports where the readable scam body may be encrypted or unavailable.
+  if (parser.recipientSpamVerdict === "spam") {
+    let detail = "The recipient-side spam filter marked this message as spam."
+    if (parser.recipientSpamScore !== null) {
+      detail = `The recipient-side spam filter marked this message as spam with score ${parser.recipientSpamScore}.`
+    }
+    reasons.push({
+      signal: "recipient-spam-verdict",
+      detail,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
 
   // ---- Authentication signals ----
   if (parser.dmarcResult === "fail") {
@@ -162,6 +181,20 @@ export function computeVerdict({
     reasons.push({
       signal: "no-auth",
       detail: "No clear authentication results. The sender domain doesn't enforce DMARC, and SPF/DKIM didn't return a pass.",
+      weight: "low",
+    })
+    tier = escalate(tier, "caution")
+  }
+
+  if (
+    parser.spfResult === "pass" &&
+    parser.dkimResult !== "pass" &&
+    (!parser.dmarcResult || parser.dmarcResult === "none")
+  ) {
+    reasons.push({
+      signal: "spf-only-auth",
+      detail:
+        "Only SPF passed. DKIM and DMARC did not provide a passing sender-domain check, so the sender is not strongly authenticated.",
       weight: "low",
     })
     tier = escalate(tier, "caution")
@@ -249,6 +282,161 @@ export function computeVerdict({
       signal: "rms-self-send",
       detail:
         `This message was sent from ${parser.sendingEmail} to the same mailbox and is encrypted with Microsoft Rights Management (Content-Class: rpmsg.message). Legitimate users don't send themselves rights-protected mail as a workflow. This pattern is associated with compromised-mailbox phishing: an attacker who controls the real account uses encryption to hide a fake "click to read message" login prompt from content scanners.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Early-stage BEC opener ----
+  // Many real BECs start as a cleanly-authenticated, link-free "quick chat"
+  // message so the money request happens in the next reply, outside scanners.
+  // Keep this at caution by default, but escalate if the same message already
+  // contains money/payment movement.
+  if (content.hasBecOpener) {
+    reasons.push({
+      signal: content.hasMoney ? "bec-opener-with-money" : "bec-opener",
+      detail: content.hasMoney
+        ? "This message uses a common executive-impersonation opener and includes money or payment language. That pairing is a high-risk business email compromise pattern."
+        : "This message uses a common executive-impersonation opener: a vague request for a quick chat or help with a small situation. Treat it as suspicious until you verify the sender through a channel you already trust.",
+      weight: content.hasMoney ? "high" : "medium",
+    })
+    tier = escalate(tier, content.hasMoney ? "danger" : "caution")
+  }
+
+  // ---- Secure document / message lure to an unrelated host ----
+  // Legitimate secure-message systems exist, so the content alone is not
+  // enough. The dangerous shape is document-portal wording plus a link whose
+  // registrable domain does not match the sender.
+  if (content.hasSecureDocumentLure && hasThirdPartyLink) {
+    reasons.push({
+      signal: "off-brand-document-link",
+      detail:
+        "This email says a secure message or document is waiting, but the link points to a different third-party site. Fake document portals are commonly used to steal credentials.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Fake antivirus / subscription renewal refund scams ----
+  // Text-only refund scams often contain no malware and no link. The hook is
+  // an alarming renewal/order/charge notice plus a phone number to cancel.
+  if (content.hasSubscriptionRefundScam) {
+    reasons.push({
+      signal: "subscription-refund-scam",
+      detail:
+        "This message matches a fake antivirus/subscription renewal pattern: an unexpected order or charge, a security-product brand, and a phone-number/cancel hook. These are commonly used to push victims into refund or remote-support scams.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Opaque encrypted invoice / transaction lures ----
+  // Proton exports and some secure-mail flows can leave the message body as
+  // a PGP armored blob. When the visible subject looks transactional and the
+  // sender is public webmail, do not let clean Hotmail/Gmail auth become a
+  // "Safe" verdict; the actual invoice/refund content is hidden from us.
+  if (
+    content.hasOpaqueEncryptedBody &&
+    content.hasTransactionNoticeLure &&
+    trust.fromPublicWebmail
+  ) {
+    reasons.push({
+      signal: "encrypted-transaction-lure",
+      detail:
+        "The readable content is hidden inside an encrypted body, while the visible subject looks like a transaction, invoice, order, or billing notice from a public webmail sender. Fake invoice and refund scams can use this shape to bypass content filters.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  } else if (content.hasOpaqueEncryptedBody && tier === "safe") {
+    reasons.push({
+      signal: "opaque-encrypted-body",
+      detail:
+        "The message body is encrypted or otherwise opaque, so Message Loupe cannot inspect the actual content. Treat it as unverified unless you expected an encrypted message from this sender.",
+      weight: "medium",
+    })
+    tier = escalate(tier, "caution")
+  }
+
+  // ---- Wire / ACH payment lure ----
+  // Plain invoice language is common and should stay at caution. The stronger
+  // signal is wire/ACH/routing/remittance language paired with another risky
+  // delivery shape: an attachment, an unrelated link, or an auth failure.
+  const hasAuthFailure =
+    parser.dkimResult === "fail" ||
+    parser.dmarcResult === "fail" ||
+    parser.spfResult === "fail" ||
+    parser.spfResult === "softfail" ||
+    parser.spfResult === "permerror"
+  if (
+    !content.hasFraudReportContext &&
+    content.hasWireTransferLure &&
+    (attachments.length > 0 || hasThirdPartyLink || hasAuthFailure)
+  ) {
+    reasons.push({
+      signal: "wire-transfer-lure",
+      detail:
+        "This message combines wire, ACH, routing, or remittance language with a risky delivery shape such as an attachment, unrelated link, or authentication failure. That combination is a common wire-fraud and invoice-redirection pattern.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Fake invoice / payment request ----
+  // A bare invoice attachment is too common to call fake. A payment-request
+  // invoice plus a missing/non-passing DMARC result is a stronger BEC shape.
+  if (
+    !content.hasFraudReportContext &&
+    content.hasInvoicePaymentRequest &&
+    attachments.length > 0 &&
+    (!senderAuthenticates(parser) || parser.spfResult === "neutral")
+  ) {
+    reasons.push({
+      signal: "invoice-payment-request",
+      detail:
+        "This message asks for invoice payment and includes an attachment, while the sender is not strongly authenticated. That combination is a common fake-invoice and payment-redirection pattern.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Coercive invoice / payment threat ----
+  if (!content.hasFraudReportContext && content.hasCoercivePaymentThreat) {
+    reasons.push({
+      signal: "coercive-payment-threat",
+      detail:
+        "This message combines payment or invoice language with coercive threats such as final notice, legal action, exposure, or public disclosure. That is a high-risk pressure tactic.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Fake bank notice / account-opening lure ----
+  if (
+    !content.hasFraudReportContext &&
+    content.hasBankNoticeLure &&
+    !senderAuthenticates(parser)
+  ) {
+    reasons.push({
+      signal: "bank-notice-lure",
+      detail:
+        "This looks like a bank notice or account-opening message, but the sender is not strongly authenticated. Treat bank-account notices as high risk unless verified through the bank's official site or phone number.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Job offer signed as a known firm but sent from another domain ----
+  if (
+    !content.hasFraudReportContext &&
+    content.hasJobOffer &&
+    content.mentionsPolarisPartners &&
+    content.hasRiskyWorkFromHomeJobLure &&
+    !sameRegistrable(parser.sendingDomain, "polarispartners.com")
+  ) {
+    reasons.push({
+      signal: "job-brand-signature-impersonation",
+      detail:
+        "This job-offer message references Polaris Partners, but the sender domain is not a Polaris Partners domain. Fake job offers often impersonate real firms in the email body or signature rather than the From name.",
       weight: "high",
     })
     tier = escalate(tier, "danger")
@@ -395,11 +583,20 @@ export function computeVerdict({
   let capReason: string | undefined
   if (shouldCapVerdict(content) && tier === "safe") {
     capped = true
-    capReason = content.hasMoney
-      ? "This message mentions money, payment, or banking changes."
-      : content.hasCredentials
-        ? "This message asks about credentials or login info."
-        : "This message asks for copies of personal documents."
+    let capSignal = "document-request-content"
+    capReason = "This message asks for copies of personal documents."
+    if (content.hasMoney) {
+      capSignal = "financial-action-content"
+      capReason = "This message mentions money, payment, or banking changes."
+    } else if (content.hasCredentials) {
+      capSignal = "credential-request-content"
+      capReason = "This message asks about credentials or login info."
+    }
+    reasons.push({
+      signal: capSignal,
+      detail: capReason,
+      weight: "medium",
+    })
     tier = "caution"
   }
 

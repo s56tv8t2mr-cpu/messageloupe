@@ -57,6 +57,29 @@ const mxAnswer = (priority: number, host: string): MockDnsAnswer => ({
   data: `${priority} ${host}.`,
 })
 
+function knownVendorAttachedInvoice({
+  subject,
+  bodyLine,
+  filename,
+}: {
+  subject: string
+  bodyLine: string
+  filename: string
+}): string {
+  return cleanEsp({
+    from: "Known Vendor <billing@news.vendor.example>",
+    subject,
+    body: [
+      bodyLine,
+      "",
+      `Content-Type: application/pdf; name="${filename}"`,
+      `Content-Disposition: attachment; filename="${filename}"`,
+      "",
+      "JVBERi0xLjQK",
+    ].join("\r\n"),
+  })
+}
+
 beforeEach(() => {
   __resetMxCacheForTests()
   mockFetchMxAnswer([])
@@ -105,6 +128,17 @@ describe("authentication failures", () => {
   it("no auth results at all → caution with no-auth", async () => {
     await check(buildEml({}), { tier: "caution", reason: "no-auth" })
   })
+
+  it("SPF-only custom-domain auth → caution", async () => {
+    await check(
+      buildEml({
+        from: "Derek Baker <dbaker@purduefedcu.com>",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=purduefedcu.com; dkim=none; dmarc=none header.from=purduefedcu.com",
+      }),
+      { tier: "caution", reason: "spf-only-auth" },
+    )
+  })
 })
 
 describe("display-name impersonation", () => {
@@ -113,6 +147,40 @@ describe("display-name impersonation", () => {
       buildEml({
         from: "PayPal Service <service@random-payments.com>",
         authResults: authResults({ domain: "random-payments.com" }),
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation: Brooks Running display from Gmail → danger", async () => {
+    await check(
+      buildEml({
+        from: "Brooks Running <br.brooksrunning@gmail.com>",
+        authResults: authResults({ domain: "gmail.com" }),
+        body:
+          "On behalf of Brooks Running, we would like to extend a partnership opportunity.",
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation: Rocket Mortgage display from unrelated domain → danger", async () => {
+    await check(
+      buildEml({
+        from: "Rocket Mortgage <office@frgwillhelp.com>",
+        authResults: authResults({ domain: "frgwillhelp.com" }),
+        body: "This message is from Rocket Mortgage.",
+      }),
+      { tier: "danger", reason: "brand-impersonation" },
+    )
+  })
+
+  it("brand-impersonation: Southern Company display from lookalike domain → danger", async () => {
+    await check(
+      buildEml({
+        from: "Southern Company <contact@southernscompany.com>",
+        authResults: authResults({ domain: "southernscompany.com" }),
+        body: "We are excited to offer you a modeling role for an upcoming shoot.",
       }),
       { tier: "danger", reason: "brand-impersonation" },
     )
@@ -225,6 +293,28 @@ describe("content classification cap", () => {
       { tier: "caution", capped: true },
     )
   })
+
+  it("clean auth + banking information update → caution (capped)", async () => {
+    await check(
+      cleanEsp({
+        from: "Holly Straub <holly@gmail.com>",
+        body:
+          "I would like to request an update to my banking information before the next payroll is processed.",
+      }),
+      { tier: "caution", capped: true },
+    )
+  })
+
+  it("clean auth + AR report request → caution (capped)", async () => {
+    await check(
+      cleanEsp({
+        from: "Senior Executive <office.execs@seniorexecutivehost.com>",
+        body:
+          "Please send the most recent AR report and include customer payable contact emails.",
+      }),
+      { tier: "caution", capped: true },
+    )
+  })
 })
 
 describe("job-offer scams", () => {
@@ -246,6 +336,359 @@ describe("job-offer scams", () => {
         body: "Welcome to the team! Your offer letter is attached. Looking forward to your start date.",
       }),
       { tier: "caution", reason: "job-offer-content" },
+    )
+  })
+
+  it("brand ambassador partnership outreach → caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Creator Team <creator@agency.example>",
+        body:
+          "We would like to offer you a brand ambassador program with gifted products and commission on sales.",
+      }),
+      { tier: "caution", reason: "job-offer-content" },
+    )
+  })
+
+  it("contract letter that must be signed and sent back → danger", async () => {
+    await check(
+      buildEml({
+        from: "Gaskin Larry <gaskinlarry@polarispartnersjobs.com>",
+        authResults: authResults({ domain: "polarispartnersjobs.com" }),
+        body:
+          "Attached above is your contract letter of agreement. You are required to fill, sign and send back for validation.",
+      }),
+      { tier: "danger", reason: "job-offer-with-document-request" },
+    )
+  })
+
+  it("job offer signed as Polaris Partners from unrelated sender → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Beth Fletcher <beth@example-sports.test>",
+        subject: "Resume approval work from home",
+        body:
+          "We are pleased to approve your remote position. Please review the offer letter and reply to continue onboarding.\n\nRegards,\nPolaris Partners",
+      }),
+      { tier: "danger", reason: "job-brand-signature-impersonation" },
+    )
+  })
+
+  it("third-party recruiter mentioning Polaris Partners stays caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Recruiter <recruiter@search-firm.example>",
+        subject: "Interview invitation",
+        body:
+          "I am a third-party recruiter coordinating an interview invitation for a possible role at Polaris Partners.",
+      }),
+      { tier: "caution", reason: "job-offer-content", notReason: "job-brand-signature-impersonation" },
+    )
+  })
+})
+
+describe("BEC openers and document lures", () => {
+  it("quick-chat small-situation opener → caution", async () => {
+    await check(
+      buildEml({
+        from: "Frank Sands <fsands@sandscapitalv.com>",
+        authResults: authResults({ domain: "sandscapitalv.com" }),
+        body:
+          "Do you have a minute for a quick chat? We would like you to look into a small situation for us. Kindly write back and let me know.",
+      }),
+      { tier: "caution", reason: "bec-opener" },
+    )
+  })
+
+  it("BEC opener with wire/payment language → danger", async () => {
+    await check(
+      buildEml({
+        from: "Robert Nelsen <rtn@archventurep.com>",
+        authResults: authResults({ domain: "archventurep.com" }),
+        body:
+          "Thanks for writing back. A situation was raised by my team. We need to remit a balance of $864,000 and I need you to instruct finance to wire said amount.",
+      }),
+      { tier: "danger", reason: "bec-opener-with-money" },
+    )
+  })
+
+  it("secure document portal with unrelated link → danger", async () => {
+    await check(
+      buildEml({
+        from: "Sam North <s.north@exeter.ac.uk>",
+        authResults: authResults({ domain: "exeter.ac.uk" }),
+        htmlBody:
+          '<p>Rocket Mortgage</p><p>New Document(s) CD Posted to the portal for loan ending in 7027.</p><p><a href="https://rocket-fileshare-mgt.lovable.app/">View Closing Document(s)</a></p>',
+      }),
+      { tier: "danger", reason: "off-brand-document-link" },
+    )
+  })
+})
+
+describe("wire-transfer and invoice-redirection lures", () => {
+  it("invoice payment request with weak DMARC and attachment → danger", async () => {
+    await check(
+      buildEml({
+        from: "Roberta Edwards <redwards@vendor-team.example>",
+        subject: "Request for Payment; Invoice",
+        authResults:
+          "mx.recipient.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
+        body: [
+          "Please process this payment request for the attached invoice.",
+          "",
+          "Content-Type: application/pdf; name=\"leadership-bill.pdf\"",
+          "Content-Disposition: attachment; filename=\"leadership-bill.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "danger", reason: "invoice-payment-request" },
+    )
+  })
+
+  it("aligned SPF/DKIM invoice with no DMARC stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Known Vendor <billing@vendor.example>",
+        subject: "Request for Payment; Invoice",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=vendor.example; dkim=pass header.i=@vendor.example; dmarc=none header.from=vendor.example",
+        body: [
+          "Please process this payment request for the attached invoice.",
+          "",
+          "Content-Type: application/pdf; name=\"invoice.pdf\"",
+          "Content-Disposition: attachment; filename=\"invoice.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "invoice-payment-request" },
+    )
+  })
+
+  it("wire payment request with an attachment → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Vendor Billing <billing@news.vendor.example>",
+        subject: "Request for Payment; Invoice",
+        body: [
+          "Please process this invoice by ACH transfer using the routing number in the attached remittance instructions.",
+          "",
+          "Content-Type: application/pdf; name=\"leadership-bill.pdf\"",
+          "Content-Disposition: attachment; filename=\"leadership-bill.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "danger", reason: "wire-transfer-lure" },
+    )
+  })
+
+  it("final notice with wire routing language and an unrelated payment link → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "ASLC Group <clearing@aslc-group.example>",
+        subject: "FINAL NOTICE - payment transfer required",
+        htmlBody:
+          '<p>Please remit the invoice by wire transfer using the routing instructions in the portal.</p><p><a href="https://settlement-upload.example.net/notice">Review payment notice</a></p>',
+      }),
+      { tier: "danger", reason: "wire-transfer-lure" },
+    )
+  })
+
+  it("coercive final notice with exposure threat → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "ASLC Group <clearing@aslc-group.example>",
+        subject: "FINAL NOTICE",
+        body:
+          "Final notice: payment is required for this invoice. Failure to resolve this may result in legal action and exposure of damaging facts about the recipient.",
+      }),
+      { tier: "danger", reason: "coercive-payment-threat" },
+    )
+  })
+
+  it("ordinary invoice language without wire/routing details stays capped caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Known Vendor <billing@news.vendor.example>",
+        subject: "Invoice available",
+        body: "Your invoice balance is due this week. Please use your normal payment process.",
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
+    )
+  })
+
+  it("attached invoice with remit language but no bank details stays caution", async () => {
+    await check(
+      knownVendorAttachedInvoice({
+        subject: "Monthly invoice",
+        bodyLine: "Please remit payment by the due date listed on the attached invoice.",
+        filename: "monthly-invoice.pdf",
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
+    )
+  })
+
+  it("attached invoice with a customer account number stays caution", async () => {
+    await check(
+      knownVendorAttachedInvoice({
+        subject: "Monthly statement",
+        bodyLine: "Customer account number: 123456. Your invoice balance is due this week.",
+        filename: "monthly-statement.pdf",
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "wire-transfer-lure" },
+    )
+  })
+
+  it("fraud-report discussion with quoted wire details does not fire wire-lure danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Helpful Recipient <recipient.example@example.com>",
+        subject: "RE: Fraudulent email",
+        body: [
+          "I received a fraudulent email impersonating your company and wanted to help.",
+          "The fake message included ACH transfer and routing number details, but I did not act on it.",
+          "",
+          "Content-Type: application/pdf; name=\"fraud-evidence.pdf\"",
+          "Content-Disposition: attachment; filename=\"fraud-evidence.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", notReason: "wire-transfer-lure" },
+    )
+  })
+})
+
+describe("text-only fake invoice and refund scams", () => {
+  it("PGP-opaque transaction notice from public webmail → danger", async () => {
+    await check(
+      buildEml({
+        from: "Transaction Notice <notice1234@hotmail.com>",
+        subject: "Updated transaction breakdown issued TXN/ABC/1A",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque encrypted invoice body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "danger", reason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("PGP-opaque transaction notice from a private domain stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Known Billing <billing@example.com>",
+        subject: "Updated transaction breakdown issued",
+        authResults: authResults({ domain: "example.com" }),
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque encrypted invoice body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "caution", reason: "opaque-encrypted-body", notReason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("PGP-opaque business message without transaction lure stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Known Contact <contact@example.com>",
+        subject: "Encrypted note",
+        authResults: authResults({ domain: "example.com" }),
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque personal body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "caution", reason: "opaque-encrypted-body", notReason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("PGP-opaque public-webmail project breakdown stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Personal Contact <contact@hotmail.com>",
+        subject: "Project breakdown",
+        authResults:
+          "mx.recipient.org; spf=pass smtp.mailfrom=hotmail.com; dkim=pass header.i=@hotmail.com; dmarc=pass header.from=hotmail.com",
+        body:
+          "-----BEGIN PGP MESSAGE-----\nVersion: OpenPGP\n\nopaque project body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "caution", reason: "opaque-encrypted-body", notReason: "encrypted-transaction-lure" },
+    )
+  })
+
+  it("recipient-side spam verdict prevents header-only sample from looking safe", async () => {
+    const analysis = await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        returnPath: "notice@sender.example.test",
+        replyTo: "Alex Example <notice@sender.example.test>",
+        subject: "your order was placed successfully",
+        authResults:
+          "mx.recipient.example.test; dkim=pass header.d=mail.example.test header.a=rsa-sha256",
+        received: [
+          "from outbound.example.test (outbound.example.test [203.0.113.73]) by mx.recipient.example.test with ESMTPS; Wed, 20 May 2026 15:07:20 +0000",
+        ],
+        extraHeaders: {
+          "X-Spam": "Yes",
+          "X-Spamd-Result":
+            "default: False [6.25 / 25.00]; BAYES_SPAM(4.10)[99.00%]; MISSING_TO(1.00)[]",
+          "X-Rspamd-Server": "mx1.recipient.example.test",
+        },
+        body: "-----BEGIN PGP MESSAGE-----\nopaque recipient-side encrypted body\n-----END PGP MESSAGE-----",
+      }),
+      { tier: "danger", reason: "recipient-spam-verdict" },
+    )
+
+    expect(analysis.parser.recipientSpamScore).toBe(6.25)
+  })
+
+  it("fake antivirus renewal phone scam → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Billing Notice <notice@sender.example.test>",
+        subject: "your order was placed successfully",
+        body:
+          "Renewal Date: 2026-05-20. We are pleased to confirm the renewal of your McAfee Plan for 60 Months. A charge of $499.00 has been made. Client Service Contact: 1.555.010.0199. For any adjustments to your subscription or to cancel, please contact our support.",
+      }),
+      { tier: "danger", reason: "subscription-refund-scam" },
+    )
+  })
+
+  it("subscription invoice with separate footer phone stays caution", async () => {
+    await check(
+      cleanEsp({
+        from: "Norton Billing <billing@norton.example>",
+        subject: "Subscription invoice",
+        body:
+          "Your Norton subscription invoice is available. Visit your account portal for support options and normal account management resources.\n\nCompany directory: 1.555.010.0199",
+      }),
+      { tier: "caution", notReason: "subscription-refund-scam" },
+    )
+  })
+
+  it("subscription refund scam catches a later nearby contact number", async () => {
+    await check(
+      cleanEsp({
+        from: "McAfee Billing <billing@sender.example.test>",
+        subject: "your order was placed successfully",
+        body:
+          "Your McAfee subscription renewal has been processed for $499. Visit support options online for account resources. To cancel this membership, contact 1.555.010.0199.",
+      }),
+      { tier: "danger", reason: "subscription-refund-scam" },
+    )
+  })
+
+  it("bank notice for account opening with weak auth → danger", async () => {
+    await check(
+      buildEml({
+        from: "Client Service <clientservice@bank.example>",
+        subject: "A notice is available to view",
+        authResults:
+          "mx.recipient.org; spf=none smtp.mailfrom=bank.example; dkim=none; dmarc=none header.from=bank.example",
+        body:
+          "A notice is available to view from your bank. The notice concerns a new account opening and ACH activity.",
+      }),
+      { tier: "danger", reason: "bank-notice-lure" },
     )
   })
 })

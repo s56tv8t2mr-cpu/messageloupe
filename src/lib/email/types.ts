@@ -70,6 +70,9 @@ export interface ParserResult {
   dkimHeaderDomain: string | null
   dmarcResult: string | null
   authSummary: string
+  recipientSpamVerdict: "spam" | null
+  recipientSpamScore: number | null
+  recipientSpamSource: string | null
   spoofingLikely: boolean
   senderDomainNote: string
   authHeaderFromDomain: string | null
@@ -114,6 +117,18 @@ export interface ContentClassification {
   hasUrgency: boolean
   hasJobOffer: boolean
   hasDocumentRequest: boolean
+  hasBecOpener: boolean
+  hasSecureDocumentLure: boolean
+  hasSubscriptionRefundScam: boolean
+  hasWireTransferLure: boolean
+  hasInvoicePaymentRequest: boolean
+  hasCoercivePaymentThreat: boolean
+  hasFraudReportContext: boolean
+  hasBankNoticeLure: boolean
+  mentionsPolarisPartners: boolean
+  hasRiskyWorkFromHomeJobLure: boolean
+  hasOpaqueEncryptedBody: boolean
+  hasTransactionNoticeLure: boolean
 }
 
 export interface SenderTrustSignals {
