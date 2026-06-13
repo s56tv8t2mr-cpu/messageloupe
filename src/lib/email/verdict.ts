@@ -75,6 +75,25 @@ function senderAuthenticates(parser: ParserResult): boolean {
   return false
 }
 
+function visibleSenderAuthenticates(parser: ParserResult): boolean {
+  if (
+    parser.dmarcResult === "pass" &&
+    sameRegistrable(parser.authHeaderFromDomain, parser.sendingDomain)
+  )
+    return true
+  if (
+    parser.spfResult === "pass" &&
+    sameRegistrable(parser.spfMailFromDomain, parser.sendingDomain)
+  )
+    return true
+  if (
+    parser.dkimResult === "pass" &&
+    sameRegistrable(parser.dkimHeaderDomain, parser.sendingDomain)
+  )
+    return true
+  return false
+}
+
 function decodeHtmlCodePoint(value: string, radix: number): string {
   const codePoint = parseInt(value, radix)
   if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10FFFF) return ""
@@ -318,6 +337,46 @@ export function computeVerdict({
     tier = escalate(tier, "caution")
   }
 
+  // ---- Executive / role BEC with financial action ----
+  if (trust.executiveImpersonation && content.hasMoney && !visibleSenderAuthenticates(parser)) {
+    reasons.push({
+      signal: "executive-impersonation-with-money",
+      detail: `The display name claims an executive role (“${parser.sendingName}”) and the message asks for money, payment, banking, or receivables action. That pairing is a common BEC pattern.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Payroll / banking-change request from public webmail ----
+  if (
+    !content.hasFraudReportContext &&
+    content.hasBankingChangeRequest &&
+    trust.fromPublicWebmail
+  ) {
+    reasons.push({
+      signal: "public-webmail-banking-change",
+      detail:
+        `This message asks to change banking, payment, payroll, or direct-deposit details, but it comes from a public webmail domain (${parser.sendingDomain}). Payroll-diversion BEC commonly uses this shape.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Consumer mailbox person-name mismatch ----
+  if (
+    !content.hasFraudReportContext &&
+    trust.personNameMailboxMismatch &&
+    content.hasBecOpener
+  ) {
+    reasons.push({
+      signal: "consumer-mailbox-person-mismatch",
+      detail:
+        `The display name looks like a person's name (“${parser.sendingName}”), but the consumer mailbox address (${parser.sendingEmail ?? "unknown"}) does not match that name, and the body uses a BEC-style opener.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
   // ---- Return-Path mismatch (sender vs envelope-bounce) ----
   if (
     parser.sendingDomain &&
@@ -495,6 +554,22 @@ export function computeVerdict({
     tier = escalate(tier, "danger")
   }
 
+  // ---- Fake reply thread marker ----
+  if (
+    !content.hasFraudReportContext &&
+    /^re\s*:/i.test(parser.subject ?? "") &&
+    !parser.hasThreadReferences &&
+    content.hasMoney
+  ) {
+    reasons.push({
+      signal: "fake-reply-thread",
+      detail:
+        "The subject begins with Re:, but the message has no In-Reply-To or References header tying it to a real prior conversation. Fake reply threads are commonly used to make payment requests feel familiar.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
   // ---- Newly registered sender domain ----
   // Domain age is not proof by itself: new companies and campaigns use new
   // domains. It becomes high-risk when paired with business-action language
@@ -533,6 +608,24 @@ export function computeVerdict({
       signal: "job-brand-signature-impersonation",
       detail:
         "This job-offer message references Polaris Partners, but the sender domain is not a Polaris Partners domain. Fake job offers often impersonate real firms in the email body or signature rather than the From name.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  // ---- Brand claimed in body/signature rather than From display name ----
+  if (
+    !content.hasFraudReportContext &&
+    content.bodyBrandClaim &&
+    (content.hasJobOffer || content.hasMoney || content.hasCredentials || content.hasDocumentRequest) &&
+    !content.bodyBrandClaim.legitimateDomains.some((domain) =>
+      sameRegistrable(parser.sendingDomain, domain),
+    )
+  ) {
+    reasons.push({
+      signal: "body-brand-claim-impersonation",
+      detail:
+        `The message body claims to represent ${content.bodyBrandClaim.brand}, but the sender domain (${parser.sendingDomain ?? "unknown"}) is not a known ${content.bodyBrandClaim.brand} domain. Scams often impersonate brands in the body or signature instead of the From display name.`,
       weight: "high",
     })
     tier = escalate(tier, "danger")

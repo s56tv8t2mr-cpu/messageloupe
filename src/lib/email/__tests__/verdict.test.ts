@@ -245,67 +245,57 @@ describe("authentication failures", () => {
 })
 
 describe("display-name impersonation", () => {
-  it("brand-impersonation: PayPal display from random domain → danger", async () => {
-    await check(
-      buildEml({
+  it.each([
+    [
+      "PayPal display from random domain",
+      {
         from: "PayPal Service <service@random-payments.com>",
         authResults: authResults({ domain: "random-payments.com" }),
-      }),
-      { tier: "danger", reason: "brand-impersonation" },
-    )
-  })
-
-  it("brand-impersonation decodes RFC 2047 display names", async () => {
-    await check(
-      buildEml({
-        from: "=?UTF-8?B?UGF5UGFs?= <security@random-sender.example>",
-        authResults: authResults({ domain: "random-sender.example" }),
-        body: "Please review your account security notice.",
-      }),
-      { tier: "danger", reason: "brand-impersonation" },
-    )
-  })
-
-  it("brand-impersonation collapses split RFC 2047 display names", async () => {
-    await check(
-      buildEml({
-        from: "=?UTF-8?B?UGF5?= =?UTF-8?B?UGFs?= <security@random-sender.example>",
-        authResults: authResults({ domain: "random-sender.example" }),
-        body: "Please review your account security notice.",
-      }),
-      { tier: "danger", reason: "brand-impersonation" },
-    )
-  })
-
-  it("brand-impersonation: Brooks Running display from Gmail → danger", async () => {
-    await check(
-      buildEml({
+      },
+    ],
+    [
+      "Brooks Running display from Gmail",
+      {
         from: "Brooks Running <br.brooksrunning@gmail.com>",
         authResults: authResults({ domain: "gmail.com" }),
-        body:
-          "On behalf of Brooks Running, we would like to extend a partnership opportunity.",
-      }),
-      { tier: "danger", reason: "brand-impersonation" },
-    )
-  })
-
-  it("brand-impersonation: Rocket Mortgage display from unrelated domain → danger", async () => {
-    await check(
-      buildEml({
+        body: "On behalf of Brooks Running, we would like to extend a partnership opportunity.",
+      },
+    ],
+    [
+      "Rocket Mortgage display from unrelated domain",
+      {
         from: "Rocket Mortgage <office@frgwillhelp.com>",
         authResults: authResults({ domain: "frgwillhelp.com" }),
         body: "This message is from Rocket Mortgage.",
-      }),
-      { tier: "danger", reason: "brand-impersonation" },
-    )
-  })
-
-  it("brand-impersonation: Southern Company display from lookalike domain → danger", async () => {
-    await check(
-      buildEml({
+      },
+    ],
+    [
+      "Southern Company display from lookalike domain",
+      {
         from: "Southern Company <contact@southernscompany.com>",
         authResults: authResults({ domain: "southernscompany.com" }),
         body: "We are excited to offer you a modeling role for an upcoming shoot.",
+      },
+    ],
+  ])("brand-impersonation: %s → danger", async (_name, emlOptions) => {
+    await check(buildEml(emlOptions), { tier: "danger", reason: "brand-impersonation" })
+  })
+
+  it.each([
+    [
+      "single encoded word",
+      "=?UTF-8?B?UGF5UGFs?= <security@random-sender.example>",
+    ],
+    [
+      "split encoded words",
+      "=?UTF-8?B?UGF5?= =?UTF-8?B?UGFs?= <security@random-sender.example>",
+    ],
+  ])("brand-impersonation decodes RFC 2047 display names: %s", async (_name, from) => {
+    await check(
+      buildEml({
+        from,
+        authResults: authResults({ domain: "random-sender.example" }),
+        body: "Please review your account security notice.",
       }),
       { tier: "danger", reason: "brand-impersonation" },
     )
@@ -448,25 +438,63 @@ describe("content classification cap", () => {
     )
   })
 
-  it("clean auth + banking information update → caution (capped)", async () => {
+  it("public webmail + banking information update → danger", async () => {
     await check(
       cleanEsp({
         from: "Holly Straub <holly@gmail.com>",
         body:
           "I would like to request an update to my banking information before the next payroll is processed.",
       }),
-      { tier: "caution", capped: true },
+      { tier: "danger", reason: "public-webmail-banking-change" },
     )
   })
 
-  it("clean auth + AR report request → caution (capped)", async () => {
+  it.each([
+    ["direct deposit status", "My direct deposit posted today. Thanks for confirming."],
+    [
+      "newsletter bank-account tips",
+      "The newsletter includes bank account reconciliation tips for small businesses.",
+    ],
+    ["new report bank-account tips", "New report: bank account reconciliation tips for small businesses."],
+  ])("public webmail %s does not trigger banking-change danger", async (_name, body) => {
+    await check(
+      cleanEsp({
+        from: "Finance Tips <tips@gmail.com>",
+        body,
+      }),
+      { tier: "caution", notReason: "public-webmail-banking-change" },
+    )
+  })
+
+  it("executive display name + AR report request → danger", async () => {
     await check(
       cleanEsp({
         from: "Senior Executive <office.execs@seniorexecutivehost.com>",
         body:
           "Please send the most recent AR report and include customer payable contact emails.",
       }),
-      { tier: "caution", capped: true },
+      { tier: "danger", reason: "executive-impersonation-with-money" },
+    )
+  })
+
+  it("executive assistant display name without money does not trigger executive-money danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Executive Assistant <assistant@example.com>",
+        body: "Please confirm whether tomorrow afternoon works for the planning meeting.",
+      }),
+      { notReason: "executive-impersonation-with-money" },
+    )
+  })
+
+  it("authenticated president with ordinary dues language does not trigger executive-money danger", async () => {
+    await check(
+      buildEml({
+        from: "Club President <president@club.example>",
+        authResults: authResults({ domain: "club.example" }),
+        body: "Annual membership dues are due this month. Please use the normal club portal.",
+      }),
+      { tier: "caution", notReason: "executive-impersonation-with-money" },
     )
   })
 })
@@ -504,6 +532,42 @@ describe("job-offer scams", () => {
     )
   })
 
+  it("brand claimed in body from unrelated sender → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Jos Bloemen <josbloemen@telenet.be>",
+        subject: "Lace Up and Shine with Brooks!",
+        body:
+          "I'm Jos Bloemen, Influencer Manager at Credo Consulting & Content, working with Brooks Running, a premier athleisure brand from Seattle. You are an excellent candidate for our 2025 Brand Ambassador Program.",
+      }),
+      { tier: "danger", reason: "body-brand-claim-impersonation" },
+    )
+  })
+
+  it("brand claimed in body from legitimate brand domain does not trigger body-brand danger", async () => {
+    await check(
+      buildEml({
+        from: "Brooks Running Team <partnerships@brooksrunning.com>",
+        authResults: authResults({ domain: "brooksrunning.com" }),
+        subject: "Brand ambassador program",
+        body:
+          "We are working with Brooks Running on the 2025 Brand Ambassador Program.",
+      }),
+      { notReason: "body-brand-claim-impersonation" },
+    )
+  })
+
+  it("word-boundary brand mention does not treat misrepresenting as representing", async () => {
+    await check(
+      cleanEsp({
+        from: "Creator Team <creator@agency.example>",
+        body:
+          "This note discusses a creator misrepresenting Brooks Running in a brand ambassador pitch.",
+      }),
+      { notReason: "body-brand-claim-impersonation" },
+    )
+  })
+
   it("contract letter that must be signed and sent back → danger", async () => {
     await check(
       buildEml({
@@ -528,6 +592,18 @@ describe("job-offer scams", () => {
     )
   })
 
+  it("Polaris Partners signature claim preserves line breaks for brand detection", async () => {
+    await check(
+      cleanEsp({
+        from: "Beth Fletcher <beth@example-sports.test>",
+        subject: "Remote role",
+        body:
+          "We are pleased to offer you a remote position.\n\nRegards,\nPolaris Partners",
+      }),
+      { tier: "danger", reason: "body-brand-claim-impersonation" },
+    )
+  })
+
   it("third-party recruiter mentioning Polaris Partners stays caution", async () => {
     await check(
       cleanEsp({
@@ -542,27 +618,52 @@ describe("job-offer scams", () => {
 })
 
 describe("BEC openers and document lures", () => {
-  it("quick-chat small-situation opener → caution", async () => {
-    await check(
-      buildEml({
+  it.each([
+    [
+      "quick-chat small-situation opener",
+      {
         from: "Frank Sands <fsands@sandscapitalv.com>",
         authResults: authResults({ domain: "sandscapitalv.com" }),
         body:
           "Do you have a minute for a quick chat? We would like you to look into a small situation for us. Kindly write back and let me know.",
-      }),
-      { tier: "caution", reason: "bec-opener" },
-    )
-  })
-
-  it("BEC opener with wire/payment language → danger", async () => {
-    await check(
-      buildEml({
+      },
+      { tier: "caution" as const, reason: "bec-opener" },
+    ],
+    [
+      "BEC opener with wire/payment language",
+      {
         from: "Robert Nelsen <rtn@archventurep.com>",
         authResults: authResults({ domain: "archventurep.com" }),
         body:
           "Thanks for writing back. A situation was raised by my team. We need to remit a balance of $864,000 and I need you to instruct finance to wire said amount.",
+      },
+      { tier: "danger" as const, reason: "bec-opener-with-money" },
+    ],
+  ])("%s", async (_name, emlOptions, expectations) => {
+    await check(buildEml(emlOptions), expectations)
+  })
+
+  it("consumer mailbox name mismatch + BEC opener → danger", async () => {
+    await check(
+      buildEml({
+        from: "Lorenzo Larini <jeromo1@telefonica.net>",
+        authResults: authResults({ domain: "telefonica.net" }),
+        body:
+          "Do you have a minute for a quick chat? Kindly write back and let me know.",
       }),
-      { tier: "danger", reason: "bec-opener-with-money" },
+      { tier: "danger", reason: "consumer-mailbox-person-mismatch" },
+    )
+  })
+
+  it("consumer mailbox matching display name + BEC opener stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Andrew Campbell <andrew.campbell@gmail.com>",
+        authResults: authResults({ domain: "gmail.com" }),
+        body:
+          "Do you have a minute for a quick chat? Kindly write back and let me know.",
+      }),
+      { tier: "caution", reason: "bec-opener", notReason: "consumer-mailbox-person-mismatch" },
     )
   })
 
@@ -580,44 +681,42 @@ describe("BEC openers and document lures", () => {
 })
 
 describe("wire-transfer and invoice-redirection lures", () => {
-  it("invoice payment request with weak DMARC and attachment → danger", async () => {
-    await check(
-      buildEml({
+  const attachmentBody = (message: string, filename: string): string =>
+    [
+      message,
+      "",
+      `Content-Type: application/pdf; name="${filename}"`,
+      `Content-Disposition: attachment; filename="${filename}"`,
+      "",
+      "JVBERi0xLjQK",
+    ].join("\r\n")
+
+  it.each([
+    [
+      "weak DMARC and attachment",
+      {
         from: "Roberta Edwards <redwards@vendor-team.example>",
         subject: "Request for Payment; Invoice",
         authResults:
           "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
-        body: [
+        body: attachmentBody(
           "Please process this payment request for the attached invoice.",
-          "",
-          "Content-Type: application/pdf; name=\"leadership-bill.pdf\"",
-          "Content-Disposition: attachment; filename=\"leadership-bill.pdf\"",
-          "",
-          "JVBERi0xLjQK",
-        ].join("\r\n"),
-      }),
-      { tier: "danger", reason: "invoice-payment-request" },
-    )
-  })
-
-  it("invoice payment request decodes RFC 2047 subject", async () => {
-    await check(
-      buildEml({
+          "leadership-bill.pdf",
+        ),
+      },
+    ],
+    [
+      "RFC 2047 subject",
+      {
         from: "Roberta Edwards <redwards@vendor-team.example>",
         subject: "=?UTF-8?Q?Request_for_Payment=3B_Invoice?=",
         authResults:
           "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
-        body: [
-          "Please see the attached file.",
-          "",
-          "Content-Type: application/pdf; name=\"request.pdf\"",
-          "Content-Disposition: attachment; filename=\"request.pdf\"",
-          "",
-          "JVBERi0xLjQK",
-        ].join("\r\n"),
-      }),
-      { tier: "danger", reason: "invoice-payment-request" },
-    )
+        body: attachmentBody("Please see the attached file.", "request.pdf"),
+      },
+    ],
+  ])("invoice payment request with %s → danger", async (_name, emlOptions) => {
+    await check(buildEml(emlOptions), { tier: "danger", reason: "invoice-payment-request" })
   })
 
   it("aligned SPF/DKIM invoice with no DMARC stays caution", async () => {
@@ -733,9 +832,41 @@ describe("wire-transfer and invoice-redirection lures", () => {
       { tier: "caution", notReason: "wire-transfer-lure" },
     )
   })
+
+  it("fake Re thread with money language → danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Vendor Billing <billing@news.vendor.example>",
+        subject: "Re: Updated payment instructions",
+        body:
+          "Please use the updated bank account details and routing number for this invoice payment.",
+      }),
+      { tier: "danger", reason: "fake-reply-thread" },
+    )
+  })
+
+  it("real Re thread with References does not trigger fake-thread danger", async () => {
+    await check(
+      cleanEsp({
+        from: "Vendor Billing <billing@news.vendor.example>",
+        subject: "Re: Updated payment instructions",
+        extraHeaders: {
+          References: "<prior-message@example.com>",
+        },
+        body:
+          "Please use the updated bank account details and routing number for this invoice payment.",
+      }),
+      { notReason: "fake-reply-thread" },
+    )
+  })
 })
 
 describe("text-only fake invoice and refund scams", () => {
+  const m365Received = [
+    "from CH2PR17MB1234.namprd17.prod.outlook.com (2603:10b6:610:1::20) by DM6PR17MB5678.namprd17.prod.outlook.com with HTTPS; Mon, 01 Jan 2024 12:00:00 +0000",
+    "from sender.example.com (sender.example.com [203.0.113.45]) by CH2PR17MB1234.namprd17.prod.outlook.com with ESMTPS; Mon, 01 Jan 2024 11:59:55 +0000",
+  ]
+
   it("PGP-opaque transaction notice from public webmail → danger", async () => {
     await check(
       buildEml({
@@ -814,6 +945,90 @@ describe("text-only fake invoice and refund scams", () => {
     )
 
     expect(analysis.parser.recipientSpamScore).toBe(6.25)
+  })
+
+  it("Microsoft SCL spam verdict prevents a message from looking safe", async () => {
+    await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        received: m365Received,
+        authResults: authResults({ domain: "sender.example.test" }),
+        extraHeaders: {
+          "X-MS-Exchange-Organization-SCL": "6",
+        },
+      }),
+      { tier: "danger", reason: "recipient-spam-verdict" },
+    )
+  })
+
+  it("sender-supplied Microsoft SCL without Microsoft receiving context is ignored", async () => {
+    await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        authResults: authResults({ domain: "sender.example.test" }),
+        extraHeaders: {
+          "X-MS-Exchange-Organization-SCL": "6",
+        },
+      }),
+      { notReason: "recipient-spam-verdict" },
+    )
+  })
+
+  it("Microsoft Forefront phish verdict prevents a message from looking safe", async () => {
+    await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        received: m365Received,
+        authResults: authResults({ domain: "sender.example.test" }),
+        extraHeaders: {
+          "X-Forefront-Antispam-Report": "CIP:203.0.113.10;CTRY:US;SFV:PHSH;",
+        },
+      }),
+      { tier: "danger", reason: "recipient-spam-verdict" },
+    )
+  })
+
+  it("SpamAssassin spam flag prevents a message from looking safe", async () => {
+    await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        authResults: authResults({ domain: "sender.example.test" }),
+        extraHeaders: {
+          "X-Spam-Flag": "YES",
+          "X-Spam-Status": "Yes, score=7.2 required=5.0 tests=BAYES_99",
+          "X-Spam-Checker-Version": "SpamAssassin 4.0.0 on recv.example.org",
+        },
+      }),
+      { tier: "danger", reason: "recipient-spam-verdict" },
+    )
+  })
+
+  it("standalone sender-supplied SpamAssassin flag is ignored", async () => {
+    await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        authResults: authResults({ domain: "sender.example.test" }),
+        extraHeaders: {
+          "X-Spam-Flag": "YES",
+        },
+      }),
+      { notReason: "recipient-spam-verdict" },
+    )
+  })
+
+  it("forged SpamAssassin trio without recipient checker host is ignored", async () => {
+    await check(
+      buildEml({
+        from: "Alex Example <notice@sender.example.test>",
+        authResults: authResults({ domain: "sender.example.test" }),
+        extraHeaders: {
+          "X-Spam-Flag": "YES",
+          "X-Spam-Status": "Yes, score=7.2 required=5.0 tests=BAYES_99",
+          "X-Spam-Checker-Version": "SpamAssassin 4.0.0 on attacker.example",
+        },
+      }),
+      { notReason: "recipient-spam-verdict" },
+    )
   })
 
   it("fake antivirus renewal phone scam → danger", async () => {

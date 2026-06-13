@@ -203,6 +203,7 @@ export const parseEmlLocally = (text) => {
   const returnPath = decodeEncodedWords(getHeader('Return-Path') || '')?.replace(/[<>]/g, '') || null;
   const replyToHeader = decodeEncodedWords(getHeader('Reply-To') || '') || null;
   const listIdHeader = getHeader('List-Id') || null;
+  const hasThreadReferences = Boolean(getHeader('In-Reply-To') || getHeader('References'));
   const sendingEmail = extractEmailAddress(fromHeader) || fromHeader || null;
   const sendingDomain = extractDomain(fromHeader);
   const recipientEmail = extractEmailAddress(toHeader);
@@ -223,18 +224,54 @@ export const parseEmlLocally = (text) => {
   const lowerMsgId = msgId.toLowerCase();
 
   const xSpam = getHeader('X-Spam')?.trim().toLowerCase() || null;
+  const xSpamFlag = getHeader('X-Spam-Flag')?.trim().toLowerCase() || null;
   const xSpamdResult = getHeader('X-Spamd-Result') || null;
   const xRspamdServer = getHeader('X-Rspamd-Server') || null;
   const xPmSpamAction = getHeader('X-Pm-Spam-Action') || null;
+  const xMsScl = getHeader('X-MS-Exchange-Organization-SCL') || null;
+  const xForefrontReport = getHeader('X-Forefront-Antispam-Report') || '';
+  const xSpamStatus = getHeader('X-Spam-Status') || null;
+  const xSpamCheckerVersion = getHeader('X-Spam-Checker-Version') || null;
   const hasTrustedRecipientSpamContext = Boolean(
     xSpamdResult &&
     (xPmSpamAction || /(?:rspamd|mailin|proton|recipient|mx[0-9.-]*\.)/i.test(xRspamdServer || ''))
   );
   const spamScore = xSpamdResult?.match(/\[([+-]?\d+(?:\.\d+)?)\s*\//)?.[1] || null;
-  const recipientSpamVerdict = xSpam === 'yes' && hasTrustedRecipientSpamContext ? 'spam' : null;
+  const microsoftScl = xMsScl?.match(/-?\d+/)?.[0] ?? null;
+  const recipientByHosts = topReceivedByHosts(receivedEntries).join(' ');
+  const hasMicrosoftRecipientContext =
+    /\b(?:outlook|protection\.outlook|prod\.outlook|microsoft|office365)\.com\b/i.test(recipientByHosts);
+  const spamAssassinHost = xSpamCheckerVersion
+    ?.match(/\bon\s+([a-z0-9.-]+\.[a-z]{2,})/i)?.[1]
+    ?.toLowerCase()
+    ?.replace(/\.$/, '') || null;
+  const hasSpamAssassinContext = Boolean(
+    xSpamStatus &&
+    spamAssassinHost &&
+    topReceivedByHosts(receivedEntries).some((host) => (
+      spamAssassinHost === host ||
+      spamAssassinHost.endsWith(`.${host}`) ||
+      host.endsWith(`.${spamAssassinHost}`) ||
+      sameRegistrableDomain(spamAssassinHost, host)
+    ))
+  );
+  const microsoftSpamVerdict = Boolean(
+    hasMicrosoftRecipientContext &&
+    (
+      (microsoftScl && Number(microsoftScl) >= 5) ||
+      /\bSFV:(?:SPM|PHSH)\b/i.test(xForefrontReport)
+    )
+  );
+  const spamAssassinVerdict = xSpamFlag === 'yes' && hasSpamAssassinContext;
+  const rspamdSpamVerdict = xSpam === 'yes' && hasTrustedRecipientSpamContext;
+  const recipientSpamVerdict = rspamdSpamVerdict || microsoftSpamVerdict || spamAssassinVerdict ? 'spam' : null;
   let recipientSpamSource = null;
   if (recipientSpamVerdict) {
-    if (xRspamdServer) {
+    if (microsoftSpamVerdict) {
+      recipientSpamSource = 'Microsoft / Forefront';
+    } else if (spamAssassinVerdict) {
+      recipientSpamSource = 'SpamAssassin';
+    } else if (xRspamdServer) {
       recipientSpamSource = xRspamdServer;
     } else if (xPmSpamAction) {
       recipientSpamSource = 'Proton Mail / Rspamd';
@@ -561,6 +598,7 @@ export const parseEmlLocally = (text) => {
     replyToDomain,
     listId: listIdHeader,
     messageId: msgId,
+    hasThreadReferences,
     bodyText,
     bodyHtml,
     hasImageContent,
