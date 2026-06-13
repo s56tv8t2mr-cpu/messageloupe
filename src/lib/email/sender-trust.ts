@@ -51,6 +51,16 @@ const ROLE_IMPERSONATION_PATTERNS: RegExp[] = [
   /\bhr\s+(?:and\s+)?recruit(ing|ment)?\b/i,
 ]
 
+const EXECUTIVE_IMPERSONATION_PATTERNS: RegExp[] = [
+  /\b(?:ceo|cfo|coo|cio|cto|chief\s+(?:executive|financial|operating|information|technology)\s+officer)\b/i,
+  /\bpresident\b/i,
+  /\b(?:senior\s+)?executive\b(?!\s+assistant)/i,
+  /\bmanaging\s+partner\b/i,
+  /\bfounding\s+partner\b/i,
+  /\bgeneral\s+partner\b/i,
+  /\bmanaging\s+director\b/i,
+]
+
 // Well-known brands frequently impersonated, with their known legitimate
 // sender domains. If a display name matches the brand but the From: domain
 // isn't on the legitimate list, that's a high-confidence phish signal.
@@ -223,6 +233,24 @@ const PUBLIC_WEBMAIL = new Set([
   "fastmail.com",
 ])
 
+const CONSUMER_MAILBOX_DOMAINS = new Set([
+  ...PUBLIC_WEBMAIL,
+  "telenet.be",
+  "telefonica.net",
+  "comcast.net",
+  "att.net",
+  "sbcglobal.net",
+  "btinternet.com",
+  "orange.fr",
+  "gmx.de",
+  "web.de",
+  "libero.it",
+  "wanadoo.fr",
+  "verizon.net",
+  "cox.net",
+  "earthlink.net",
+])
+
 function hasTyposquatShape(domain: string | null): boolean {
   if (!domain) return false
   const label = domain.toLowerCase().split(".")[0] ?? ""
@@ -238,6 +266,10 @@ function isPublicWebmail(domain: string | null): boolean {
   return Boolean(domain && PUBLIC_WEBMAIL.has(domain.toLowerCase()))
 }
 
+function isConsumerMailbox(domain: string | null): boolean {
+  return Boolean(domain && CONSUMER_MAILBOX_DOMAINS.has(domain.toLowerCase()))
+}
+
 // Decide whether the visible "name" portion of the From: header is actually
 // a meaningful display name (not just the email address echoed back).
 function looksLikeDisplayName(name: string, email: string | null): boolean {
@@ -248,15 +280,38 @@ function looksLikeDisplayName(name: string, email: string | null): boolean {
   return true
 }
 
+function emailLocalPart(email: string | null): string {
+  return email?.split("@")[0]?.toLowerCase().replace(/[^a-z0-9]/g, "") ?? ""
+}
+
+function personNameMailboxMismatch(displayName: string, email: string | null, domain: string | null): boolean {
+  if (!isConsumerMailbox(domain)) return false
+  const nameTokens = displayName
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((token) => token.length >= 3)
+  if (nameTokens.length < 2 || nameTokens.length > 4) return false
+
+  const local = emailLocalPart(email)
+  if (!local) return false
+  return !nameTokens.some((token) => local.includes(token))
+}
+
 export interface SenderTrustSignals {
   /** Display name claims a generic role/department (HR, IT, etc.). */
   roleImpersonation: boolean
+  /** Display name claims an executive role commonly used in BEC. */
+  executiveImpersonation: boolean
   /** Display name claims a known brand and the From: domain isn't on that brand's known list. */
   brandImpersonation: { brand: string } | null
   /** Sending domain has a shape associated with throwaway / typosquat infrastructure. */
   domainHasTyposquatShape: boolean
   /** From: domain is a public webmail provider (gmail, outlook, etc.). */
   fromPublicWebmail: boolean
+  /** From: domain is a consumer mailbox/ISP provider. */
+  fromConsumerMailbox: boolean
+  /** Personal display name does not match the consumer mailbox local-part. */
+  personNameMailboxMismatch: boolean
   /** A meaningful display name was extracted (not just the email echoed back). */
   hasDisplayName: boolean
 }
@@ -268,8 +323,14 @@ export function evaluateSenderTrust(parser: ParserResult): SenderTrustSignals {
 
   const hasDisplayName = looksLikeDisplayName(displayName, fromEmail)
 
+  const executiveImpersonation =
+    hasDisplayName && EXECUTIVE_IMPERSONATION_PATTERNS.some((p) => p.test(displayName))
   const roleImpersonation =
-    hasDisplayName && ROLE_IMPERSONATION_PATTERNS.some((p) => p.test(displayName))
+    hasDisplayName && (
+      executiveImpersonation ||
+      ROLE_IMPERSONATION_PATTERNS.some((p) => p.test(displayName))
+    )
+  const fromConsumerMailbox = isConsumerMailbox(parser.sendingDomain)
 
   let brandImpersonation: { brand: string } | null = null
   if (hasDisplayName) {
@@ -286,9 +347,14 @@ export function evaluateSenderTrust(parser: ParserResult): SenderTrustSignals {
 
   return {
     roleImpersonation,
+    executiveImpersonation,
     brandImpersonation,
     domainHasTyposquatShape: hasTyposquatShape(parser.sendingDomain),
     fromPublicWebmail: isPublicWebmail(parser.sendingDomain),
+    fromConsumerMailbox,
+    personNameMailboxMismatch: hasDisplayName
+      ? personNameMailboxMismatch(displayName, fromEmail, parser.sendingDomain)
+      : false,
     hasDisplayName,
   }
 }

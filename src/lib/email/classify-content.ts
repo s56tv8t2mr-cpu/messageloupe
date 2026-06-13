@@ -160,6 +160,88 @@ const BEC_OPENER_PATTERNS: RegExp[] = [
   /\bkindly\s+write\s+back\s+and\s+let\s+me\s+know\b/i,
 ]
 
+const BANKING_CHANGE_VERBS = ["update", "change", "revise", "switch"]
+
+const BANKING_CHANGE_TARGETS = buildPhrasePairs(
+  ["banking", "bank", "payment", "payroll", "direct deposit"],
+  ["information", "info", "details", "instructions", "account"],
+)
+
+const NEW_BANKING_TARGETS = [
+  ...BANKING_CHANGE_TARGETS,
+  ...buildPhrasePairs(["wire", "ach"], ["information", "info", "details", "instructions", "account"]),
+]
+
+const PAYROLL_CHANGE_PHRASES = buildPhrasePairs(
+  ["payroll", "direct deposit"],
+  ["change", "update", "revision"],
+)
+
+const BANKING_CHANGE_CONNECTORS = ["", "to", "to my", "to your", "to our", "my", "your", "our"]
+
+const BANKING_CHANGE_REQUEST_PHRASES = BANKING_CHANGE_VERBS.flatMap((verb) =>
+  BANKING_CHANGE_CONNECTORS.flatMap((connector) =>
+    BANKING_CHANGE_TARGETS.map((target) => joinPhraseParts(verb, connector, target)),
+  ),
+)
+
+const NEW_BANKING_REQUEST_PHRASES = ["new", "updated"].flatMap((prefix) =>
+  NEW_BANKING_TARGETS.map((target) => `${prefix} ${target}`),
+)
+
+const POLARIS_SIGNATURE_SIGNOFFS = new Set(["regards", "sincerely", "best regards", "team"])
+
+interface BodyBrandRule {
+  brand: string
+  legitimateDomains: string[]
+  claim: (normalizedText: string, lineText: string) => boolean
+}
+
+const BODY_BRAND_RULES: BodyBrandRule[] = [
+  {
+    brand: "Brooks Running",
+    legitimateDomains: ["brooksrunning.com"],
+    claim: (text) =>
+      hasAnyPhrase(text, [
+        "working with brooks running",
+        "on behalf of brooks running",
+        "representing brooks running",
+      ]) ||
+      hasPhraseNear(text, "brooks running", "brand ambassador", 120),
+  },
+  {
+    brand: "Polaris Partners",
+    legitimateDomains: ["polarispartners.com"],
+    claim: (_normalizedText, lineText) => hasPolarisSignatureClaim(lineText),
+  },
+  {
+    brand: "Rocket Mortgage",
+    legitimateDomains: ["rocketmortgage.com", "rocketcompanies.com"],
+    claim: (text) =>
+      hasAnyPhrase(text, [
+        "from rocket mortgage",
+        "on behalf of rocket mortgage",
+        "for rocket mortgage",
+      ]) ||
+      ["document", "portal", "loan", "closing"].some((term) =>
+        hasPhraseNear(text, "rocket mortgage", term, 120),
+      ),
+  },
+  {
+    brand: "Southern Company",
+    legitimateDomains: ["southerncompany.com"],
+    claim: (text) =>
+      hasAnyPhrase(text, [
+        "from southern company",
+        "on behalf of southern company",
+        "representing southern company",
+      ]) ||
+      ["modeling", "role", "partnership", "program"].some((term) =>
+        hasPhraseNear(text, "southern company", term, 120),
+      ),
+  },
+]
+
 // Fake secure-message and document-portal lures frequently authenticate for
 // a real but unrelated domain, then push the victim to a third-party app.
 // The verdict engine only escalates this when a third-party link is present.
@@ -177,6 +259,71 @@ const SECURE_DOCUMENT_LURE_PATTERNS: RegExp[] = [
 
 const matchAny = (text: string, patterns: RegExp[]): boolean =>
   patterns.some((p) => p.test(text))
+
+const normalizePhraseText = (text: string): string =>
+  text.toLowerCase().replace(/\s+/g, " ")
+
+function buildPhrasePairs(prefixes: string[], suffixes: string[]): string[] {
+  return prefixes.flatMap((prefix) =>
+    suffixes.map((suffix) => joinPhraseParts(prefix, suffix)),
+  )
+}
+
+function joinPhraseParts(...parts: string[]): string {
+  return parts.filter(Boolean).join(" ")
+}
+
+function hasAnyPhrase(text: string, phrases: string[]): boolean {
+  return phrases.some((phrase) => hasPhrase(text, phrase))
+}
+
+function hasPhraseNear(
+  text: string,
+  firstPhrase: string,
+  secondPhrase: string,
+  windowSize: number,
+): boolean {
+  let index = findPhraseIndex(text, firstPhrase)
+  while (index !== -1) {
+    const window = text.slice(index, index + firstPhrase.length + windowSize)
+    if (hasPhrase(window, secondPhrase)) return true
+    index = findPhraseIndex(text, firstPhrase, index + firstPhrase.length)
+  }
+  return false
+}
+
+function hasPhrase(text: string, phrase: string): boolean {
+  return findPhraseIndex(text, phrase) !== -1
+}
+
+function findPhraseIndex(text: string, phrase: string, fromIndex = 0): number {
+  let index = text.indexOf(phrase, fromIndex)
+  while (index !== -1) {
+    if (isPhraseBoundary(text, index, phrase.length)) return index
+    index = text.indexOf(phrase, index + phrase.length)
+  }
+  return -1
+}
+
+function isPhraseBoundary(text: string, start: number, length: number): boolean {
+  return !isWordChar(text[start - 1]) && !isWordChar(text[start + length])
+}
+
+function isWordChar(value: string | undefined): boolean {
+  return value !== undefined && /[a-z0-9_]/.test(value)
+}
+
+function hasPolarisSignatureClaim(text: string): boolean {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim().replace(/,$/, ""))
+    .filter(Boolean)
+
+  return lines.some((line, index) =>
+    POLARIS_SIGNATURE_SIGNOFFS.has(line) &&
+    lines[index + 1]?.startsWith("polaris partners") === true,
+  )
+}
 
 const SECURITY_SUBSCRIPTION_BRANDS =
   /\b(mc\s*afee|mcafee|norton|lifelock|geek\s+squad|total\s+secure|total\s+security|antivirus|anti-virus)\b/i
@@ -245,6 +392,21 @@ function hasBankNoticeLure(text: string): boolean {
   return bankNotice && accountOrTransfer
 }
 
+function hasBankingChangeRequest(text: string): boolean {
+  const normalized = normalizePhraseText(text)
+  return (
+    hasAnyPhrase(normalized, BANKING_CHANGE_REQUEST_PHRASES) ||
+    hasAnyPhrase(normalized, NEW_BANKING_REQUEST_PHRASES) ||
+    hasAnyPhrase(normalized, PAYROLL_CHANGE_PHRASES)
+  )
+}
+
+function bodyBrandClaim(text: string): ContentClassification["bodyBrandClaim"] {
+  const normalized = normalizePhraseText(text)
+  const lineText = text.toLowerCase()
+  return BODY_BRAND_RULES.find((rule) => rule.claim(normalized, lineText)) ?? null
+}
+
 function hasRiskyWorkFromHomeJobLure(text: string): boolean {
   return /\bresume\s+approval\b/i.test(text) ||
     /\bwork[\s-]?from[\s-]?home\b/i.test(text) ||
@@ -311,7 +473,9 @@ export function classifyContent(text: string): ContentClassification {
     hasCoercivePaymentThreat: hasCoercivePaymentThreat(target),
     hasFraudReportContext: hasFraudReportContext(target),
     hasBankNoticeLure: hasBankNoticeLure(target),
+    hasBankingChangeRequest: hasBankingChangeRequest(target),
     mentionsPolarisPartners: /\bpolaris\s+partners\b/i.test(target),
+    bodyBrandClaim: bodyBrandClaim(target),
     hasRiskyWorkFromHomeJobLure: hasRiskyWorkFromHomeJobLure(target),
     hasOpaqueEncryptedBody: hasOpaqueEncryptedBody(target),
     hasTransactionNoticeLure: hasTransactionNoticeLure(target),

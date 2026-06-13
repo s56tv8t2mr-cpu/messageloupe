@@ -50,6 +50,7 @@ export interface ParserResult {
   replyToDomain: string | null
   listId: string | null
   messageId: string
+  hasThreadReferences: boolean
   bodyText: string
   bodyHtml: string
   hasImageContent: boolean
@@ -129,7 +130,12 @@ export interface ContentClassification {
   hasCoercivePaymentThreat: boolean
   hasFraudReportContext: boolean
   hasBankNoticeLure: boolean
+  hasBankingChangeRequest: boolean
   mentionsPolarisPartners: boolean
+  bodyBrandClaim: {
+    brand: string
+    legitimateDomains: string[]
+  } | null
   hasRiskyWorkFromHomeJobLure: boolean
   hasOpaqueEncryptedBody: boolean
   hasTransactionNoticeLure: boolean
@@ -137,9 +143,12 @@ export interface ContentClassification {
 
 export interface SenderTrustSignals {
   roleImpersonation: boolean
+  executiveImpersonation: boolean
   brandImpersonation: { brand: string } | null
   domainHasTyposquatShape: boolean
   fromPublicWebmail: boolean
+  fromConsumerMailbox: boolean
+  personNameMailboxMismatch: boolean
   hasDisplayName: boolean
 }
 
