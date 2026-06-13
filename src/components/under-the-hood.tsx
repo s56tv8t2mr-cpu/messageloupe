@@ -100,6 +100,11 @@ export function UnderTheHood({ analysis }: UnderTheHoodProps) {
           />
           <Field label="Return-Path" value={parser.returnPath} mono />
           <Field label="Sending domain" value={parser.sendingDomain} mono />
+          <Field
+            label="Domain age"
+            value={formatDomainAge(analysis.rdap)}
+            fallback="Not checked"
+          />
           <Field label="Sent via" value={parser.serviceIdentified ? parser.sendingService : null} fallback="No clear email service identified" />
         </AccordionContent>
       </AccordionItem>
@@ -341,4 +346,11 @@ function Field({
       )}
     </div>
   )
+}
+
+function formatDomainAge(rdap: Analysis["rdap"]): string | null {
+  if (!rdap) return null
+  if (rdap.status === "error") return "Lookup unavailable"
+  if (rdap.status === "no-date" || rdap.ageDays === null) return "Registration date unavailable"
+  return `${rdap.ageDays} day${rdap.ageDays === 1 ? "" : "s"} old`
 }

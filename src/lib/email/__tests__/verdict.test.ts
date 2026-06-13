@@ -17,6 +17,7 @@ import { resolve } from "node:path"
 
 import { analyze } from "../index"
 import { __resetMxCacheForTests } from "../mx-lookup"
+import { __resetRdapCacheForTests } from "../rdap-lookup"
 import type { Analysis, VerdictTier } from "../types"
 import { authResults, buildEml, cleanEsp } from "./fixtures"
 
@@ -50,12 +51,59 @@ function mockDnsResponse(answers: MockDnsAnswer[]): Response {
   })
 }
 function mockFetchMxAnswer(answers: MockDnsAnswer[]): void {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(mockDnsResponse(answers)))
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes("rdap.org")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ events: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/rdap+json" },
+          }),
+        )
+      }
+      return Promise.resolve(mockDnsResponse(answers))
+    }),
+  )
 }
 const mxAnswer = (priority: number, host: string): MockDnsAnswer => ({
   type: 15,
   data: `${priority} ${host}.`,
 })
+function mockDomainLookups({
+  mx = [],
+  rdapEvents = [],
+}: {
+  mx?: MockDnsAnswer[]
+  rdapEvents?: Array<{ eventAction: string; eventDate: string }>
+}): ReturnType<typeof vi.fn> {
+  const fetchMock = vi.fn((input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes("rdap.org")) {
+      return Promise.resolve(
+        new Response(JSON.stringify({ events: rdapEvents }), {
+          status: 200,
+          headers: { "Content-Type": "application/rdap+json" },
+        }),
+      )
+    }
+    return Promise.resolve(mockDnsResponse(mx))
+  })
+  vi.stubGlobal(
+    "fetch",
+    fetchMock,
+  )
+  return fetchMock
+}
+function rdapRegisteredDaysAgo(days: number): Array<{ eventAction: string; eventDate: string }> {
+  return [
+    {
+      eventAction: "registration",
+      eventDate: new Date(Date.now() - days * 86_400_000).toISOString(),
+    },
+  ]
+}
 
 function knownVendorAttachedInvoice({
   subject,
@@ -82,6 +130,7 @@ function knownVendorAttachedInvoice({
 
 beforeEach(() => {
   __resetMxCacheForTests()
+  __resetRdapCacheForTests()
   mockFetchMxAnswer([])
 })
 
@@ -1102,6 +1151,70 @@ describe("MX-based brand impersonation", () => {
     expect(a.verdict.reasons.map((r) => r.signal)).not.toContain(
       "brand-impersonation-likely",
     )
+  })
+})
+
+describe("RDAP domain-age lookup", () => {
+  it("new sender domain + weak auth + financial action → danger", async () => {
+    mockDomainLookups({ rdapEvents: rdapRegisteredDaysAgo(7) })
+    const a = await check(
+      buildEml({
+        from: "Vendor Billing <billing@fresh-payments-example.com>",
+        subject: "Updated wire instructions",
+        authResults:
+          "mx.recipient.org; spf=none smtp.mailfrom=fresh-payments-example.com; dkim=none; dmarc=none header.from=fresh-payments-example.com",
+        body:
+          "Please use the updated routing number and wire transfer details for this invoice payment.",
+      }),
+      { tier: "danger", reason: "new-sender-domain-high-risk" },
+    )
+
+    expect(a.rdap?.domain).toBe("fresh-payments-example.com")
+    expect(a.rdap?.ageDays).toBeLessThanOrEqual(7)
+  })
+
+  it("new sender domain alone stays caution", async () => {
+    mockDomainLookups({ rdapEvents: rdapRegisteredDaysAgo(20) })
+    await check(
+      buildEml({
+        from: "New Company <hello@brand-new-example.com>",
+        authResults: authResults({ domain: "brand-new-example.com" }),
+        body: "Thanks for connecting. Here is our new company announcement.",
+      }),
+      { tier: "caution", reason: "new-sender-domain" },
+    )
+  })
+
+  it("public webmail sender skips MX and RDAP lookups", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(mockDnsResponse([]))
+    vi.stubGlobal("fetch", fetchSpy)
+    const a = await analyze(
+      buildEml({
+        from: "Some Person <person@gmail.com>",
+        authResults: authResults({ domain: "gmail.com" }),
+      }),
+    )
+
+    expect(a.mx).toBeNull()
+    expect(a.rdap).toBeNull()
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it("RDAP sends only the registrable sender domain", async () => {
+    const fetchMock = mockDomainLookups({ rdapEvents: rdapRegisteredDaysAgo(40) })
+    await analyze(
+      buildEml({
+        from: "Billing <billing@sub.example.co.uk>",
+        authResults: authResults({ domain: "sub.example.co.uk" }),
+      }),
+    )
+
+    const rdapUrls = fetchMock.mock.calls
+      .map(([input]) => String(input))
+      .filter((url) => url.includes("rdap.org"))
+    expect(rdapUrls).toEqual(["https://rdap.org/domain/example.co.uk"])
+    expect(rdapUrls[0]).not.toContain("billing")
+    expect(rdapUrls[0]).not.toContain("sub.example.co.uk")
   })
 })
 

@@ -58,6 +58,13 @@ export default function MethodologyPage() {
               inbound provider with the service that delivered the message.
             </li>
             <li>
+              <strong className="text-foreground">Domain age:</strong> for
+              non-webmail senders, your browser may ask public RDAP when the visible
+              sender domain was registered. New domains are treated as advisory unless
+              they appear with sensitive business-action language and weak
+              authentication.
+            </li>
+            <li>
               <strong className="text-foreground">Links:</strong> the URLs in the
               message body, checked for visible/actual mismatches, raw IP hosts,
               punycode-encoded lookalikes, .cm typosquats, and known shorteners.
@@ -141,8 +148,9 @@ export default function MethodologyPage() {
             <li>
               <strong className="text-foreground">No reputation lookups.</strong> We
               don&apos;t query VirusTotal, urlscan, abuse.ch, or anything else with
-              the contents of your email. The optional DNS lookup sends only the sender
-              domain for MX records, not the message, headers, links, or verdict.
+              the contents of your email. Optional DNS and RDAP lookups send only the
+              sender domain for MX records and registration age, not the message,
+              headers, links, or verdict.
             </li>
             <li>
               <strong className="text-foreground">No tracking.</strong> No analytics,

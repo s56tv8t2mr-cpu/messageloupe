@@ -17,7 +17,7 @@ export function SiteFooter() {
             <ShieldCheck className="text-success mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
               No email upload, no logging, no tracking. Only an optional sender-domain
-              DNS lookup leaves the browser.
+              DNS or domain-age lookup leaves the browser.
             </span>
           </p>
         </div>

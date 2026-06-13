@@ -2,7 +2,7 @@
 //
 // Single entry point: pass raw RFC-822 text (a .eml file's contents OR raw
 // headers + body OR just headers), receive a complete Analysis. All work
-// happens client-side except the optional sender-domain MX lookup.
+// happens client-side except optional sender-domain DNS/RDAP lookups.
 
 import { parseEmlLocally } from "./parser.js"
 import { extractLinks, FLAG_LABELS as RAW_FLAG_LABELS } from "./linkAnalyzer.js"
@@ -13,6 +13,7 @@ import { evaluateSenderTrust } from "./sender-trust"
 import { extractAttachments } from "./attachments"
 import { assessReplyTo } from "./reply-to"
 import { lookupMx } from "./mx-lookup"
+import { lookupRdapDomainAge } from "./rdap-lookup"
 import { computeVerdict } from "./verdict"
 
 export { sameRegistrable } from "./domain"
@@ -97,8 +98,9 @@ function stripHtmlForClassification(html: string, separator = " "): string {
  *   - Raw RFC-822 headers + body
  *   - Headers-only (e.g. from "Show Original" / "View Source")
  *
- * Issues one DNS-over-HTTPS MX lookup for the visible sender domain
- * (skipped for public webmail). Throws if `source` is empty.
+ * Issues optional DNS-over-HTTPS MX and RDAP domain-age lookups for the
+ * visible sender domain (skipped for public webmail). Throws if `source`
+ * is empty.
  */
 export async function analyze(source: string): Promise<Analysis> {
   if (!source || !source.trim()) {
@@ -124,7 +126,12 @@ export async function analyze(source: string): Promise<Analysis> {
   const replyTo = assessReplyTo(parser)
   // Skip the MX lookup for public webmail — billions of gmail.com /
   // outlook.com senders all share inbound MX with no signal value.
-  const mx = trust.fromPublicWebmail ? null : await lookupMx(parser.sendingDomain)
+  const [mx, rdap] = trust.fromPublicWebmail
+    ? [null, null]
+    : await Promise.all([
+        lookupMx(parser.sendingDomain),
+        lookupRdapDomainAge(parser.sendingDomain),
+      ])
   const verdict = computeVerdict({
     parser,
     links,
@@ -134,9 +141,10 @@ export async function analyze(source: string): Promise<Analysis> {
     trust,
     replyTo,
     mx,
+    rdap,
   })
 
-  return { parser, links, attachments, content, forward, trust, replyTo, mx, verdict }
+  return { parser, links, attachments, content, forward, trust, replyTo, mx, rdap, verdict }
 }
 
 export type {
@@ -156,4 +164,5 @@ export type {
   ReplyToAssessment,
   MxLookup,
   MxRecord,
+  RdapLookup,
 } from "./types"
