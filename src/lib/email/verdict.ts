@@ -73,6 +73,34 @@ function senderAuthenticates(parser: ParserResult): boolean {
   return false
 }
 
+function decodeHtmlCodePoint(value: string, radix: number): string {
+  const codePoint = parseInt(value, radix)
+  if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10FFFF) return ""
+  try {
+    return String.fromCodePoint(codePoint)
+  } catch {
+    return ""
+  }
+}
+
+function readableBodyLength(parser: ParserResult): number {
+  const htmlText = (parser.bodyHtml || "")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_match, hex: string) => decodeHtmlCodePoint(hex, 16))
+    .replace(/&#(\d+);/g, (_match, code: string) => decodeHtmlCodePoint(code, 10))
+  return `${parser.bodyText || ""}\n${htmlText}`
+    .replace(/[^a-z0-9]/gi, "")
+    .length
+}
+
 export function computeVerdict({
   parser,
   links,
@@ -108,6 +136,36 @@ export function computeVerdict({
   let tier: VerdictTier = "safe"
   const reasons: VerdictReason[] = []
   const hasThirdPartyLink = links.some((link) => link.flags.includes("thirdParty"))
+
+  if (forward.suspectedReason) {
+    reasons.push({
+      signal: "possible-forward-marker",
+      detail:
+        forward.suspectedReason === "subject-prefix"
+          ? "The subject begins with a forward prefix, but the message still contains enough original header structure to analyze instead of stopping as a forward."
+          : "The body contains a forwarded-message separator, but the message still contains enough original header structure to analyze instead of stopping as a forward.",
+      weight: "low",
+    })
+  }
+
+  if (parser.duplicateCriticalHeaders.length > 0) {
+    reasons.push({
+      signal: "duplicate-critical-headers",
+      detail: `This message contains duplicate ${parser.duplicateCriticalHeaders.join(", ")} header${parser.duplicateCriticalHeaders.length === 1 ? "" : "s"}. Duplicate sender or subject headers can make filters and mail apps disagree about what the message really says.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
+  if (parser.ignoredAuthResultsCount > 0 && !parser.authResultsTrusted) {
+    reasons.push({
+      signal: "untrusted-auth-results",
+      detail:
+        "This message includes Authentication-Results headers, but they do not appear to come from the recipient-side mail system. Message Loupe ignored them instead of trusting sender-supplied authentication claims.",
+      weight: "medium",
+    })
+    tier = escalate(tier, "caution")
+  }
 
   // ---- Recipient-side spam verdicts ----
   // When a trusted recipient-side filter (for example Proton/Rspamd) has
@@ -542,6 +600,21 @@ export function computeVerdict({
       signal: "no-source-ip",
       detail: "The originating server's IP address could not be determined from the headers.",
       weight: "low",
+    })
+    tier = escalate(tier, "caution")
+  }
+
+  // ---- Image-only / no-readable-text bodies ----
+  if (
+    tier === "safe" &&
+    readableBodyLength(parser) < 20 &&
+    (parser.hasImageContent || links.length > 0 || attachments.length > 0)
+  ) {
+    reasons.push({
+      signal: "low-readable-content",
+      detail:
+        "This message has almost no readable text but contains an image, link, or attachment. Image-only and QR-style emails can hide scam content from text-based checks.",
+      weight: "medium",
     })
     tier = escalate(tier, "caution")
   }

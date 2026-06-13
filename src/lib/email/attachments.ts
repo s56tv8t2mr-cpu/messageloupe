@@ -12,39 +12,16 @@
 // `Content-Disposition: attachment` blocks and adjacent headers.
 
 import type { AttachmentInfo } from "./types"
-
-// Decode RFC 2047 encoded-words minimally (utf-8, hex, base64) so filenames
-// like =?UTF-8?Q?Offer-letter.pdf?= are readable.
-function decodeEncodedWord(value: string): string {
-  return value.replace(/=\?([^?]+)\?([qQbB])\?([^?]*)\?=/g, (_, _charset, enc, payload) => {
-    try {
-      if (enc.toLowerCase() === "q") {
-        return payload
-          .replace(/_/g, " ")
-          .replace(/=([0-9A-F]{2})/gi, (_m: string, hex: string) =>
-            String.fromCharCode(parseInt(hex, 16)),
-          )
-      }
-      if (enc.toLowerCase() === "b") {
-        if (typeof atob === "function") {
-          return atob(payload)
-        }
-      }
-    } catch {
-      /* fall through */
-    }
-    return payload
-  })
-}
+import { decodeEncodedWords } from "./encodedWords.js"
 
 // Extract a filename from a Content-Disposition or Content-Type header.
 // Handles: filename="x.pdf", filename=x.pdf, name="x.pdf", filename*=UTF-8''x.pdf
 function extractFilename(headerBlock: string): string | null {
   const quoted = headerBlock.match(/(?:filename|name)\s*=\s*"([^"]+)"/i)
-  if (quoted?.[1]) return decodeEncodedWord(quoted[1])
+  if (quoted?.[1]) return decodeEncodedWords(quoted[1])
 
   const unquoted = headerBlock.match(/(?:filename|name)\s*=\s*([^;\s]+)/i)
-  if (unquoted?.[1]) return decodeEncodedWord(unquoted[1])
+  if (unquoted?.[1]) return decodeEncodedWords(unquoted[1])
 
   // RFC 5987 extended form
   const extended = headerBlock.match(/filename\*\s*=\s*[^']*'[^']*'([^;\s]+)/i)

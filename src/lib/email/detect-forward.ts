@@ -27,13 +27,30 @@ const BODY_PATTERNS: RegExp[] = [
 
 export function detectForward(parser: ParserResult): ForwardDetection {
   const subject = parser.subject ?? ""
-  if (SUBJECT_PATTERNS.some((p) => p.test(subject))) {
-    return { isForwarded: true, reason: "subject-prefix" }
+  const body = parser.bodyText ?? ""
+  const hasSubjectMarker = SUBJECT_PATTERNS.some((p) => p.test(subject))
+  const hasBodyMarker = BODY_PATTERNS.some((p) => p.test(body))
+
+  if (hasBodyMarker) {
+    return { isForwarded: true, reason: "body-separator" }
   }
 
-  const body = parser.bodyText ?? ""
-  if (BODY_PATTERNS.some((p) => p.test(body))) {
-    return { isForwarded: true, reason: "body-separator" }
+  if (hasSubjectMarker) {
+    const hasUpstreamChain = parser.receivedChain.length > 1
+    const hasAuthEvidence = Boolean(
+      parser.spfResult ||
+      parser.dkimResult ||
+      parser.dmarcResult ||
+      /^Authentication-Results:/im.test(parser.allHeaders) ||
+      /^Received-SPF:/im.test(parser.allHeaders) ||
+      /^DKIM-Signature:/im.test(parser.allHeaders),
+    )
+
+    if (!hasUpstreamChain || !hasAuthEvidence) {
+      return { isForwarded: true, reason: "subject-prefix" }
+    }
+
+    return { isForwarded: false, suspectedReason: "subject-prefix" }
   }
 
   // Heuristic: if the only Received hop is the recipient's own delivery hop
