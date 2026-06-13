@@ -5,7 +5,8 @@ const SHORTENERS = new Set([
   'bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'is.gd',
   'buff.ly', 'rebrand.ly', 'cli.gs', 'short.io', 'shorturl.at',
   'tiny.cc', 'lnkd.in', 'rb.gy', 'cutt.ly', 'tr.im', 'bl.ink',
-  'shorturl.com', 'snip.ly', 'soo.gd', 'clk.im'
+  'shorturl.com', 'snip.ly', 'soo.gd', 'clk.im', 't.ly', 's.id',
+  'qrco.de', 'dub.sh'
 ]);
 
 const REGISTRABLE_SUFFIXES = [
@@ -34,6 +35,7 @@ const isIpHost = (host) => {
 };
 
 const URL_RE = /https?:\/\/[^\s<>"'`)\]]+/gi;
+const DISPLAY_URL_RE = /\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"'`]*)?/i;
 const HREF_RE = /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
 const stripHtmlTags = (s) => s
@@ -62,14 +64,68 @@ const hostOf = (url) => {
   }
 };
 
+const urlParam = (url, names) => {
+  try {
+    const parsed = new URL(url);
+    for (const name of names) {
+      const value = parsed.searchParams.get(name);
+      if (value && /^https?:\/\//i.test(value)) return value;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+const unwrapProofpointPath = (url) => {
+  try {
+    const parsed = new URL(url);
+    const match = /__([^_]+)__\s*;?/.exec(parsed.pathname);
+    if (!match?.[1]) return null;
+    const candidate = decodeURIComponent(match[1]).replace(/^hxxps?:\/\//i, (m) =>
+      m.toLowerCase().startsWith('hxxps') ? 'https://' : 'http://'
+    );
+    return /^https?:\/\//i.test(candidate) ? candidate : null;
+  } catch {
+    return null;
+  }
+};
+
+const unwrapUrl = (url) => {
+  const host = hostOf(url);
+  if (!host) return null;
+  if (host === 'www.google.com' || host === 'google.com') {
+    return urlParam(url, ['q', 'url']);
+  }
+  if (host.endsWith('safelinks.protection.outlook.com')) {
+    return urlParam(url, ['url']);
+  }
+  if (host === 'urldefense.com' || host.endsWith('.urldefense.com')) {
+    return urlParam(url, ['u', 'url']) || unwrapProofpointPath(url);
+  }
+  if (host === 'l.facebook.com' || host === 'lm.facebook.com') {
+    return urlParam(url, ['u']);
+  }
+  return null;
+};
+
+const displayUrlFromText = (displayText) => {
+  if (!displayText) return null;
+  const explicit = displayText.match(URL_RE)?.[0];
+  if (explicit) return cleanUrl(explicit);
+  const domainShaped = displayText.match(DISPLAY_URL_RE)?.[0];
+  return domainShaped ? `https://${cleanUrl(domainShaped)}` : null;
+};
+
 export const extractLinks = (result) => {
   if (!result) return [];
 
   const found = new Map(); // key: lowercase URL → { url, displayText }
 
   const add = (rawUrl, displayText) => {
-    const url = cleanUrl((rawUrl || '').trim());
-    if (!/^https?:\/\//i.test(url)) return;
+    const outerUrl = cleanUrl((rawUrl || '').trim());
+    if (!/^https?:\/\//i.test(outerUrl)) return;
+    const url = unwrapUrl(outerUrl) || outerUrl;
     const key = url.toLowerCase();
     const existing = found.get(key);
     if (!existing) {
@@ -100,14 +156,12 @@ export const extractLinks = (result) => {
     const hostRegistrable = registrableDomain(host);
     const flags = [];
 
-    // Mismatch: anchor text shows a URL that doesn't match the actual href
-    if (displayText && /https?:\/\//i.test(displayText)) {
-      const displayUrlMatch = displayText.match(URL_RE);
-      if (displayUrlMatch) {
-        const displayHost = hostOf(cleanUrl(displayUrlMatch[0]));
-        if (displayHost && registrableDomain(displayHost) !== hostRegistrable) {
-          flags.push('mismatch');
-        }
+    // Mismatch: anchor text shows a URL/domain that doesn't match the actual href
+    const displayUrl = displayUrlFromText(displayText);
+    if (displayUrl) {
+      const displayHost = hostOf(displayUrl);
+      if (displayHost && registrableDomain(displayHost) !== hostRegistrable) {
+        flags.push('mismatch');
       }
     }
 

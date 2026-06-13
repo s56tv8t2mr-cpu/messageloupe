@@ -345,13 +345,25 @@ describe("display-name impersonation", () => {
 describe("link flags", () => {
   const exampleAuth = authResults({ domain: "example.com" })
 
-  it("anchor/href mismatch → danger", async () => {
+  it.each([
+    [
+      "anchor/href mismatch",
+      '<p>Click <a href="http://attacker.example/login">https://your-bank.com/secure</a> to verify.</p>',
+    ],
+    [
+      "domain-shaped anchor text mismatch",
+      '<p>Click <a href="https://attacker.example/login">paypal.com/secure</a> to verify.</p>',
+    ],
+    [
+      "wrapped redirect URL is unwrapped before link verdict",
+      '<p>Click <a href="https://www.google.com/url?q=https%3A%2F%2Fattacker.example%2Flogin">paypal.com/secure</a> to verify.</p>',
+    ],
+  ])("%s → danger", async (_name, htmlBody) => {
     await check(
       buildEml({
         authResults: exampleAuth,
         body: "Click the link to verify.",
-        htmlBody:
-          '<p>Click <a href="http://attacker.example/login">https://your-bank.com/secure</a> to verify.</p>',
+        htmlBody,
       }),
       { tier: "danger", reason: "suspicious-links" },
     )
@@ -367,13 +379,57 @@ describe("link flags", () => {
     )
   })
 
-  it("shortener link alone → caution", async () => {
+  it.each([
+    ["legacy shortener", "https://bit.ly/3xyz123"],
+    ["refreshed shortener", "https://t.ly/abc123"],
+  ])("%s alone → caution", async (_name, url) => {
     await check(
       buildEml({
         authResults: exampleAuth,
-        body: "Read more at https://bit.ly/3xyz123 — thanks!",
+        body: `Read more at ${url} - thanks!`,
       }),
       { tier: "caution", reason: "shortener-link" },
+    )
+  })
+
+  it("non-web anchors are ignored without throwing", async () => {
+    await check(
+      buildEml({
+        authResults: exampleAuth,
+        body: "Contact support if needed.",
+        htmlBody:
+          '<p><a href="mailto:support@example.com">support@example.com</a><a href="#unsubscribe">unsubscribe</a></p>',
+      }),
+      { notReason: "suspicious-links" },
+    )
+  })
+})
+
+describe("attachment type risk", () => {
+  const attachedFileBody = (filename: string, contentType: string): string =>
+    [
+      "Please review the attached file.",
+      "",
+      `Content-Type: ${contentType}; name="${filename}"`,
+      `Content-Disposition: attachment; filename="${filename}"`,
+      "",
+      "placeholder",
+    ].join("\r\n")
+
+  it.each([
+    ["HTML attachment", "invoice.html", "text/html"],
+    ["SVG attachment", "chart.svg", "image/svg+xml"],
+    ["disk image", "statement.iso", "application/octet-stream"],
+    ["shortcut", "invoice.lnk", "application/octet-stream"],
+    ["double extension", "invoice.pdf.exe", "application/octet-stream"],
+  ])("%s escalates on its own → danger", async (_name, filename, contentType) => {
+    await check(
+      buildEml({
+        from: "Known Vendor <billing@example.com>",
+        authResults: authResults({ domain: "example.com" }),
+        body: attachedFileBody(filename, contentType),
+      }),
+      { tier: "danger", reason: "dangerous-attachment-type" },
     )
   })
 })
