@@ -36,10 +36,69 @@ const HIGH_RISK_LINK_FLAGS = new Set([
   "cmTld",
 ])
 
+const HIGH_RISK_ATTACHMENT_EXTENSIONS = new Set([
+  "htm",
+  "html",
+  "svg",
+  "iso",
+  "img",
+  "lnk",
+  "one",
+  "js",
+  "vbs",
+])
+
+const DECEPTIVE_INNER_ATTACHMENT_EXTENSIONS = new Set([
+  "doc",
+  "docx",
+  "pdf",
+  "xls",
+  "xlsx",
+  "ppt",
+  "pptx",
+  "txt",
+])
+
+const EXECUTABLE_ATTACHMENT_EXTENSIONS = new Set([
+  "bat",
+  "cmd",
+  "com",
+  "exe",
+  "js",
+  "lnk",
+  "msi",
+  "ps1",
+  "scr",
+  "vbs",
+])
+
 const escalate = (current: VerdictTier, target: VerdictTier): VerdictTier => {
   const order: VerdictTier[] = ["safe", "caution", "danger"]
   if (current === "forwarded" || target === "forwarded") return current
   return order.indexOf(target) > order.indexOf(current) ? target : current
+}
+
+function filenameExtensions(filename: string): string[] {
+  return filename
+    .toLowerCase()
+    .split(/[\\/]/)
+    .pop()
+    ?.split(".")
+    .slice(1)
+    .filter(Boolean) ?? []
+}
+
+function isHighRiskAttachment(attachment: AttachmentInfo): boolean {
+  const extensions = filenameExtensions(attachment.filename)
+  const lastExtension = extensions.at(-1) ?? ""
+  if (HIGH_RISK_ATTACHMENT_EXTENSIONS.has(lastExtension)) return true
+  if (extensions.length < 2) return false
+
+  const innerExtension = extensions.at(-2) ?? ""
+  return (
+    DECEPTIVE_INNER_ATTACHMENT_EXTENSIONS.has(innerExtension) &&
+    EXECUTABLE_ATTACHMENT_EXTENSIONS.has(lastExtension)
+  )
 }
 
 interface VerdictInputs {
@@ -723,6 +782,21 @@ export function computeVerdict({
       weight: "medium",
     })
     tier = escalate(tier, "caution")
+  }
+
+  // ---- Dangerous attachment types ----
+  const highRiskAttachments = attachments.filter(isHighRiskAttachment)
+  if (highRiskAttachments.length > 0) {
+    const fileList = highRiskAttachments
+      .slice(0, 3)
+      .map((a) => a.filename)
+      .join(", ")
+    reasons.push({
+      signal: "dangerous-attachment-type",
+      detail: `This email includes a high-risk attachment type (${fileList}${highRiskAttachments.length > 3 ? ", ..." : ""}). HTML, script, disk-image, shortcut, OneNote, SVG, and double-extension attachments are commonly used to hide malware or fake login pages.`,
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
   }
 
   // ---- Source IP missing ----
