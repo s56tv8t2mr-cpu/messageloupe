@@ -35,7 +35,8 @@ const isIpHost = (host) => {
 };
 
 const URL_RE = /https?:\/\/[^\s<>"'`)\]]+/gi;
-const DISPLAY_URL_RE = /\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"'`]*)?/i;
+const DISPLAY_DOMAIN_RE =
+  /^(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>"'`]*)?$/i;
 const HREF_RE = /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
 const stripHtmlTags = (s) => s
@@ -92,9 +93,15 @@ const unwrapProofpointPath = (url) => {
 };
 
 const unwrapUrl = (url) => {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
   const host = hostOf(url);
   if (!host) return null;
-  if (host === 'www.google.com' || host === 'google.com') {
+  if ((host === 'www.google.com' || host === 'google.com') && parsed.pathname === '/url') {
     return urlParam(url, ['q', 'url']);
   }
   if (host.endsWith('safelinks.protection.outlook.com')) {
@@ -113,8 +120,8 @@ const displayUrlFromText = (displayText) => {
   if (!displayText) return null;
   const explicit = displayText.match(URL_RE)?.[0];
   if (explicit) return cleanUrl(explicit);
-  const domainShaped = displayText.match(DISPLAY_URL_RE)?.[0];
-  return domainShaped ? `https://${cleanUrl(domainShaped)}` : null;
+  const cleaned = cleanUrl(displayText.trim());
+  return DISPLAY_DOMAIN_RE.test(cleaned) ? `https://${cleaned}` : null;
 };
 
 export const extractLinks = (result) => {
