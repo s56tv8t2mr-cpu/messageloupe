@@ -3,11 +3,9 @@
 // Why the explicit list: we don't want a Public Suffix List dependency for
 // what is otherwise a fully self-contained client-side bundle. The list
 // covers the multi-label TLDs that show up in our phishing corpus and in
-// real ESP traffic. If a sender domain uses an unlisted multi-label TLD,
-// we fall back to a two-label registrable, which is still safe (it just
-// means a same-registrant comparison may return false where a PSL-aware
-// comparison would return true — false negative on alignment, never a
-// false positive on mismatch).
+// real ESP traffic. For a small set of country-code TLDs known to reserve
+// common second-level labels, use a conservative heuristic so RDAP queries
+// don't ask for the public suffix itself.
 
 const KNOWN_MULTI_LABEL_SUFFIXES = [
   "com.au", "com.br", "com.cn", "com.co", "com.hk", "com.mx", "com.my",
@@ -15,6 +13,20 @@ const KNOWN_MULTI_LABEL_SUFFIXES = [
   "co.jp", "co.kr", "co.nz", "co.uk", "co.za",
   "net.au", "org.au", "org.uk", "ac.uk", "gov.uk",
 ]
+
+const COMMON_COUNTRY_CODE_SECOND_LEVELS = new Set([
+  "ac",
+  "co",
+  "com",
+  "edu",
+  "gov",
+  "net",
+  "org",
+])
+
+const COUNTRY_CODE_TLDS_WITH_RESERVED_SECOND_LEVELS = new Set([
+  "in",
+])
 
 export function registrableDomain(domain: string | null | undefined): string | null {
   if (!domain) return null
@@ -26,7 +38,19 @@ export function registrableDomain(domain: string | null | undefined): string | n
       return lastLabel ? `${lastLabel}.${suffix}` : lower
     }
   }
-  return lower.split(".").slice(-2).join(".")
+  const labels = lower.split(".").filter(Boolean)
+  const tld = labels.at(-1)
+  const secondLevel = labels.at(-2)
+  if (
+    labels.length >= 3 &&
+    tld?.length === 2 &&
+    secondLevel !== undefined &&
+    COUNTRY_CODE_TLDS_WITH_RESERVED_SECOND_LEVELS.has(tld) &&
+    COMMON_COUNTRY_CODE_SECOND_LEVELS.has(secondLevel)
+  ) {
+    return labels.slice(-3).join(".")
+  }
+  return labels.slice(-2).join(".")
 }
 
 export function sameRegistrable(
