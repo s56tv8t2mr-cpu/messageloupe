@@ -355,6 +355,10 @@ describe("link flags", () => {
       '<p>Click <a href="https://attacker.example/login">paypal.com/secure</a> to verify.</p>',
     ],
     [
+      "bare-domain anchor text mismatch",
+      '<p>Click <a href="https://attacker.example/login">paypal.com</a> to verify.</p>',
+    ],
+    [
       "wrapped redirect URL is unwrapped before link verdict",
       '<p>Click <a href="https://www.google.com/url?q=https%3A%2F%2Fattacker.example%2Flogin">paypal.com/secure</a> to verify.</p>',
     ],
@@ -376,6 +380,29 @@ describe("link flags", () => {
         body: "Visit http://203.0.113.45/login to access your account.",
       }),
       { tier: "danger", reason: "suspicious-links" },
+    )
+  })
+
+  it("dotted product-name anchor text is not treated as a display URL", async () => {
+    await check(
+      buildEml({
+        authResults: exampleAuth,
+        body: "Read the docs.",
+        htmlBody: '<p><a href="https://nextjs.org/docs">Next.js docs</a></p>',
+      }),
+      { notReason: "suspicious-links" },
+    )
+  })
+
+  it("Google search URLs are not unwrapped as redirects", async () => {
+    await check(
+      buildEml({
+        authResults: exampleAuth,
+        body: "Search result.",
+        htmlBody:
+          '<p><a href="https://www.google.com/search?q=http%3A%2F%2F203.0.113.45">Google search</a></p>',
+      }),
+      { notReason: "suspicious-links" },
     )
   })
 

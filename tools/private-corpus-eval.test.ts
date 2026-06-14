@@ -177,12 +177,24 @@ describe("private email corpus evaluation", () => {
         "utf8",
       )
 
+      if (summary.total === 0) {
+        failures.push(`${corpus.name} did not contain any .eml or .txt message files: ${corpus.path}`)
+      }
+
       if (corpus.expectNoSafe && summary.safe > 0) {
         const safeFiles = rows
           .filter((row) => row.tier === "safe")
           .map((row) => row.file)
           .join("\n")
         failures.push(`${corpus.name} returned ${summary.safe} Safe verdict(s):\n${safeFiles}`)
+      }
+
+      if (summary.errors > 0) {
+        const errorFiles = rows
+          .filter((row) => row.error)
+          .map((row) => `${row.file}: ${row.error}`)
+          .join("\n")
+        failures.push(`${corpus.name} errored on ${summary.errors} message(s):\n${errorFiles}`)
       }
     }
 
