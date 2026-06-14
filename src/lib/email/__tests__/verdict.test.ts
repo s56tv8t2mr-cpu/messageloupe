@@ -754,7 +754,7 @@ describe("wire-transfer and invoice-redirection lures", () => {
         from: "Roberta Edwards <redwards@vendor-team.example>",
         subject: "Request for Payment; Invoice",
         authResults:
-          "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
+          "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=none; dmarc=none header.from=vendor-team.example",
         body: attachmentBody(
           "Please process this payment request for the attached invoice.",
           "leadership-bill.pdf",
@@ -767,7 +767,7 @@ describe("wire-transfer and invoice-redirection lures", () => {
         from: "Roberta Edwards <redwards@vendor-team.example>",
         subject: "=?UTF-8?Q?Request_for_Payment=3B_Invoice?=",
         authResults:
-          "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=pass header.i=@vendor-team.example; dmarc=none header.from=vendor-team.example",
+          "mx.example.org; spf=neutral smtp.mailfrom=vendor-team.example; dkim=none; dmarc=none header.from=vendor-team.example",
         body: attachmentBody("Please see the attached file.", "request.pdf"),
       },
     ],
@@ -782,6 +782,26 @@ describe("wire-transfer and invoice-redirection lures", () => {
         subject: "Request for Payment; Invoice",
         authResults:
           "mx.example.org; spf=pass smtp.mailfrom=vendor.example; dkim=pass header.i=@vendor.example; dmarc=none header.from=vendor.example",
+        body: [
+          "Please process this payment request for the attached invoice.",
+          "",
+          "Content-Type: application/pdf; name=\"invoice.pdf\"",
+          "Content-Disposition: attachment; filename=\"invoice.pdf\"",
+          "",
+          "JVBERi0xLjQK",
+        ].join("\r\n"),
+      }),
+      { tier: "caution", reason: "financial-action-content", notReason: "invoice-payment-request" },
+    )
+  })
+
+  it("SPF neutral with aligned DKIM and DMARC pass does not trigger fake-invoice danger", async () => {
+    await check(
+      buildEml({
+        from: "Known Vendor <billing@vendor.example>",
+        subject: "Request for Payment; Invoice",
+        authResults:
+          "mx.example.org; spf=neutral smtp.mailfrom=vendor.example; dkim=pass header.i=@vendor.example; dmarc=pass header.from=vendor.example",
         body: [
           "Please process this payment request for the attached invoice.",
           "",

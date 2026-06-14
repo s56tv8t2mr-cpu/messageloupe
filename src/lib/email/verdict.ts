@@ -576,7 +576,7 @@ export function computeVerdict({
     !content.hasFraudReportContext &&
     content.hasInvoicePaymentRequest &&
     attachments.length > 0 &&
-    (!senderAuthenticates(parser) || parser.spfResult === "neutral")
+    !senderAuthenticates(parser)
   ) {
     reasons.push({
       signal: "invoice-payment-request",
