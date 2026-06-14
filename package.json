@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:email-eval": "vitest run src/lib/email/__tests__/corpus-eval.test.ts",
+    "eval:private": "vitest run --config vitest.private.config.ts --reporter=verbose",
     "test:watch": "vitest"
   },
   "dependencies": {
