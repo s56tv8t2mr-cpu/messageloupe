@@ -1518,21 +1518,27 @@ describe("RDAP domain-age lookup", () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
-  it("RDAP sends only the registrable sender domain", async () => {
+  it.each([
+    ["known multi-label suffix", "sub.example.co.uk", "example.co.uk"],
+    ["unlisted multi-label country-code suffix", "sub.newvendor.co.in", "newvendor.co.in"],
+    ["ordinary second-level country-code domain", "mail.co.de", "co.de"],
+  ])("RDAP sends only the registrable sender domain for %s", async (_name, senderDomain, expectedDomain) => {
     const fetchMock = mockDomainLookups({ rdapEvents: rdapRegisteredDaysAgo(40) })
     await analyze(
       buildEml({
-        from: "Billing <billing@sub.example.co.uk>",
-        authResults: authResults({ domain: "sub.example.co.uk" }),
+        from: `Billing <billing@${senderDomain}>`,
+        authResults: authResults({ domain: senderDomain }),
       }),
     )
 
     const rdapUrls = fetchMock.mock.calls
       .map(([input]) => String(input))
       .filter((url) => url.includes("rdap.org"))
-    expect(rdapUrls).toEqual(["https://rdap.org/domain/example.co.uk"])
+    expect(rdapUrls).toEqual([`https://rdap.org/domain/${expectedDomain}`])
     expect(rdapUrls[0]).not.toContain("billing")
-    expect(rdapUrls[0]).not.toContain("sub.example.co.uk")
+    expect(rdapUrls[0]).not.toContain(senderDomain)
+    expect(rdapUrls[0]).not.toBe("https://rdap.org/domain/co.in")
+    expect(rdapUrls[0]).not.toBe("https://rdap.org/domain/mail.co.de")
   })
 })
 
