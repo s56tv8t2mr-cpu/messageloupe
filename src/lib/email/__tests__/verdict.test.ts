@@ -1508,6 +1508,31 @@ describe("input validation", () => {
     expect(a.parser.hasBodyContent).toBe(false)
     expect(a.parser.bodyText).toBe("")
   })
+
+  it("multipart attachment-only input is not treated as headers-only", async () => {
+    const a = await analyze(
+      [
+        "Received: from sender.example.com (sender.example.com [203.0.113.45]) by mx.example.com with ESMTPS; Mon, 01 Jan 2024 11:59:55 -0500",
+        `Authentication-Results: ${authResults({ domain: "example.com" })}`,
+        "From: Test Sender <sender@example.com>",
+        "To: recipient@example.org",
+        "Subject: Attachment only",
+        "Content-Type: multipart/mixed; boundary=\"attachment-boundary\"",
+        "",
+        "--attachment-boundary",
+        "Content-Type: application/pdf; name=\"invoice.pdf\"",
+        "Content-Disposition: attachment; filename=\"invoice.pdf\"",
+        "Content-Transfer-Encoding: base64",
+        "",
+        "JVBERi0xLjQK",
+        "--attachment-boundary--",
+      ].join("\r\n"),
+    )
+
+    expect(a.parser.hasBodyContent).toBe(true)
+    expect(a.parser.bodyText).toBe("")
+    expect(a.attachments.map((attachment) => attachment.filename)).toContain("invoice.pdf")
+  })
 })
 
 // Real-eml regression fixtures live in __tests__/fixtures/. Each is a

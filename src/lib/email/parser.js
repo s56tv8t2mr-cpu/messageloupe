@@ -583,6 +583,7 @@ export const parseEmlLocally = (text) => {
   }
 
   const hasImageContent = /<img\b|Content-Type:\s*image\//i.test(`${bodyHtml}\n${text}`);
+  const hasBodyContent = Boolean(bodyText || bodyHtml || rawBody.trim());
 
   return {
     subject: decodeEncodedWords(getHeader('Subject') || '') || null,
@@ -602,7 +603,7 @@ export const parseEmlLocally = (text) => {
     bodyText,
     bodyHtml,
     hasImageContent,
-    hasBodyContent: Boolean(bodyText || bodyHtml),
+    hasBodyContent,
     duplicateCriticalHeaders,
     allHeaders: headersPart,
     sendingService: sendingService || 'No clear email service identified',
