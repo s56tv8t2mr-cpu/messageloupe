@@ -128,6 +128,80 @@ function knownVendorAttachedInvoice({
   })
 }
 
+function microsoftEopAnonymousAuthEml({
+  authBelowBoundary = false,
+  fakeBoundaryBelowAuth = false,
+}: {
+  authBelowBoundary?: boolean
+  fakeBoundaryBelowAuth?: boolean
+} = {}): string {
+  const topMicrosoftHops = [
+    "Received: from EA3PR20MB994800.namprd20.prod.outlook.com (2603:10b6:303:2c3::11) by BL1PR20MB4561.namprd20.prod.outlook.com with HTTPS; Tue, 9 Jun 2026 19:31:14 +0000",
+    "Received: from BN9PR03CA0236.namprd03.prod.outlook.com (2603:10b6:408:f8::31) by EA3PR20MB994800.namprd20.prod.outlook.com with Microsoft SMTP Server id 15.21.113.11; Tue, 9 Jun 2026 19:31:12 +0000",
+    "Received: from BL6PEPF0001AB74.namprd02.prod.outlook.com (2603:10b6:408:f8:cafe::3a) by BN9PR03CA0236.outlook.office365.com with Microsoft SMTP Server id 15.21.92.15 via Frontend Transport; Tue, 9 Jun 2026 19:31:12 +0000",
+  ]
+  const authResults =
+    "Authentication-Results: spf=pass (sender IP is 205.220.183.230) smtp.mailfrom=fortmcclellancu.org; dkim=pass (signature was verified) header.d=fortmcclellancu.org;dmarc=pass action=none header.from=fortmcclellancu.org;compauth=pass reason=100"
+  const receivedSpf =
+    "Received-SPF: Pass (protection.outlook.com: domain of fortmcclellancu.org designates 205.220.183.230 as permitted sender) receiver=protection.outlook.com; client-ip=205.220.183.230; helo=mx0b-0090d002.pphosted.com; pr=C"
+  const boundaryHop =
+    "Received: from mx0b-0090d002.pphosted.com (205.220.183.230) by BL6PEPF0001AB74.mail.protection.outlook.com (10.167.242.167) with Microsoft SMTP Server id 15.21.113.7 via Frontend Transport; Tue, 9 Jun 2026 19:31:10 +0000"
+  const fakeSenderBoundaryHop =
+    "Received: from attacker.example (attacker.example [198.51.100.22]) by FAKEPEPF00000001.mail.protection.outlook.com (10.0.0.1) with Microsoft SMTP Server id 15.21.113.7 via Frontend Transport; Tue, 9 Jun 2026 19:31:08 +0000"
+  const messageHeaders = [
+    "X-MS-Exchange-Organization-AuthSource: BL6PEPF0001AB74.namprd02.prod.outlook.com",
+    "X-MS-Exchange-Organization-AuthSource: FAKEPEPF00000001.namprd02.prod.outlook.com",
+    "X-MS-Exchange-CrossTenant-AuthSource: BL6PEPF0001AB74.namprd02.prod.outlook.com",
+    "X-Forefront-Antispam-Report: CIP:205.220.183.230;H:mx0b-0090d002.pphosted.com;SCL:1;SFV:NSPM;",
+    "DKIM-Signature: v=1; a=rsa-sha256; d=fortmcclellancu.org; s=fiservser1; h=From:To:Subject; b=sig",
+    "Return-Path: <creditunion@fortmcclellancu.org>",
+    "From: FORT MCCLELLAN CU <creditunion@fortmcclellancu.org>",
+    "To: NICKOLSON STEPHANIE <admin@swaccountingstudio.com>",
+    "Subject: New Message Alert",
+    "Message-ID: <fixture-microsoft-eop@example.com>",
+    "Date: Tue, 9 Jun 2026 19:31:09 GMT",
+    "",
+    "A new secure message is available.",
+  ]
+
+  const authBlock = [authResults, receivedSpf]
+  return [
+    ...topMicrosoftHops,
+    ...(authBelowBoundary
+      ? [boundaryHop, ...authBlock, ...(fakeBoundaryBelowAuth ? [fakeSenderBoundaryHop] : [])]
+      : [...authBlock, boundaryHop]),
+    ...messageHeaders,
+  ].join("\r\n")
+}
+
+function microsoftInternalWithSenderForgedBoundaryEml({
+  fakeBoundaryLabel = "FAKEPEPF00000001",
+  copiedByBeforeFakeBoundary = false,
+}: {
+  fakeBoundaryLabel?: string
+  copiedByBeforeFakeBoundary?: boolean
+} = {}): string {
+  const fakeBoundaryBy = copiedByBeforeFakeBoundary
+    ? `BN9PR03CA0236.mail.protection.outlook.com (10.0.0.2) with Microsoft SMTP Server id 15.21.113.7; by ${fakeBoundaryLabel}.mail.protection.outlook.com`
+    : `${fakeBoundaryLabel}.mail.protection.outlook.com`
+
+  return [
+    "Received: from EA3PR20MB994800.namprd20.prod.outlook.com (2603:10b6:303:2c3::11) by BL1PR20MB4561.namprd20.prod.outlook.com with HTTPS; Tue, 9 Jun 2026 19:31:14 +0000",
+    "Received: from BN9PR03CA0236.namprd03.prod.outlook.com (2603:10b6:408:f8::31) by EA3PR20MB994800.namprd20.prod.outlook.com with Microsoft SMTP Server id 15.21.113.11; Tue, 9 Jun 2026 19:31:12 +0000",
+    "Authentication-Results: spf=pass (sender IP is 198.51.100.22) smtp.mailfrom=attacker.example; dkim=pass (signature was verified) header.d=attacker.example;dmarc=pass action=none header.from=attacker.example;compauth=pass reason=100",
+    "Received-SPF: Pass (protection.outlook.com: domain of attacker.example designates 198.51.100.22 as permitted sender) receiver=protection.outlook.com; client-ip=198.51.100.22; helo=attacker.example; pr=C",
+    `Received: from attacker.example (attacker.example [198.51.100.22]) by ${fakeBoundaryBy} (10.0.0.1) with Microsoft SMTP Server id 15.21.113.7 via Frontend Transport; Tue, 9 Jun 2026 19:31:10 +0000`,
+    `X-MS-Exchange-Organization-AuthSource: ${fakeBoundaryLabel}.namprd02.prod.outlook.com`,
+    "From: Sender <sender@example.com>",
+    "To: Recipient <recipient@example.org>",
+    "Subject: Internal Microsoft message",
+    "Message-ID: <fixture-microsoft-internal-forged-boundary@example.com>",
+    "Date: Tue, 9 Jun 2026 19:31:09 GMT",
+    "",
+    "Hello.",
+  ].join("\r\n")
+}
+
 beforeEach(() => {
   __resetMxCacheForTests()
   __resetRdapCacheForTests()
@@ -228,6 +302,75 @@ describe("authentication failures", () => {
       }),
       { tier: "caution", reason: "untrusted-auth-results" },
     )
+  })
+
+  it("Microsoft EOP anonymous Authentication-Results are recognized with boundary evidence", async () => {
+    const analysis = await check(microsoftEopAnonymousAuthEml(), {
+      notReason: "untrusted-auth-results",
+    })
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+    expect(analysis.parser.ignoredAuthResultsCount).toBe(0)
+    expect(analysis.parser.spfResult).toBe("pass")
+    expect(analysis.parser.dkimResult).toBe("present")
+    expect(analysis.parser.dmarcResult).toBeNull()
+  })
+
+  it("sender-supplied Microsoft-shaped Authentication-Results below the boundary are ignored", async () => {
+    const analysis = await check(microsoftEopAnonymousAuthEml({ authBelowBoundary: true }), {
+      reason: "untrusted-auth-results",
+    })
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+  })
+
+  it("sender-supplied fake Microsoft boundary does not make lower auth results trusted", async () => {
+    const analysis = await check(
+      microsoftEopAnonymousAuthEml({ authBelowBoundary: true, fakeBoundaryBelowAuth: true }),
+      { reason: "untrusted-auth-results" },
+    )
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+  })
+
+  it("sender-supplied Microsoft boundary in an internal M365 chain is ignored", async () => {
+    const analysis = await check(microsoftInternalWithSenderForgedBoundaryEml(), {
+      reason: "untrusted-auth-results",
+    })
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+  })
+
+  it("sender-supplied copied-label Microsoft boundary is ignored", async () => {
+    const analysis = await check(
+      microsoftInternalWithSenderForgedBoundaryEml({ fakeBoundaryLabel: "BN9PR03CA0236" }),
+      { reason: "untrusted-auth-results" },
+    )
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+  })
+
+  it("sender-supplied multi-by Microsoft boundary is ignored", async () => {
+    const analysis = await check(
+      microsoftInternalWithSenderForgedBoundaryEml({ copiedByBeforeFakeBoundary: true }),
+      { reason: "untrusted-auth-results" },
+    )
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+  })
+
+  it("recognized anonymous Microsoft shape is not used as auth-pass proof", async () => {
+    const analysis = await check(
+      microsoftInternalWithSenderForgedBoundaryEml({
+        fakeBoundaryLabel: "BL6PEPF0001AB74",
+        copiedByBeforeFakeBoundary: true,
+      }),
+      { notReason: "dmarc-fail" },
+    )
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+    expect(analysis.parser.dkimResult).not.toBe("pass")
+    expect(analysis.parser.dmarcResult).not.toBe("pass")
   })
 
   it("duplicate critical headers → danger", async () => {

@@ -60,34 +60,153 @@ const hostFromAuthservId = (value) => {
   return extractDomain(firstToken);
 };
 
+const receivedByHosts = (entry) => {
+  const pattern = /\bby\s+([a-z0-9.-]+\.[a-z]{2,})/gi;
+  const match = pattern.exec(entry.value);
+  return match?.[1] ? [match[1].toLowerCase().replace(/\.$/, '')] : [];
+};
+
+const receivedFromHosts = (entry) => {
+  const pattern = /\bfrom\s+([a-z0-9.-]+\.[a-z]{2,})/gi;
+  const match = pattern.exec(entry.value);
+  return match?.[1] ? [match[1].toLowerCase().replace(/\.$/, '')] : [];
+};
+
 const topReceivedByHosts = (receivedEntries) => {
   const firstReceived = receivedEntries[0];
   if (!firstReceived) return [];
-  return [firstReceived].flatMap(({ value }) => {
-    const hosts = [];
-    const pattern = /\bby\s+([a-z0-9.-]+\.[a-z]{2,})/gi;
-    let match = pattern.exec(value);
-    while (match) {
-      hosts.push(match[1].toLowerCase().replace(/\.$/, ''));
-      match = pattern.exec(value);
+  return receivedByHosts(firstReceived);
+};
+
+const MICROSOFT_RECIPIENT_HOST_RE =
+  /(?:^|\.)(?:(?:mail\.)?protection\.outlook\.com|prod\.outlook\.com|outlook\.office365\.com)$/i;
+const MICROSOFT_EOP_FRONTEND_LABEL_RE = /P(?:E)?PF/i;
+
+const isMicrosoftRecipientHost = (host) => (
+  Boolean(host && MICROSOFT_RECIPIENT_HOST_RE.test(host))
+);
+
+const firstHostLabel = (host) => host?.split('.')[0]?.toLowerCase() || null;
+
+const isMicrosoftEopFrontendHost = (host) => (
+  isMicrosoftRecipientHost(host) &&
+  MICROSOFT_EOP_FRONTEND_LABEL_RE.test(firstHostLabel(host) || '')
+);
+
+const sameHostOrLabel = (left, right) => (
+  Boolean(left && right && (
+    left === right ||
+    firstHostLabel(left) === firstHostLabel(right)
+  ))
+);
+
+const receivedEntriesAreAdjacent = (newerEntry, olderEntry) => {
+  const newerFromHosts = receivedFromHosts(newerEntry);
+  const olderByHosts = receivedByHosts(olderEntry);
+  return newerFromHosts.some((fromHost) => (
+    olderByHosts.some((byHost) => sameHostOrLabel(fromHost, byHost))
+  ));
+};
+
+const trustedReceivedPrefix = (receivedEntries) => {
+  const trusted = [];
+  for (const entry of receivedEntries) {
+    const previous = trusted.at(-1);
+    if (!previous || receivedEntriesAreAdjacent(previous, entry)) {
+      trusted.push(entry);
+      continue;
     }
-    return hosts;
-  });
+    break;
+  }
+  return trusted;
+};
+
+const hasTrustedAuthservHost = (authservHost, byHosts) => (
+  byHosts.some((host) => (
+    authservHost === host ||
+    authservHost.endsWith(`.${host}`) ||
+    host.endsWith(`.${authservHost}`) ||
+    sameRegistrableDomain(authservHost, host)
+  ))
+);
+
+const isMicrosoftAnonymousAuthResults = (entry) => (
+  !hostFromAuthservId(entry.value) &&
+  /\bcompauth=(?:pass|fail|none|softpass|temperror|permerror)\b/i.test(entry.value) &&
+  /\breason=\d+\b/i.test(entry.value)
+);
+
+const findFirstMicrosoftInboundBoundary = (receivedEntries) => (
+  trustedReceivedPrefix(receivedEntries).find((entry) => {
+    const hasMicrosoftByHost = receivedByHosts(entry).some(isMicrosoftEopFrontendHost);
+    if (!hasMicrosoftByHost) return false;
+
+    const fromHosts = receivedFromHosts(entry);
+    return fromHosts.some((host) => !isMicrosoftRecipientHost(host));
+  }) || null
+);
+
+const hasMicrosoftReceivedSpfEvidence = (receivedSpfEntries, authResultsEntry, boundaryEntry) => (
+  receivedSpfEntries.some((entry) => (
+    entry.index > authResultsEntry.index &&
+    entry.index < boundaryEntry.index &&
+    /\breceiver=protection\.outlook\.com\b/i.test(entry.value) &&
+    /\bclient-ip=/i.test(entry.value)
+  ))
+);
+
+const isRecognizedMicrosoftAnonymousAuthResults = (
+  entry,
+  receivedEntries,
+  receivedSpfEntries,
+  microsoftAuthSourceHeaders
+) => {
+  if (!isMicrosoftAnonymousAuthResults(entry)) return false;
+  if (!topReceivedByHosts(receivedEntries).some(isMicrosoftRecipientHost)) return false;
+
+  const authSourceHosts = microsoftAuthSourceHeaders
+    .map((header) => extractDomain(header))
+    .filter(isMicrosoftEopFrontendHost);
+  const authSourceLabels = new Set(authSourceHosts.map(firstHostLabel).filter(Boolean));
+  if (authSourceLabels.size === 0) return false;
+
+  const boundaryEntry = findFirstMicrosoftInboundBoundary(receivedEntries);
+  if (!boundaryEntry || entry.index >= boundaryEntry.index) return false;
+
+  const boundaryByLabels = new Set(
+    receivedByHosts(boundaryEntry)
+      .filter(isMicrosoftEopFrontendHost)
+      .map(firstHostLabel)
+      .filter(Boolean)
+  );
+  if (![...boundaryByLabels].some((label) => authSourceLabels.has(label))) return false;
+
+  return hasMicrosoftReceivedSpfEvidence(receivedSpfEntries, entry, boundaryEntry);
 };
 
 const selectTrustedAuthResults = (entries, receivedEntries) => {
   const byHosts = topReceivedByHosts(receivedEntries);
   return entries.find((entry) => {
     const authservHost = hostFromAuthservId(entry.value);
-    if (!authservHost) return false;
-    return byHosts.some((host) => (
-      authservHost === host ||
-      authservHost.endsWith(`.${host}`) ||
-      host.endsWith(`.${authservHost}`) ||
-      sameRegistrableDomain(authservHost, host)
-    ));
+    return authservHost && hasTrustedAuthservHost(authservHost, byHosts);
   }) || null;
 };
+
+const selectRecognizedAuthResults = (
+  entries,
+  receivedEntries,
+  receivedSpfEntries,
+  microsoftAuthSourceHeaders
+) => (
+  entries.find((entry) => (
+    isRecognizedMicrosoftAnonymousAuthResults(
+      entry,
+      receivedEntries,
+      receivedSpfEntries,
+      microsoftAuthSourceHeaders
+    )
+  )) || null
+);
 
 const parseAuthResult = (value, token) => (
   value?.match(new RegExp(`${token}=([a-z]+)`, 'i'))?.[1]?.toLowerCase() || null
@@ -193,10 +312,15 @@ export const parseEmlLocally = (text) => {
 
   const receivedEntries = getHeaderEntries('Received');
   const allReceived = receivedEntries.map((entry) => entry.value);
-  const spfHeader = getHeader('Received-SPF');
+  const receivedSpfEntries = getHeaderEntries('Received-SPF');
+  const spfHeader = receivedSpfEntries[0]?.value || null;
   const authResultsEntries = getHeaderEntries('Authentication-Results');
   const fromHeader = decodeEncodedWords(getHeader('From') || '');
   const toHeader = decodeEncodedWords(getHeader('To') || '');
+  const microsoftAuthSourceHeaders = [
+    ...getHeaders('X-MS-Exchange-Organization-AuthSource'),
+    ...getHeaders('X-MS-Exchange-CrossTenant-AuthSource')
+  ].filter(Boolean);
   const duplicateCriticalHeaders = ['From', 'Subject', 'Return-Path'].filter((name) => (
     getHeaderEntries(name).length > 1
   ));
@@ -209,8 +333,19 @@ export const parseEmlLocally = (text) => {
   const recipientEmail = extractEmailAddress(toHeader);
   const recipientDomain = extractDomain(toHeader);
   const trustedAuthResultsEntry = selectTrustedAuthResults(authResultsEntries, receivedEntries);
+  const recognizedAuthResultsEntry = trustedAuthResultsEntry
+    ? null
+    : selectRecognizedAuthResults(
+      authResultsEntries,
+      receivedEntries,
+      receivedSpfEntries,
+      microsoftAuthSourceHeaders
+    );
   const authResults = trustedAuthResultsEntry?.value || null;
-  const ignoredAuthResultsCount = authResultsEntries.length - (trustedAuthResultsEntry ? 1 : 0);
+  const ignoredAuthResultsCount =
+    authResultsEntries.length -
+    (trustedAuthResultsEntry ? 1 : 0) -
+    (recognizedAuthResultsEntry ? 1 : 0);
   const authResultsTrusted = Boolean(trustedAuthResultsEntry);
   // Outlook/M365 marks rights-protected (RMS-encrypted) messages with
   // Content-Class: rpmsg.message. The body of such a message is opaque
