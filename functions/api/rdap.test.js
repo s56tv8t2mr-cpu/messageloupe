@@ -23,18 +23,28 @@ describe("Cloudflare RDAP endpoint", () => {
   })
 
   it("returns only registration events for a valid domain", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          events: [
-            { eventAction: "registration", eventDate: "2025-01-02T00:00:00Z" },
-            { eventAction: "last changed", eventDate: "2026-01-02T00:00:00Z" },
-          ],
-          entities: [{ handle: "private-data-not-forwarded" }],
-        }),
-        { status: 200 },
-      ),
-    )
+    const fetchMock = vi.fn((input) => {
+      if (String(input) === "https://data.iana.org/rdap/dns.json") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ services: [[["com"], ["https://rdap.verisign.com/com/v1/"]]] }),
+            { status: 200 },
+          ),
+        )
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            events: [
+              { eventAction: "registration", eventDate: "2025-01-02T00:00:00Z" },
+              { eventAction: "last changed", eventDate: "2026-01-02T00:00:00Z" },
+            ],
+            entities: [{ handle: "private-data-not-forwarded" }],
+          }),
+          { status: 200 },
+        ),
+      )
+    })
     vi.stubGlobal("fetch", fetchMock)
 
     const response = await onRequestPost({
@@ -45,7 +55,7 @@ describe("Cloudflare RDAP endpoint", () => {
     })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://rdap.org/domain/example.com",
+      "https://rdap.verisign.com/com/v1/domain/example.com",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
     expect(await response.json()).toEqual({
@@ -55,9 +65,17 @@ describe("Cloudflare RDAP endpoint", () => {
   })
 
   it("accepts a valid punycode top-level domain", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ events: [] }), { status: 200 }),
-    )
+    const fetchMock = vi.fn((input) => {
+      if (String(input) === "https://data.iana.org/rdap/dns.json") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({ services: [[["xn--p1ai"], ["https://rdap.tcinet.ru/"]]] }),
+            { status: 200 },
+          ),
+        )
+      }
+      return Promise.resolve(new Response(JSON.stringify({ events: [] }), { status: 200 }))
+    })
     vi.stubGlobal("fetch", fetchMock)
 
     const response = await onRequestPost({
@@ -69,7 +87,7 @@ describe("Cloudflare RDAP endpoint", () => {
 
     expect(response.status).toBe(200)
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://rdap.org/domain/example.xn--p1ai",
+      "https://rdap.tcinet.ru/domain/example.xn--p1ai",
       expect.any(Object),
     )
   })

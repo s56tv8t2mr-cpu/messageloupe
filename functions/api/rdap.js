@@ -1,5 +1,6 @@
 const DOMAIN_LABEL = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
 const DOMAIN_RE = new RegExp(`^(?=.{1,253}$)(?:${DOMAIN_LABEL}\\.)+(?!\\d+$)${DOMAIN_LABEL}$`)
+const BOOTSTRAP_URL = "https://data.iana.org/rdap/dns.json"
 const TIMEOUT_MS = 3000
 
 function json(body, init = {}) {
@@ -10,6 +11,31 @@ function json(body, init = {}) {
       ...init.headers,
     },
   })
+}
+
+async function authoritativeRdapUrl(domain, signal) {
+  const bootstrap = await fetch(BOOTSTRAP_URL, {
+    headers: { Accept: "application/json" },
+    signal,
+  })
+  if (!bootstrap.ok) throw new Error(`RDAP bootstrap failed with HTTP ${bootstrap.status}`)
+
+  const payload = await bootstrap.json()
+  const tld = domain.slice(domain.lastIndexOf(".") + 1)
+  const service = Array.isArray(payload?.services)
+    ? payload.services.find(
+        (entry) =>
+          Array.isArray(entry?.[0]) &&
+          entry[0].some((candidate) => String(candidate).toLowerCase() === tld),
+      )
+    : null
+  const base = Array.isArray(service?.[1])
+    ? service[1].find((candidate) => String(candidate).startsWith("https://"))
+    : null
+  if (!base) throw new Error("No authoritative RDAP service found")
+
+  const normalizedBase = String(base).endsWith("/") ? String(base) : `${base}/`
+  return new URL(`domain/${encodeURIComponent(domain)}`, normalizedBase).toString()
 }
 
 export async function onRequestPost({ request }) {
@@ -29,7 +55,8 @@ export async function onRequestPost({ request }) {
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   try {
-    const upstream = await fetch(`https://rdap.org/domain/${encodeURIComponent(domain)}`, {
+    const rdapUrl = await authoritativeRdapUrl(domain, controller.signal)
+    const upstream = await fetch(rdapUrl, {
       headers: { Accept: "application/rdap+json, application/json" },
       signal: controller.signal,
     })
