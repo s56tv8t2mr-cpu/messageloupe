@@ -29,6 +29,9 @@ export function SiteFooter() {
           <Link href="/business" className="text-muted-foreground hover:text-foreground">
             For teams
           </Link>
+          <Link href="/business-email-compromise" className="text-muted-foreground hover:text-foreground">
+            BEC &amp; wire fraud
+          </Link>
           <Link href="/methodology" className="text-muted-foreground hover:text-foreground">
             Methodology
           </Link>

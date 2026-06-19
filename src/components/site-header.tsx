@@ -35,6 +35,9 @@ export function SiteHeader() {
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link href="/business">For teams</Link>
           </Button>
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
+            <Link href="/business-email-compromise">BEC guide</Link>
+          </Button>
           <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
             <Link href="/methodology">Methodology</Link>
           </Button>

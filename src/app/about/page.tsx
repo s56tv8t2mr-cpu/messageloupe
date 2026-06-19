@@ -1,15 +1,15 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "About",
+export const metadata = createPageMetadata({
+  title: "About the Browser-Only Email Checker",
   description:
-    "Message Loupe is a free, browser-only second opinion on whether an email really came from where it claims. Built by an analyst, intended for everyone else.",
-  alternates: { canonical: "/about" },
-}
+    "Message Loupe is a free, browser-only second opinion on suspicious email, built from an analyst's triage engine and designed for non-technical users.",
+  path: "/about",
+})
 
 export default function AboutPage() {
   return (

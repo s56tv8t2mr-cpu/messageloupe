@@ -1,14 +1,21 @@
-import type { Metadata } from "next"
+import Link from "next/link"
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Methodology",
+export const metadata = createPageMetadata({
+  title: "How Message Loupe Analyzes Suspicious Email",
   description:
-    "How Message Loupe analyzes an email: what we check, how we weight signals, what we cap, and what we deliberately miss.",
-  alternates: { canonical: "/methodology" },
-}
+    "See how Message Loupe checks authentication, sender alignment, routing, domain age, links, attachments, and BEC language, plus what it cannot prove.",
+  path: "/methodology",
+  keywords: [
+    "email header analyzer methodology",
+    "SPF DKIM DMARC email check",
+    "BEC email detection",
+    "email sender alignment",
+  ],
+})
 
 export default function MethodologyPage() {
   return (
@@ -138,12 +145,12 @@ export default function MethodologyPage() {
               we&apos;ll correctly call them legitimate because they are.
             </li>
             <li>
-              <strong className="text-foreground">No content classification by
-              meaning.</strong>{" "}
-              We don&apos;t try to decide whether the email&apos;s actual content is
-              suspicious, only whether it carries trigger words for our cap rule.
-              That&apos;s deliberate: a content-meaning model would need to phone home
-              to a server, breaking the privacy promise.
+              <strong className="text-foreground">No general-purpose AI content
+              model.</strong>{" "}
+              We use explicit, local rules for payment, credential, job, invoice,
+              account-change, and fraud-report language. We do not send the message to
+              a remote language model to interpret its meaning. That would break the
+              privacy promise.
             </li>
             <li>
               <strong className="text-foreground">No reputation lookups.</strong> We
@@ -157,6 +164,26 @@ export default function MethodologyPage() {
               no cookies, no application logs. The site is a static page served from a CDN.
             </li>
           </ul>
+
+          <h2 className="text-foreground mt-10 text-xl font-semibold">
+            Standards and fraud guidance
+          </h2>
+          <p className="text-muted-foreground">
+            Authentication parsing follows the published specifications for{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc7208" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">SPF</a>,{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc6376" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">DKIM</a>,{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc7489" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">DMARC</a>, and{" "}
+            <a href="https://www.rfc-editor.org/rfc/rfc8601" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">Authentication-Results</a>.
+            The recommendation to verify suspicious requests through a known channel
+            matches{" "}
+            <a href="https://www.cisa.gov/secure-our-world/recognize-and-report-phishing" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">CISA guidance</a>.
+          </p>
+          <p className="text-muted-foreground">
+            For payment-redirection and text-only scams, read the{" "}
+            <Link href="/business-email-compromise" className="text-foreground underline-offset-4 hover:underline">
+              BEC and wire-fraud email guide
+            </Link>.
+          </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             How we test ourselves

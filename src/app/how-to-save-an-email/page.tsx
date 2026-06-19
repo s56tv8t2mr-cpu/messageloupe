@@ -1,15 +1,14 @@
-import type { Metadata } from "next"
-
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { TriangleAlert } from "lucide-react"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "How to save an email for scanning",
+export const metadata = createPageMetadata({
+  title: "How to Save an Email as EML or Copy Raw Headers",
   description:
-    "Step-by-step instructions for saving an email as a .eml file or copying its raw headers, in Gmail, Outlook, Apple Mail, Thunderbird, and on phones.",
-  alternates: { canonical: "/how-to-save-an-email" },
+    "Save an email as an .eml file or copy its raw headers in Gmail, Outlook, Apple Mail, Thunderbird, and on a phone so it can be analyzed.",
+  path: "/how-to-save-an-email",
   keywords: [
     "how to save email as eml",
     "download email gmail",
@@ -19,7 +18,7 @@ export const metadata: Metadata = {
     "view raw email headers",
     "copy email headers",
   ],
-}
+})
 
 export default function HowToSaveAnEmailPage() {
   return (

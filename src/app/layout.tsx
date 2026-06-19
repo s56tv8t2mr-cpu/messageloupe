@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { JsonLd } from "@/components/json-ld"
+import { SITE_NAME, SITE_URL } from "@/lib/seo"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -15,11 +17,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 })
 
-// One canonical description, reused across <meta>, OG, and Twitter so
-// validators (and humans) see the same thing regardless of where they look.
-const SHARE_TITLE = "Message Loupe: is this a fake email? Free phishing checker"
+const SHARE_TITLE = "Message Loupe: fake email, BEC and wire fraud checker"
 const SHARE_DESCRIPTION =
-  "Drop a saved email or paste raw headers and get a plain-English verdict (Safe, Caution, or Likely Fake) in seconds. Your email is not uploaded."
+  "Check a suspicious email for spoofing, business email compromise, invoice fraud, and wire-transfer risk. Analysis runs privately in your browser."
+
+const websiteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SHARE_DESCRIPTION,
+  inLanguage: "en-US",
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://messageloupe.com"),
@@ -38,7 +47,10 @@ export const metadata: Metadata = {
     "email authenticity",
     "spoofed email",
     "email header analyzer",
-    "phishing analysis",
+    "business email compromise checker",
+    "BEC email checker",
+    "wire fraud email checker",
+    "invoice fraud email",
   ],
   openGraph: {
     type: "website",
@@ -79,6 +91,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="bg-background text-foreground min-h-full flex flex-col">
+        <JsonLd data={websiteJsonLd} />
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

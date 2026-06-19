@@ -3,43 +3,49 @@ import type { MetadataRoute } from "next"
 export const dynamic = "force-static"
 
 const SITE = "https://messageloupe.com"
+const LAST_MODIFIED = "2026-06-19"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date()
   return [
     {
       url: `${SITE}/`,
-      lastModified,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${SITE}/how-to-save-an-email`,
-      lastModified,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
+      url: `${SITE}/business-email-compromise`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: "monthly",
+      priority: 0.95,
+    },
+    {
       url: `${SITE}/business`,
-      lastModified,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE}/methodology`,
-      lastModified,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${SITE}/about`,
-      lastModified,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${SITE}/privacy`,
-      lastModified,
+      lastModified: LAST_MODIFIED,
       changeFrequency: "yearly",
       priority: 0.4,
     },

@@ -1,5 +1,4 @@
 import Link from "next/link"
-import type { Metadata } from "next"
 import type { ReactNode } from "react"
 import {
   ArrowRight,
@@ -19,13 +18,21 @@ import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "For teams",
+export const metadata = createPageMetadata({
+  title: "BEC and Wire Fraud Protection for Small Teams",
   description:
-    "Message Loupe for small businesses: browser-only phishing checks today, Gmail and Outlook add-in workflow next, and team-safe verdict metadata without storing email contents.",
-  alternates: { canonical: "/business" },
-}
+    "Message Loupe helps small teams check suspicious payment and credential emails, with private browser analysis and Gmail and Outlook workflows on the roadmap.",
+  path: "/business",
+  keywords: [
+    "business email compromise protection",
+    "wire fraud prevention for small business",
+    "invoice fraud email",
+    "Gmail BEC add-in",
+    "Outlook BEC add-in",
+  ],
+})
 
 const AUDIENCES = [
   "Bookkeepers",
@@ -92,6 +99,13 @@ export default function BusinessPage() {
               The wedge is a small company with real invoice risk and no security team.
               They already live in Google Workspace or Microsoft 365.
             </p>
+            <Link
+              href="/business-email-compromise"
+              className="text-foreground inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline"
+            >
+              How BEC and wire-fraud checks work
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <Signal icon={<CircleDollarSign />} title="Invoice fraud" text="Payment-change and wire requests get escalated before action." />
