@@ -1,9 +1,9 @@
 // RDAP domain-age lookup.
 //
 // Privacy boundary: this sends only the sender's registrable domain to the
-// public RDAP bootstrap service. It never sends message contents, headers,
-// links, verdicts, or email addresses. Results are cached per browser session
-// and lookup failures are advisory only.
+// same-origin RDAP endpoint, which follows the public RDAP referral. It never
+// sends message contents, headers, links, verdicts, or email addresses.
+// Results are cached per browser session and lookup failures are advisory only.
 
 import { registrableDomain } from "./domain"
 
@@ -49,9 +49,14 @@ async function doLookup(domain: string): Promise<RdapLookup> {
   const timeout = setTimeout(() => controller.abort(), RDAP_TIMEOUT_MS)
 
   try {
-    const url = `https://rdap.org/domain/${encodeURIComponent(domain)}`
+    const url = "/api/rdap"
     const res = await fetch(url, {
-      headers: { Accept: "application/rdap+json, application/json" },
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ domain }),
       signal: controller.signal,
     })
     if (!res.ok) {

@@ -114,7 +114,7 @@ beforeEach(() => {
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes("rdap.org")) {
+      if (url === "/api/rdap") {
         return Promise.resolve(
           new Response(JSON.stringify({ events: [] }), {
             status: 200,

@@ -31,48 +31,54 @@ export default function MethodologyPage() {
 
         <div className="prose prose-zinc dark:prose-invert mt-10 max-w-none text-base leading-relaxed">
           <h2 className="text-foreground text-xl font-semibold">The signals we read</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             Every email carries a set of routing headers that travel with it from the
             sender&apos;s mail server to yours. They&apos;re invisible by default but
             preserved in the file you save. We read them locally in your browser and
             evaluate four broad categories:
           </p>
-          <ul className="text-muted-foreground space-y-1.5">
+          <ul className="text-muted-foreground mt-5 space-y-4">
             <li>
-              <strong className="text-foreground">Authentication:</strong> SPF
+              <strong className="text-foreground">Authentication:</strong>{" "}
+              SPF
               (whether the sending server is authorized for the sender domain), DKIM
               (whether the message body and key headers are cryptographically signed),
               and DMARC (whether the sender domain has a published policy and the
               message complies with it).
             </li>
             <li>
-              <strong className="text-foreground">Sender alignment:</strong> whether
+              <strong className="text-foreground">Sender alignment:</strong>{" "}
+              whether
               the visible <code>From:</code> address matches the technical{" "}
               <code>Return-Path</code>, the DKIM signing domain, and the
               authentication-results domain.
             </li>
             <li>
-              <strong className="text-foreground">Routing:</strong> the chain of
+              <strong className="text-foreground">Routing:</strong>{" "}
+              the chain of
               servers (
               <code>Received:</code> headers) that handled the message, working
               backwards to find the originating IP, including stepping past known
               security gateways so the real upstream sender is identified.
             </li>
             <li>
-              <strong className="text-foreground">MX records:</strong> for
+              <strong className="text-foreground">MX records:</strong>{" "}
+              for
               non-webmail senders, your browser may ask Google Public DNS which
               provider handles mail for the visible sender domain. We compare that
               inbound provider with the service that delivered the message.
             </li>
             <li>
-              <strong className="text-foreground">Domain age:</strong> for
+              <strong className="text-foreground">Domain age:</strong>{" "}
+              for
               non-webmail senders, your browser may ask public RDAP when the visible
               sender domain was registered. New domains are treated as advisory unless
               they appear with sensitive business-action language and weak
               authentication.
             </li>
             <li>
-              <strong className="text-foreground">Links:</strong> the URLs in the
+              <strong className="text-foreground">Links:</strong>{" "}
+              the URLs in the
               message body, checked for visible/actual mismatches, raw IP hosts,
               punycode-encoded lookalikes, .cm typosquats, and known shorteners.
             </li>
@@ -81,25 +87,28 @@ export default function MethodologyPage() {
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             How we get to a verdict
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             We don&apos;t score-and-threshold; we apply a small set of rules that mirror
             how an analyst triages a phish:
           </p>
-          <ul className="text-muted-foreground space-y-1.5">
+          <ul className="text-muted-foreground mt-5 space-y-4">
             <li>
-              <strong className="text-foreground">Danger</strong> if any of the
+              <strong className="text-foreground">Danger</strong>{" "}
+              if any of the
               high-confidence failures fire: DMARC fails, SPF fails, the sender
               clearly looks spoofed, or a link uses an anchor-vs-href mismatch, raw
               IP host, or punycode.
             </li>
             <li>
-              <strong className="text-foreground">Caution</strong> for ambiguous or
+              <strong className="text-foreground">Caution</strong>{" "}
+              for ambiguous or
               partial signals: SPF soft-fail, DKIM fail, missing authentication, a
               return-path mismatch on a non-ESP message, suspicious shortener links,
               or no source IP at all.
             </li>
             <li>
-              <strong className="text-foreground">Safe</strong> when every category
+              <strong className="text-foreground">Safe</strong>{" "}
+              when every category
               checks out and there&apos;s no money or credential content present.
             </li>
           </ul>
@@ -107,7 +116,7 @@ export default function MethodologyPage() {
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             The money &amp; credential cap
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             If the message body mentions money, banking changes, wires, gift cards,
             credentials, or login info, we never let the verdict rise above
             &quot;Caution: verify by phone.&quot; Even a perfectly-authenticated
@@ -119,7 +128,7 @@ export default function MethodologyPage() {
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             The forwarded-message guard
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             Regular forwarding replaces the original headers with the forwarder&apos;s
             own, which destroys the evidence we need. If we detect a forward (by
             subject prefix, by a forward-separator block in the body, or by a
@@ -132,7 +141,7 @@ export default function MethodologyPage() {
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             What we deliberately don&apos;t do
           </h2>
-          <ul className="text-muted-foreground space-y-1.5">
+          <ul className="text-muted-foreground mt-5 space-y-4">
             <li>
               <strong className="text-foreground">No spam scoring or
               sender-reputation blocking.</strong>{" "}
@@ -153,7 +162,8 @@ export default function MethodologyPage() {
               privacy promise.
             </li>
             <li>
-              <strong className="text-foreground">No reputation lookups.</strong> We
+              <strong className="text-foreground">No reputation lookups.</strong>{" "}
+              We
               don&apos;t query VirusTotal, urlscan, abuse.ch, or anything else with
               the contents of your email. Optional DNS and RDAP lookups send only the
               sender domain for MX records and registration age, not the message,
@@ -161,14 +171,15 @@ export default function MethodologyPage() {
             </li>
             <li>
               <strong className="text-foreground">No tracking.</strong> No analytics,
-              no cookies, no application logs. The site is a static page served from a CDN.
+              no cookies, no application logs of email content. The site is served
+              from a CDN, with one domain-only RDAP endpoint.
             </li>
           </ul>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             Standards and fraud guidance
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             Authentication parsing follows the published specifications for{" "}
             <a href="https://www.rfc-editor.org/rfc/rfc7208" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">SPF</a>,{" "}
             <a href="https://www.rfc-editor.org/rfc/rfc6376" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">DKIM</a>,{" "}
@@ -178,7 +189,7 @@ export default function MethodologyPage() {
             matches{" "}
             <a href="https://www.cisa.gov/secure-our-world/recognize-and-report-phishing" target="_blank" rel="noopener noreferrer" className="underline-offset-4 hover:underline">CISA guidance</a>.
           </p>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             For payment-redirection and text-only scams, read the{" "}
             <Link href="/business-email-compromise" className="text-foreground underline-offset-4 hover:underline">
               BEC and wire-fraud email guide
@@ -188,20 +199,21 @@ export default function MethodologyPage() {
           <h2 className="text-foreground mt-10 text-xl font-semibold">
             How we test ourselves
           </h2>
-          <p className="text-muted-foreground">
-            The rule engine ships with a regression suite: synthetic .eml
-            fixtures that exercise each verdict path (authentication failures,
+          <p className="text-muted-foreground mt-4">
+            The rule engine ships with a regression suite: synthetic fixtures and
+            selected representative messages that exercise each verdict path
+            (authentication failures,
             brand and role impersonation, link flags, the money/credential
             cap, the job-offer-plus-document-request pair, the
             forwarded-message guard, and known-good ESP-routed mail). The
             tests run on every change to make sure refactors don&apos;t
             silently move a verdict from &quot;danger&quot; to
             &quot;caution&quot; on a scenario we&apos;ve already documented.
-            The fixtures are constructed, not redacted real samples; they
-            prove the engine still produces the documented verdict for each
-            rule path.
+            These cases prove the engine still produces the documented verdict for
+            each rule path. The full known-fake corpus remains private and is checked
+            separately.
           </p>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-4">
             If you find a real-world email where we get the wrong answer, email
             the saved file (never just the body, since the headers are the
             evidence) to{" "}
