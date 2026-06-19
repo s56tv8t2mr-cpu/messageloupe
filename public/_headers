@@ -18,6 +18,11 @@
 /_next/static/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Next.js static export emits this generated PNG without a file extension.
+/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=86400
+
 # Short-cache HTML so deploys roll out fast.
 /*.html
   Cache-Control: public, max-age=0, must-revalidate

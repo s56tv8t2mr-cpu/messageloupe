@@ -16,14 +16,57 @@ import {
 
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { JsonLd } from "@/components/json-ld"
 import { Scanner } from "@/components/scanner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { createPageMetadata, SITE_URL } from "@/lib/seo"
+
+const HOME_DESCRIPTION =
+  "Analyze a suspicious email for spoofing, business email compromise, invoice fraud, and wire-transfer risk. Runs privately in your browser."
+
+export const metadata = createPageMetadata({
+  title: "Fake Email Checker for BEC and Wire Fraud",
+  description: HOME_DESCRIPTION,
+  path: "/",
+  keywords: [
+    "fake email checker",
+    "is this email fake",
+    "business email compromise checker",
+    "wire fraud email checker",
+    "email header analyzer",
+  ],
+})
+
+const webApplicationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Message Loupe",
+  url: SITE_URL,
+  description: HOME_DESCRIPTION,
+  applicationCategory: "SecurityApplication",
+  operatingSystem: "Any",
+  browserRequirements: "Requires JavaScript in a modern web browser.",
+  isAccessibleForFree: true,
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  featureList: [
+    "Browser-only email analysis",
+    "SPF, DKIM, and DMARC interpretation",
+    "Sender and reply-to alignment checks",
+    "Business email compromise and wire-transfer risk signals",
+    "Suspicious link and attachment checks",
+  ],
+}
 
 export default function Home() {
   return (
     <>
       <SiteHeader />
+      <JsonLd data={webApplicationJsonLd} />
       <main className="flex flex-1 flex-col">
         <section className="mx-auto grid w-full max-w-5xl gap-10 px-4 pt-10 pb-10 md:px-6 md:pt-18 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.86fr)] lg:items-center">
           <div className="flex flex-col items-start gap-5">
@@ -118,11 +161,11 @@ export default function Home() {
           <div className="mx-auto grid w-full max-w-5xl gap-5 px-4 py-8 md:grid-cols-[0.9fr_1.1fr] md:px-6 md:py-10">
             <div className="flex flex-col gap-2">
               <h2 className="text-foreground text-2xl font-semibold tracking-tight">
-                Built for the office inbox next
+                Built for business email compromise checks
               </h2>
               <p className="text-muted-foreground max-w-md leading-relaxed">
-                The team product starts with a private scanner and grows into Gmail
-                and Outlook workflows for payment-risk checks.
+                Message Loupe looks beyond links and attachments for text-only wire,
+                invoice, payroll, and account-change requests.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -143,12 +186,17 @@ export default function Home() {
               />
             </div>
             <div className="md:col-start-2">
-              <Button asChild variant="link" className="h-auto px-0">
-                <Link href="/business">
-                  Message Loupe for teams
-                  <ArrowRight data-icon="inline-end" />
-                </Link>
-              </Button>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                <Button asChild variant="link" className="h-auto px-0">
+                  <Link href="/business-email-compromise">
+                    BEC and wire-fraud guide
+                    <ArrowRight data-icon="inline-end" />
+                  </Link>
+                </Button>
+                <Button asChild variant="link" className="h-auto px-0">
+                  <Link href="/business">Message Loupe for teams</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>

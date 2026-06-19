@@ -1,16 +1,15 @@
-import type { Metadata } from "next"
-
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ShieldCheck } from "lucide-react"
+import { createPageMetadata } from "@/lib/seo"
 
-export const metadata: Metadata = {
-  title: "Privacy",
+export const metadata = createPageMetadata({
+  title: "Privacy: Your Email Is Not Uploaded",
   description:
-    "Message Loupe is a static page that analyzes email in your browser. We don't collect, log, transmit, or store your email.",
-  alternates: { canonical: "/privacy" },
-}
+    "Message Loupe analyzes email in your browser. It does not upload, collect, log, transmit, or store your email, headers, links, or verdict.",
+  path: "/privacy",
+})
 
 export default function PrivacyPage() {
   return (
