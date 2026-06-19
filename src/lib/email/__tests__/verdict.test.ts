@@ -55,7 +55,7 @@ function mockFetchMxAnswer(answers: MockDnsAnswer[]): void {
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes("rdap.org")) {
+      if (url === "/api/rdap") {
         return Promise.resolve(
           new Response(JSON.stringify({ events: [] }), {
             status: 200,
@@ -80,7 +80,7 @@ function mockDomainLookups({
 }): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
-    if (url.includes("rdap.org")) {
+    if (url === "/api/rdap") {
       return Promise.resolve(
         new Response(JSON.stringify({ events: rdapEvents }), {
           status: 200,
@@ -1674,14 +1674,11 @@ describe("RDAP domain-age lookup", () => {
       }),
     )
 
-    const rdapUrls = fetchMock.mock.calls
-      .map(([input]) => String(input))
-      .filter((url) => url.includes("rdap.org"))
-    expect(rdapUrls).toEqual([`https://rdap.org/domain/${expectedDomain}`])
-    expect(rdapUrls[0]).not.toContain("billing")
-    expect(rdapUrls[0]).not.toContain(senderDomain)
-    expect(rdapUrls[0]).not.toBe("https://rdap.org/domain/co.in")
-    expect(rdapUrls[0]).not.toBe("https://rdap.org/domain/mail.co.de")
+    const rdapCalls = fetchMock.mock.calls.filter(([input]) => String(input) === "/api/rdap")
+    expect(rdapCalls).toHaveLength(1)
+    expect(JSON.parse(String(rdapCalls[0][1]?.body))).toEqual({ domain: expectedDomain })
+    expect(String(rdapCalls[0][1]?.body)).not.toContain("billing")
+    expect(String(rdapCalls[0][1]?.body)).not.toContain(senderDomain)
   })
 })
 

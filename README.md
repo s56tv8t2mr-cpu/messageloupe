@@ -1,67 +1,96 @@
 # Message Loupe
 
-A free, browser-based phishing checker. Drop a saved email (`.eml`) or paste raw headers, get a plain-English verdict — **Safe**, **Caution**, or **Likely Fake** — in under a second.
+Message Loupe is a free, browser-based email analyzer focused on business email compromise (BEC), invoice fraud, and wire-transfer scams. Drop in an original email (`.eml`) or paste its raw headers to get a three-tier verdict: **Safe** ("Looks legitimate"), **Caution** ("Be careful"), or **Likely fake**.
 
-Live at [messageloupe.com](https://messageloupe.com).
+It provides a second opinion on text-only payment requests, executive impersonation, changed bank details, fake invoices, and payroll diversion, while warning that a compromised legitimate account may still look authentic.
+
+Use it at [messageloupe.com](https://messageloupe.com), or read the [BEC and wire-fraud guide](https://messageloupe.com/business-email-compromise/).
+
+## Why it exists
+
+SPF, DKIM, and DMARC provide evidence that a message was authorized by and aligned with a domain. They cannot prove that the person controlling the mailbox is honest. A criminal using a compromised real account may send a fully authenticated payment request.
+
+Message Loupe combines technical evidence with explicit content rules, then explains both what the evidence shows and what it cannot prove. Messages involving money, credentials, payroll, documents, or account changes are never treated as safe solely because authentication passes.
+
+## What it checks
+
+- **Authentication:** trusted recipient-side SPF, DKIM, and DMARC results.
+- **Sender identity:** alignment among `From`, `Return-Path`, Reply-To, DKIM, and authenticated domains.
+- **Delivery path:** `Received` headers, originating IP, mail providers, and known security gateways.
+- **Domain context:** optional MX-provider and RDAP domain-age checks.
+- **Links:** misleading visible destinations, raw-IP hosts, punycode, typo domains, unrelated hosts, and shorteners.
+- **Attachments:** dangerous file types, double extensions, and risky attachment/content combinations.
+- **BEC language:** wire, ACH, remittance, invoice, payroll, bank-change, executive-request, credential, and document lures.
+- **Impersonation patterns:** lookalike domains, public-webmail role impersonation, body/signature brand claims, fake reply threads, and mismatched reply addresses.
+- **Evasion clues:** image-only messages, opaque encrypted bodies, duplicate critical headers, and sender-supplied authentication claims.
+
+Verdicts come from a reviewable set of explicit rules, not an opaque score or remote AI model. The full behavior is documented in the [methodology](https://messageloupe.com/methodology/) and implemented in [src/lib/email/verdict.ts](src/lib/email/verdict.ts).
 
 ## Privacy model
 
-The scanner runs in the browser. The site is a static export served from a CDN with no backend, no analytics, no cookies, no app database, and no server-side email processing. Email content never leaves the device.
+Email parsing and verdict logic run in the browser. Message Loupe has no account requirement, backend email processing, analytics, cookies, or application database. The email, headers, links, attachments, and verdict are not uploaded.
 
-The intentional network exceptions are domain-only MX and RDAP lookups: for non-webmail senders, the browser may ask Google Public DNS which provider handles mail for the visible sender domain and public RDAP when that domain was registered. Those requests contain only the domain name, not the message contents, headers, links, verdict, or uploaded file.
+For non-webmail senders, the browser may make two domain-only requests:
 
-Concrete consequences:
+- Google Public DNS to identify the sender domain's MX provider.
+- A same-site Cloudflare endpoint that asks public RDAP services when the sender domain was registered.
 
-- No reputation lookups (VirusTotal, urlscan, abuse.ch, etc.). The benefit isn't worth leaking the user's mail.
-- No content-meaning ML model. A model that classified message intent would have to phone home, breaking the privacy promise.
-- No spam scoring. The product answers *"is this email pretending to be something it isn't?"* — not *"is this email welcome?"*
+Those lookups contain only the visible sender domain. Message Loupe does not send message content to reputation services, URL scanners, or hosted classification models.
 
-## What it actually checks
+## Important limitation
 
-Roughly four categories, all derived from headers and body text:
+Message Loupe can find evidence of spoofing, impersonation, suspicious infrastructure, and known scam patterns. It cannot prove that a request is legitimate.
 
-1. **Authentication** — SPF, DKIM, DMARC results from the receiving server's `Authentication-Results`.
-2. **Sender alignment** — visible `From:` vs. `Return-Path`, DKIM signing domain, and auth-results domain.
-3. **Routing** — the `Received:` chain, walked backwards past known security gateways to the originating IP.
-4. **Links** — anchor-text vs. href mismatch, raw-IP hosts, punycode lookalikes, `.cm` typosquats, known shorteners.
+A compromised real mailbox can produce clean authentication and normal routing. Always verify payment, payroll, credential, and bank-detail changes through a phone number or contact method you already trusted before the email arrived.
 
-Verdict synthesis is a small set of explicit rules — not a score-and-threshold model. Read [src/app/methodology/page.tsx](src/app/methodology/page.tsx) or visit `/methodology` on the live site for the full rule set.
+## Supported input
 
-### Deliberate blind spot: the money/credential cap
+- Original `.eml` files up to 25 MB
+- Raw email source or full headers pasted as text
+- Plain-text exports containing RFC 822 headers
+- `.mbox` input when it contains a single message
 
-Header analysis cannot detect a Business Email Compromise sent from a fully-compromised real account: every signal will pass, because the email *is* genuinely from that domain. To stay honest about that, any message mentioning money, banking changes, credentials, or document-request language is capped at **Caution — verify by phone**, regardless of how clean the technical signals look. See [src/lib/email/classify-content.ts](src/lib/email/classify-content.ts).
+Outlook `.msg`, `.pst`, and `.ost` files are not supported. Use Outlook's Internet headers view or save/export the original message as `.eml`. Regular forwarding is also unsuitable because it replaces the headers needed for analysis.
+
+See [How to save an email](https://messageloupe.com/how-to-save-an-email/) for Gmail, Outlook, Apple Mail, and mobile instructions.
+
+## Product direction
+
+The public scanner is the foundation for a small-business email-fraud product. Planned surfaces include Gmail and Outlook add-ins, a shared suspicious-email review path, and a lightweight team history that stores verdict metadata rather than email contents.
+
+The initial audience is people who regularly approve payments or handle sensitive requests without a dedicated security team: bookkeepers, agencies, realtors, law offices, family offices, executive assistants, and small finance teams.
 
 ## Local development
 
+Requirements: a current Node.js LTS release and npm.
+
 ```bash
-sfw npm install
+npm ci
 npm run dev
 ```
 
-Then open <http://localhost:3000>.
+Open <http://localhost:3000>. The project uses a Next.js static export; `npm run build` writes the deployable site to `out/`. Cloudflare Pages serves the static site and the domain-only RDAP function in [functions/api/rdap.js](functions/api/rdap.js).
 
-The build is a fully static export (`output: 'export'` in [next.config.ts](next.config.ts)) — `npm run build` writes deployable HTML to `out/`.
-
-## Tests
+## Verification
 
 ```bash
+npm run lint
 npm test
+npm run build
 ```
 
-Regression fixtures live in [src/lib/email/__tests__/](src/lib/email/__tests__/). They cover the verdict-rule engine: SPF/DKIM/DMARC outcomes, alignment failures, link-flag combinations, the money/credential cap, the job-offer + document-request pair, the forwarded-message guard, and known-good ESP-routed mail.
+The committed suite uses synthetic fixtures and selected representative regression messages. The full known-fake corpus remains private and is checked by a separate local runner:
 
-The fixtures are synthetic (constructed RFC-822 strings exercising specific rules), not redacted real samples. They prove the engine still produces the documented verdict for each rule path.
+```bash
+npm run eval:private
+```
+
+The private gate fails if a known-fake message returns **Looks legitimate**, if a message cannot be analyzed, or if a configured corpus is empty.
 
 ## Stack
 
-Next.js 16 (App Router, static export) · React 19 · TypeScript · Tailwind v4 · shadcn/ui · Lucide · Motion. Email parsing is a port of an internal triage tool kept in plain JS at [src/lib/email/parser.js](src/lib/email/parser.js); the orchestration around it (verdict, content classifier, sender trust, attachments) is TypeScript.
+Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, Lucide, Motion, and Vitest. The site is exported as static files and hosted on Cloudflare.
 
-## Known limitations
+## Contributing a missed sample
 
-- **Forwarded messages**: regular forwarding overwrites the headers we need. We detect forwards and refuse to verdict them rather than answer wrong. Save the original `.eml` or use "Show Original" instead.
-- **`.eml` file size**: the file picker accepts up to 25 MB. Parsing happens in a Web Worker so the UI stays responsive on big files.
-- **Outlook `.msg`**: not supported. Save as `.eml` first, or paste the raw headers from Outlook's "Internet headers" view.
-
-## Contributing a sample we get wrong
-
-Email a saved `.eml` (never just the body — the headers are the evidence) to **hello@messageloupe.com**. Counterexamples become regression fixtures.
+Before sending an original `.eml` to **hello@messageloupe.com**, remove confidential, personal, or regulated information. Repository cases should be synthetic, sanitized, or explicitly approved for publication.

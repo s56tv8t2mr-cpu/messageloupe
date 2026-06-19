@@ -27,8 +27,9 @@ export default function PrivacyPage() {
           <ShieldCheck aria-hidden />
           <AlertTitle>Your email is never uploaded</AlertTitle>
           <AlertDescription>
-            All analysis happens in your browser. There is no server-side processing.
-            We can&apos;t see your email even if we wanted to.
+            All email parsing and verdict analysis happens in your browser. We
+            can&apos;t see your email even if we wanted to. Only the sender&apos;s
+            domain may be relayed for an optional registration-age lookup.
           </AlertDescription>
         </Alert>
 
@@ -44,15 +45,17 @@ export default function PrivacyPage() {
           <p className="text-muted-foreground">
             <strong className="text-foreground">Domain lookups may happen.</strong>{" "}
             For non-webmail senders, your browser may ask Google Public DNS for the
-            sender domain&apos;s MX records and public RDAP for that domain&apos;s
-            registration age. Those requests contain only the domain name, not the
-            email contents, headers, links, verdict, or your uploaded file.
+            sender domain&apos;s MX records. A same-site Cloudflare function may relay
+            that domain to public RDAP services for its registration age. The domain
+            is sent in the request body rather than the URL. These requests never
+            include email contents, headers, links, verdict, or the uploaded file.
           </p>
           <p className="text-muted-foreground">
             <strong className="text-foreground">No analytics, no cookies, no
             tracking.</strong>{" "}
             We don&apos;t embed Google Analytics, Plausible, Posthog, or any other
-            tracker. The site is a static page served from a CDN.
+            tracker. The site is served from a CDN, with one narrowly scoped
+            domain-age function.
           </p>
           <p className="text-muted-foreground">
             <strong className="text-foreground">Standard server logs.</strong>{" "}
@@ -98,7 +101,8 @@ export default function PrivacyPage() {
             </a>
             . Open your browser&apos;s network tab while you analyze a sample email;
             the only scan-time requests you should see are optional domain-only
-            lookups to <code>dns.google</code> and <code>rdap.org</code>.
+            lookups to <code>dns.google</code> and the same-site
+            <code>/api/rdap</code> endpoint.
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">

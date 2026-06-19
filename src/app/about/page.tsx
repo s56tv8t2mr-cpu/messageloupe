@@ -80,10 +80,11 @@ export default function AboutPage() {
             How it&apos;s built
           </h2>
           <p className="text-muted-foreground">
-            The analysis runs in your browser. There&apos;s no server-side processing,
-            no upload, and no logging of your email. For non-webmail senders, your
-            browser may make domain-only MX and registration-age lookups for the
-            sender domain; the message contents and headers are never sent. The
+            The email analysis runs in your browser, with no upload or logging of
+            your email. For non-webmail senders, the browser may make a domain-only
+            MX lookup, and a same-site Cloudflare function may relay the sender
+            domain to public RDAP services for its registration age. Message contents,
+            headers, links, and verdicts are never sent. The
             engine powering the verdict is
             an open-source port of an internal triage tool originally built for
             phishing analysts; you can read more in our{" "}
