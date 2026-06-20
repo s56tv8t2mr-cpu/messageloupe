@@ -33,7 +33,7 @@ export function PasteHeaders({ onSubmit, disabled }: PasteHeadersProps) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={`Received: from mail-server.example.com (mail.example.com [203.0.113.1])\n\tby mx.recipient.com with ESMTPS id 1234abcd;\n\tTue, 5 May 2026 11:30:42 +0000\nReceived-SPF: pass (mx.recipient.com: domain of …) client-ip=203.0.113.1;\nFrom: "Acme Support" <support@acme.com>\nReply-To: support@acme.com\nSubject: Your invoice is ready\n…`}
-        className="font-mono text-xs min-h-56 leading-relaxed"
+        className="h-56 min-h-56 max-h-56 resize-none overflow-y-auto font-mono text-xs leading-relaxed"
         disabled={disabled}
         spellCheck={false}
       />
