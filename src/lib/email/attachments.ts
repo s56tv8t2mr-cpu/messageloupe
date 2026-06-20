@@ -52,6 +52,12 @@ function inferredContentType(filename: string): string {
   return imageTypes[extension] ?? "application/octet-stream"
 }
 
+function unfoldedHeaderBlock(rawSource: string): string {
+  const headerEnd = rawSource.search(/\r?\n\r?\n/)
+  const headerBlock = headerEnd < 0 ? rawSource : rawSource.slice(0, headerEnd)
+  return headerBlock.replace(/\r?\n[ \t]+/g, " ")
+}
+
 export function extractAttachments(rawSource: string): AttachmentInfo[] {
   if (!rawSource) return []
 
@@ -104,8 +110,7 @@ export function extractAttachments(rawSource: string): AttachmentInfo[] {
   // Proton's headers-only export lists files in X-Attached even though the
   // MIME parts are omitted. Preserve that evidence so image-only scams do
   // not look like clean, empty messages to the verdict engine.
-  for (const rawLine of rawSource.split("\n")) {
-    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine
+  for (const line of unfoldedHeaderBlock(rawSource).split(/\r?\n/)) {
     const colon = line.indexOf(":")
     if (colon < 0 || line.slice(0, colon).trim().toLowerCase() !== "x-attached") {
       continue
