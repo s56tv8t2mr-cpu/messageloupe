@@ -71,6 +71,8 @@ npm run dev
 
 Open <http://localhost:3000>. The project uses a Next.js static export; `npm run build` writes the deployable site to `out/`. Cloudflare Pages serves the static site and the domain-only RDAP function in [functions/api/rdap.js](functions/api/rdap.js).
 
+Cloudflare-hosted builds relay domain-age lookups through the same-site function. Node tools and local development without the production CSP query public RDAP directly, still sending only the registrable sender domain. Other static deployments should provide a compatible same-origin `/api/rdap` endpoint; a restrictive host CSP may block the direct fallback.
+
 ## Verification
 
 ```bash
