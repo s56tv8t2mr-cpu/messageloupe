@@ -22,7 +22,7 @@ const MONEY_PATTERNS: RegExp[] = [
   /\bgift\s+cards?\b/i,
   /\bvanilla\s+(?:gift|prepaid)\b/i,
   /\b(?:bitcoin|btc|crypto(?:currency)?|ethereum|usdt|wallet\s+address)\b/i,
-  /\binvoice\b/i,
+  /\binvoices?\b/i,
   /\bbalance\s+due\b/i,
   /\bpast\s+due\b/i,
   /\bpayment\s+(?:due|required|overdue|info|details)\b/i,
