@@ -1,9 +1,10 @@
 // RDAP domain-age lookup.
 //
-// Privacy boundary: this sends only the sender's registrable domain to the
-// same-origin RDAP endpoint, which follows the public RDAP referral. It never
-// sends message contents, headers, links, verdicts, or email addresses.
-// Results are cached per browser session and lookup failures are advisory only.
+// Privacy boundary: this sends only the sender's registrable domain. Hosted
+// browsers use the same-origin endpoint; Node and static/local hosts without
+// that endpoint use public RDAP directly. It never sends message contents,
+// headers, links, verdicts, or email addresses. Results are cached per runtime
+// session and lookup failures are advisory only.
 
 import { registrableDomain } from "./domain"
 
@@ -25,6 +26,7 @@ interface RdapResponse {
 }
 
 const RDAP_TIMEOUT_MS = 2500
+const SAME_ORIGIN_RDAP_URL = "/api/rdap"
 const cache = new Map<string, Promise<RdapLookup>>()
 
 export function __resetRdapCacheForTests(): void {
@@ -44,21 +46,47 @@ function ageInDays(date: string, now = Date.now()): number | null {
   return Math.max(0, Math.floor((now - parsed) / 86_400_000))
 }
 
+function directRdapUrl(domain: string): string {
+  return `https://rdap.org/domain/${encodeURIComponent(domain)}`
+}
+
+function isNodeRuntime(): boolean {
+  return typeof process !== "undefined" && process.release?.name === "node"
+}
+
+async function fetchRdap(domain: string, signal: AbortSignal): Promise<Response> {
+  if (isNodeRuntime()) {
+    return fetch(directRdapUrl(domain), {
+      headers: { Accept: "application/rdap+json, application/json" },
+      signal,
+    })
+  }
+
+  const proxyResponse = await fetch(SAME_ORIGIN_RDAP_URL, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ domain }),
+    signal,
+  })
+  if (proxyResponse.status !== 404 && proxyResponse.status !== 405) {
+    return proxyResponse
+  }
+
+  return fetch(directRdapUrl(domain), {
+    headers: { Accept: "application/rdap+json, application/json" },
+    signal,
+  })
+}
+
 async function doLookup(domain: string): Promise<RdapLookup> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), RDAP_TIMEOUT_MS)
 
   try {
-    const url = "/api/rdap"
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ domain }),
-      signal: controller.signal,
-    })
+    const res = await fetchRdap(domain, controller.signal)
     if (!res.ok) {
       return {
         domain,
