@@ -27,10 +27,13 @@ interface RdapResponse {
 
 const RDAP_TIMEOUT_MS = 2500
 const SAME_ORIGIN_RDAP_URL = "/api/rdap"
+const IANA_BOOTSTRAP_URL = "https://data.iana.org/rdap/dns.json"
 const cache = new Map<string, Promise<RdapLookup>>()
+let bootstrapCache: unknown[][] | null = null
 
 export function __resetRdapCacheForTests(): void {
   cache.clear()
+  bootstrapCache = null
 }
 
 function registrationDate(json: RdapResponse): string | null {
@@ -46,20 +49,48 @@ function ageInDays(date: string, now = Date.now()): number | null {
   return Math.max(0, Math.floor((now - parsed) / 86_400_000))
 }
 
-function directRdapUrl(domain: string): string {
-  return `https://rdap.org/domain/${encodeURIComponent(domain)}`
-}
-
 function isNodeRuntime(): boolean {
   return typeof process !== "undefined" && process.release?.name === "node"
 }
 
-async function fetchRdap(domain: string, signal: AbortSignal): Promise<Response> {
-  if (isNodeRuntime()) {
-    return fetch(directRdapUrl(domain), {
-      headers: { Accept: "application/rdap+json, application/json" },
+async function authoritativeRdapUrl(domain: string, signal: AbortSignal): Promise<string> {
+  if (!bootstrapCache) {
+    const response = await fetch(IANA_BOOTSTRAP_URL, {
+      headers: { Accept: "application/json" },
       signal,
     })
+    if (!response.ok) throw new Error(`RDAP bootstrap failed with HTTP ${response.status}`)
+    const payload = (await response.json()) as { services?: unknown[][] }
+    if (!Array.isArray(payload.services)) throw new Error("RDAP bootstrap is malformed")
+    bootstrapCache = payload.services
+  }
+
+  const tld = domain.slice(domain.lastIndexOf(".") + 1)
+  const service = bootstrapCache.find(
+    (entry) =>
+      Array.isArray(entry?.[0]) &&
+      entry[0].some((candidate) => String(candidate).toLowerCase() === tld),
+  )
+  const base = Array.isArray(service?.[1])
+    ? service[1].find((candidate) => String(candidate).startsWith("https://"))
+    : null
+  if (!base) throw new Error("No authoritative RDAP service found")
+
+  const normalizedBase = String(base).endsWith("/") ? String(base) : `${base}/`
+  return new URL(`domain/${encodeURIComponent(domain)}`, normalizedBase).toString()
+}
+
+async function fetchAuthoritativeRdap(domain: string, signal: AbortSignal): Promise<Response> {
+  const url = await authoritativeRdapUrl(domain, signal)
+  return fetch(url, {
+    headers: { Accept: "application/rdap+json, application/json" },
+    signal,
+  })
+}
+
+async function fetchRdap(domain: string, signal: AbortSignal): Promise<Response> {
+  if (isNodeRuntime()) {
+    return fetchAuthoritativeRdap(domain, signal)
   }
 
   const proxyResponse = await fetch(SAME_ORIGIN_RDAP_URL, {
@@ -75,10 +106,7 @@ async function fetchRdap(domain: string, signal: AbortSignal): Promise<Response>
     return proxyResponse
   }
 
-  return fetch(directRdapUrl(domain), {
-    headers: { Accept: "application/rdap+json, application/json" },
-    signal,
-  })
+  return fetchAuthoritativeRdap(domain, signal)
 }
 
 async function doLookup(domain: string): Promise<RdapLookup> {

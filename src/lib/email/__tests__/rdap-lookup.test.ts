@@ -10,6 +10,16 @@ const registrationResponse = () =>
     { status: 200 },
   )
 
+const bootstrapResponse = () =>
+  new Response(
+    JSON.stringify({
+      services: [
+        [["com", "org"], ["https://rdap.registry.test/v1/"]],
+      ],
+    }),
+    { status: 200 },
+  )
+
 beforeEach(() => {
   __resetRdapCacheForTests()
 })
@@ -19,17 +29,40 @@ afterEach(() => {
 })
 
 describe("RDAP runtime routing", () => {
-  it("uses an absolute public RDAP URL in Node", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(registrationResponse())
+  it("uses IANA to query the authoritative RDAP registry in Node", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      if (String(input) === "https://data.iana.org/rdap/dns.json") {
+        return Promise.resolve(bootstrapResponse())
+      }
+      return Promise.resolve(registrationResponse())
+    })
     vi.stubGlobal("fetch", fetchMock)
 
     const result = await lookupRdapDomainAge("mail.example.com")
 
     expect(result?.status).toBe("done")
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://rdap.org/domain/example.com",
+      "https://rdap.registry.test/v1/domain/example.com",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
+  })
+
+  it("caches the IANA bootstrap across distinct Node lookups", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      if (String(input) === "https://data.iana.org/rdap/dns.json") {
+        return Promise.resolve(bootstrapResponse())
+      }
+      return Promise.resolve(registrationResponse())
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    await lookupRdapDomainAge("example.com")
+    await lookupRdapDomainAge("example.org")
+
+    const bootstrapCalls = fetchMock.mock.calls.filter(
+      ([input]) => String(input) === "https://data.iana.org/rdap/dns.json",
+    )
+    expect(bootstrapCalls).toHaveLength(1)
   })
 
   it("uses the same-origin endpoint in a hosted browser", async () => {
@@ -70,14 +103,18 @@ describe("RDAP runtime routing", () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(bootstrapResponse())
       .mockResolvedValueOnce(registrationResponse())
     vi.stubGlobal("fetch", fetchMock)
 
     const result = await lookupRdapDomainAge("example.com")
 
     expect(result?.status).toBe("done")
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(fetchMock.mock.calls[0][0]).toBe("/api/rdap")
-    expect(fetchMock.mock.calls[1][0]).toBe("https://rdap.org/domain/example.com")
+    expect(fetchMock.mock.calls[1][0]).toBe("https://data.iana.org/rdap/dns.json")
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      "https://rdap.registry.test/v1/domain/example.com",
+    )
   })
 })
