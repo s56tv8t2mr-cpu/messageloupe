@@ -104,8 +104,13 @@ export function extractAttachments(rawSource: string): AttachmentInfo[] {
   // Proton's headers-only export lists files in X-Attached even though the
   // MIME parts are omitted. Preserve that evidence so image-only scams do
   // not look like clean, empty messages to the verdict engine.
-  for (const match of rawSource.matchAll(/^X-Attached:\s*([^\r\n]+)$/gim)) {
-    const filename = decodeEncodedWords(match[1].trim())
+  for (const rawLine of rawSource.split("\n")) {
+    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine
+    const colon = line.indexOf(":")
+    if (colon < 0 || line.slice(0, colon).trim().toLowerCase() !== "x-attached") {
+      continue
+    }
+    const filename = decodeEncodedWords(line.slice(colon + 1).trim())
     if (!filename) continue
     const contentType = inferredContentType(filename)
     const key = `${filename}:${contentType}`
