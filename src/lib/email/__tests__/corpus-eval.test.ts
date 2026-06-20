@@ -114,7 +114,19 @@ beforeEach(() => {
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes("rdap.org/domain/")) {
+      if (url === "https://data.iana.org/rdap/dns.json") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              services: [
+                [["com", "org", "uk", "in", "de"], ["https://rdap.registry.test/"]],
+              ],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        )
+      }
+      if (url.startsWith("https://rdap.registry.test/domain/")) {
         return Promise.resolve(
           new Response(JSON.stringify({ events: [] }), {
             status: 200,

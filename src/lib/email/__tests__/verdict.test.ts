@@ -50,12 +50,25 @@ function mockDnsResponse(answers: MockDnsAnswer[]): Response {
     headers: { "Content-Type": "application/dns-json" },
   })
 }
+function mockRdapBootstrapResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      services: [
+        [["com", "org", "uk", "in", "de"], ["https://rdap.registry.test/"]],
+      ],
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  )
+}
 function mockFetchMxAnswer(answers: MockDnsAnswer[]): void {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes("rdap.org/domain/")) {
+      if (url === "https://data.iana.org/rdap/dns.json") {
+        return Promise.resolve(mockRdapBootstrapResponse())
+      }
+      if (url.startsWith("https://rdap.registry.test/domain/")) {
         return Promise.resolve(
           new Response(JSON.stringify({ events: [] }), {
             status: 200,
@@ -80,7 +93,10 @@ function mockDomainLookups({
 }): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((input: RequestInfo | URL) => {
     const url = String(input)
-    if (url.includes("rdap.org/domain/")) {
+    if (url === "https://data.iana.org/rdap/dns.json") {
+      return Promise.resolve(mockRdapBootstrapResponse())
+    }
+    if (url.startsWith("https://rdap.registry.test/domain/")) {
       return Promise.resolve(
         new Response(JSON.stringify({ events: rdapEvents }), {
           status: 200,
@@ -1676,8 +1692,8 @@ describe("RDAP domain-age lookup", () => {
 
     const rdapUrls = fetchMock.mock.calls
       .map(([input]) => String(input))
-      .filter((url) => url.includes("rdap.org/domain/"))
-    expect(rdapUrls).toEqual([`https://rdap.org/domain/${expectedDomain}`])
+      .filter((url) => url.startsWith("https://rdap.registry.test/domain/"))
+    expect(rdapUrls).toEqual([`https://rdap.registry.test/domain/${expectedDomain}`])
     expect(rdapUrls[0]).not.toContain("billing")
     expect(rdapUrls[0]).not.toContain(senderDomain)
   })
