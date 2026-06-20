@@ -1743,6 +1743,40 @@ describe("input validation", () => {
     expect(a.parser.bodyText).toBe("")
     expect(a.attachments.map((attachment) => attachment.filename)).toContain("invoice.pdf")
   })
+
+  it("Proton X-Attached image invoice from mismatched Outlook mailbox → danger", async () => {
+    const a = await check(
+      buildEml({
+        from: "Alfonso Flores <najebo.motuhu@outlook.com>",
+        subject: "Condition of these invoices",
+        authResults: authResults({ domain: "outlook.com" }),
+        extraHeaders: { "X-Attached": "0000631693.png" },
+        body: "",
+      }),
+      { tier: "danger", reason: "image-invoice-from-mismatched-webmail" },
+    )
+    expect(a.attachments).toContainEqual({
+      filename: "0000631693.png",
+      contentType: "image/png",
+    })
+  })
+
+  it("matching personal Outlook address with an image invoice stays caution", async () => {
+    await check(
+      buildEml({
+        from: "Alfonso Flores <alfonso.flores@outlook.com>",
+        subject: "Invoice for the landscaping work",
+        authResults: authResults({ domain: "outlook.com" }),
+        extraHeaders: { "X-Attached": "invoice.png" },
+        body: "",
+      }),
+      {
+        tier: "caution",
+        reason: "low-readable-content",
+        notReason: "image-invoice-from-mismatched-webmail",
+      },
+    )
+  })
 })
 
 // Real-eml regression fixtures live in __tests__/fixtures/. Each is a

@@ -799,6 +799,30 @@ export function computeVerdict({
     tier = escalate(tier, "danger")
   }
 
+  // A fully authenticated consumer mailbox can still be disposable or
+  // compromised. A mismatched personal identity sending an image-only
+  // invoice is a strong scam shape because the financial pitch is hidden
+  // from text scanning inside the image.
+  const hasImageAttachment = attachments.some((attachment) =>
+    attachment.contentType.startsWith("image/"),
+  )
+  if (
+    !content.hasFraudReportContext &&
+    trust.fromPublicWebmail &&
+    trust.personNameMailboxMismatch &&
+    content.hasMoney &&
+    hasImageAttachment &&
+    readableBodyLength(parser) < 20
+  ) {
+    reasons.push({
+      signal: "image-invoice-from-mismatched-webmail",
+      detail:
+        "This invoice or payment message comes from a public email account whose address does not match the sender's name, and the actual pitch is hidden in an image attachment. That combination is a strong fake-invoice pattern even when Outlook or Gmail authentication passes.",
+      weight: "high",
+    })
+    tier = escalate(tier, "danger")
+  }
+
   // ---- Source IP missing ----
   if (!parser.sourceIp && tier === "safe") {
     reasons.push({

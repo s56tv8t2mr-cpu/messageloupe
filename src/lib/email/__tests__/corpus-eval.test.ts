@@ -71,6 +71,16 @@ const maliciousCorpus: EvalCase[] = [
       body: attachmentBody("leadership-bill.pdf", "application/pdf"),
     }),
   },
+  {
+    name: "image invoice from mismatched public mailbox",
+    eml: buildEml({
+      from: "Alfonso Flores <najebo.motuhu@outlook.com>",
+      subject: "Condition of these invoices",
+      authResults: authResults({ domain: "outlook.com" }),
+      extraHeaders: { "X-Attached": "0000631693.png" },
+      body: "",
+    }),
+  },
 ]
 
 const hamCorpus: EvalCase[] = [

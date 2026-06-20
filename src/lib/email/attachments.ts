@@ -39,6 +39,19 @@ function extractFilename(headerBlock: string): string | null {
 const ATTACHMENT_BLOCK_REGEX = /Content-Disposition:\s*attachment[^\r\n]*(?:\r?\n[ \t][^\r\n]*)*/gi
 const PART_HEADER_REGEX = /(?:Content-Type|Content-Disposition):\s*[^\r\n]*(?:\r?\n[ \t][^\r\n]*)*/gi
 
+function inferredContentType(filename: string): string {
+  const extension = filename.toLowerCase().split(".").at(-1) ?? ""
+  const imageTypes: Record<string, string> = {
+    gif: "image/gif",
+    jpeg: "image/jpeg",
+    jpg: "image/jpeg",
+    png: "image/png",
+    svg: "image/svg+xml",
+    webp: "image/webp",
+  }
+  return imageTypes[extension] ?? "application/octet-stream"
+}
+
 export function extractAttachments(rawSource: string): AttachmentInfo[] {
   if (!rawSource) return []
 
@@ -82,6 +95,24 @@ export function extractAttachments(rawSource: string): AttachmentInfo[] {
     if (contentType.startsWith("multipart/")) continue
     const filename = extractFilename(block)
     if (!filename) continue
+    const key = `${filename}:${contentType}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    found.push({ filename, contentType })
+  }
+
+  // Proton's headers-only export lists files in X-Attached even though the
+  // MIME parts are omitted. Preserve that evidence so image-only scams do
+  // not look like clean, empty messages to the verdict engine.
+  for (const rawLine of rawSource.split("\n")) {
+    const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine
+    const colon = line.indexOf(":")
+    if (colon < 0 || line.slice(0, colon).trim().toLowerCase() !== "x-attached") {
+      continue
+    }
+    const filename = decodeEncodedWords(line.slice(colon + 1).trim())
+    if (!filename) continue
+    const contentType = inferredContentType(filename)
     const key = `${filename}:${contentType}`
     if (seen.has(key)) continue
     seen.add(key)
