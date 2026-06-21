@@ -1761,6 +1761,38 @@ describe("input validation", () => {
     })
   })
 
+  it("invoice image filename supplies the financial clue for a generic message → danger", async () => {
+    await check(
+      buildEml({
+        from: "Alfonso Flores <najebo.motuhu@outlook.com>",
+        subject: "Please review",
+        authResults: authResults({ domain: "outlook.com" }),
+        extraHeaders: { "X-Attached": "invoice.png" },
+        body: "",
+      }),
+      { tier: "danger", reason: "image-invoice-from-mismatched-webmail" },
+    )
+  })
+
+  it("folded encoded X-Attached image invoice → danger", async () => {
+    const a = await check(
+      buildEml({
+        from: "Alfonso Flores <najebo.motuhu@outlook.com>",
+        subject: "Please review",
+        authResults: authResults({ domain: "outlook.com" }),
+        extraHeaders: {
+          "X-Attached": "=?UTF-8?Q?invoice?=\r\n =?UTF-8?Q?.png?=",
+        },
+        body: "",
+      }),
+      { tier: "danger", reason: "image-invoice-from-mismatched-webmail" },
+    )
+    expect(a.attachments).toContainEqual({
+      filename: "invoice.png",
+      contentType: "image/png",
+    })
+  })
+
   it("matching personal Outlook address with an image invoice stays caution", async () => {
     await check(
       buildEml({

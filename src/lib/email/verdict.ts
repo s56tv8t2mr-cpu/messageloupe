@@ -101,6 +101,11 @@ function isHighRiskAttachment(attachment: AttachmentInfo): boolean {
   )
 }
 
+function hasFinancialFilename(attachment: AttachmentInfo): boolean {
+  const normalizedFilename = attachment.filename.replace(/[_-]+/g, " ")
+  return /\b(?:invoices?|payments?)\b/i.test(normalizedFilename)
+}
+
 interface VerdictInputs {
   parser: ParserResult
   links: AnalyzedLink[]
@@ -806,12 +811,15 @@ export function computeVerdict({
   const hasImageAttachment = attachments.some((attachment) =>
     attachment.contentType.startsWith("image/"),
   )
+  const hasFinancialImageAttachment = attachments.some(
+    (attachment) =>
+      attachment.contentType.startsWith("image/") && hasFinancialFilename(attachment),
+  )
   if (
     !content.hasFraudReportContext &&
     trust.fromPublicWebmail &&
     trust.personNameMailboxMismatch &&
-    content.hasMoney &&
-    hasImageAttachment &&
+    ((content.hasMoney && hasImageAttachment) || hasFinancialImageAttachment) &&
     readableBodyLength(parser) < 20
   ) {
     reasons.push({
