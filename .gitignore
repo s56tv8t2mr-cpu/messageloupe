@@ -34,6 +34,22 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+
+# generated reports and scratch output
+*-out.json
+*.report.json
+*.results.json
+
+# local databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*-wal
+*-shm
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -47,3 +63,8 @@ next-env.d.ts
 
 # Claude Code local artifacts (launch.json, worktrees, etc.)
 /.claude/
+
+# local agent and design-tool state
+/.agents/
+/.codex/
+/.impeccable/
