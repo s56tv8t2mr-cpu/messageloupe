@@ -1,0 +1,4 @@
+Contact: mailto:hello@messageloupe.com
+Expires: 2027-06-22T23:59:59Z
+Preferred-Languages: en
+Canonical: https://messageloupe.com/.well-known/security.txt
