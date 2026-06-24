@@ -275,8 +275,41 @@ function isConsumerMailbox(domain: string | null): boolean {
 function looksLikeDisplayName(name: string, email: string | null): boolean {
   if (!name) return false
   if (name === email) return false
-  if (/@/.test(name) && emailLocalPart(name) === emailLocalPart(email)) return false
+  if (name.includes("@") && isEchoedEmailDisplayName(name, email)) return false
   if (name.toLowerCase() === "unknown") return false
+  return true
+}
+
+function isEchoedEmailDisplayName(name: string, email: string | null): boolean {
+  const displayAddress = normalizedPlainEmailAddress(name)
+  return displayAddress !== "" && displayAddress === normalizedPlainEmailAddress(email)
+}
+
+function normalizedPlainEmailAddress(value: string | null): string {
+  const source = value?.trim().toLowerCase() ?? ""
+  const unquoted =
+    source.length >= 2 && source.startsWith('"') && source.endsWith('"')
+      ? source.slice(1, -1).trim()
+      : source
+  const at = unquoted.indexOf("@")
+  if (at <= 0) return ""
+  if (unquoted.slice(at + 1).includes("@")) return ""
+
+  const local = unquoted.slice(0, at)
+  const domain = unquoted.slice(at + 1)
+  if (!local || !domain) return ""
+  if (!allCharsAllowed(local, "abcdefghijklmnopqrstuvwxyz0123456789._%+-")) return ""
+  if (!allCharsAllowed(domain, "abcdefghijklmnopqrstuvwxyz0123456789.-")) return ""
+
+  const dot = domain.lastIndexOf(".")
+  if (dot <= 0 || dot > domain.length - 3) return ""
+  return unquoted
+}
+
+function allCharsAllowed(value: string, allowed: string): boolean {
+  for (const char of value) {
+    if (!allowed.includes(char)) return false
+  }
   return true
 }
 

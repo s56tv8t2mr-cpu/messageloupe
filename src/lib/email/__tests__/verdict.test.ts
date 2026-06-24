@@ -413,6 +413,14 @@ describe("display-name impersonation", () => {
       },
     ],
     [
+      "PayPal mixed with echoed sender address in display name",
+      {
+        from: '"PayPal noreply@random.example" <noreply@random.example>',
+        authResults: authResults({ domain: "random.example" }),
+        body: "Please review your account security notice.",
+      },
+    ],
+    [
       "Brooks Running display from Gmail",
       {
         from: "Brooks Running <br.brooksrunning@gmail.com>",
@@ -440,6 +448,14 @@ describe("display-name impersonation", () => {
       "ADP address shown as display name from unrelated domain",
       {
         from: '"noreply@adp.com" <postmaster@unrelated-marketing.example>',
+        authResults: authResults({ domain: "unrelated-marketing.example" }),
+        body: "Action required: review the change made to your compensation.",
+      },
+    ],
+    [
+      "ADP display address with same local part from unrelated domain",
+      {
+        from: '"noreply@adp.com" <noreply@unrelated-marketing.example>',
         authResults: authResults({ domain: "unrelated-marketing.example" }),
         body: "Action required: review the change made to your compensation.",
       },
