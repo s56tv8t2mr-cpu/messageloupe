@@ -66,8 +66,8 @@ export default function AboutPage() {
             scams: fake banks, fake delivery services, lookalike domains, hijacked
             login pages.
           </p>
-          <p className="text-muted-foreground">
-            What we <em>can&apos;t</em> catch is when an attacker has already
+          <p className="text-muted-foreground mt-6">
+            What we can&apos;t catch is when an attacker has already
             compromised a real account at a real vendor and is sending a real-looking
             request from that real address. Every technical signal passes, because
             from the email&apos;s perspective, nothing is wrong. That&apos;s why any
