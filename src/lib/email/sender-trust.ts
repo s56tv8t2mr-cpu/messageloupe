@@ -275,7 +275,7 @@ function isConsumerMailbox(domain: string | null): boolean {
 function looksLikeDisplayName(name: string, email: string | null): boolean {
   if (!name) return false
   if (name === email) return false
-  if (/@/.test(name)) return false
+  if (/@/.test(name) && emailLocalPart(name) === emailLocalPart(email)) return false
   if (name.toLowerCase() === "unknown") return false
   return true
 }

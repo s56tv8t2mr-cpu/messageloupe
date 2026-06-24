@@ -436,6 +436,14 @@ describe("display-name impersonation", () => {
         body: "We are excited to offer you a modeling role for an upcoming shoot.",
       },
     ],
+    [
+      "ADP address shown as display name from unrelated domain",
+      {
+        from: '"noreply@adp.com" <postmaster@unrelated-marketing.example>',
+        authResults: authResults({ domain: "unrelated-marketing.example" }),
+        body: "Action required: review the change made to your compensation.",
+      },
+    ],
   ])("brand-impersonation: %s → danger", async (_name, emlOptions) => {
     await check(buildEml(emlOptions), { tier: "danger", reason: "brand-impersonation" })
   })
