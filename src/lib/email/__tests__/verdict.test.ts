@@ -1653,6 +1653,30 @@ describe("MX-based brand impersonation", () => {
       "brand-impersonation-likely",
     )
   })
+
+  it("private HELO plus public GCP source spoofing Proofpoint-protected domain → danger", async () => {
+    mockFetchMxAnswer([mxAnswer(10, "mxa-0006eb01.gslb.pphosted.com")])
+    const a = await check(
+      buildEml({
+        from: "ADP HR <team.roll@adp.com>",
+        to: "team.roll@adp.com",
+        subject: "Review Now Ref:625948.!",
+        received: [
+          "from [10.88.0.4] (118.194.74.34.bc.googleusercontent.com [34.74.194.118]) by mx0b-0006eb01.pphosted.com (PPS) with ESMTP id fixture for <team.roll@adp.com>; Wed, 24 Jun 2026 13:59:47 +0000 (GMT)",
+        ],
+        authResults: "ppops.net; spf=none smtp.mailfrom=",
+        body: "Salary increase official notification. Review now.",
+      }),
+      { tier: "danger", reason: "brand-impersonation-confirmed" },
+    )
+
+    expect(a.forward.isForwarded).toBe(false)
+    expect(a.parser.sourceIp).toBe("34.74.194.118")
+    expect(a.parser.heloIdentity).toBeNull()
+    expect(a.parser.sourceHostname).toBe("118.194.74.34.bc.googleusercontent.com")
+    expect(a.parser.sendingService).toBe("Google Cloud Platform (GCP Compute Engine)")
+    expect(a.mx?.provider).toBe("Proofpoint")
+  })
 })
 
 describe("RDAP domain-age lookup", () => {

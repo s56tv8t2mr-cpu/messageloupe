@@ -425,7 +425,20 @@ export const parseEmlLocally = (text) => {
     || extractDomain(parseHeaderMatch(dkimSignature, [/\bd=([^;\s]+)/i]));
   const authHeaderFromDomain = extractDomain(parseHeaderMatch(authResults, [/header\.from=([^\s;]+)/i])) || sendingDomain;
 
-  const ipRegex = /(?:\[|(?:\b))((?:\d{1,3}\.){3}\d{1,3}|(?:[a-fA-F0-9]{1,4}:|:){1,7}[a-fA-F0-9]{1,4})(?:\]|(?:\b))/;
+  const publicIpInHeader = (header) => {
+    const ipBody = /((?:\d{1,3}\.){3}\d{1,3}|(?:[a-fA-F0-9]{1,4}:|:){1,7}[a-fA-F0-9]{1,4})/.source;
+    const patterns = [
+      new RegExp(`(?:\\[|\\()${ipBody}(?:\\]|\\))`, 'g'),
+      new RegExp(`(?:^|[^a-z0-9.-])${ipBody}(?![a-z0-9.-])`, 'gi')
+    ];
+    for (const pattern of patterns) {
+      const matches = header.matchAll(pattern);
+      for (const match of matches) {
+        if (isValidPublicIp(match[1])) return match[1];
+      }
+    }
+    return null;
+  };
 
   let sourceIp = null;
   let sourceIpEvidence = null;
@@ -469,9 +482,11 @@ export const parseEmlLocally = (text) => {
     if (evidence) sourceIpEvidence = evidence;
     // Hostname extraction. Tries, in order:
     //   1. "from <hostname>"                    — RFC standard form
-    //   2. "(HELO hostname)" / "(EHLO hostname)" — parenthesised SMTP greeting
-    //   3. "helo=hostname"                       — Exim / ecelerity etc. style
+    //   2. "(reverse-dns.example [ip])"          — common with IP-literal HELO
+    //   3. "(HELO hostname)" / "(EHLO hostname)" — parenthesised SMTP greeting
+    //   4. "helo=hostname"                       — Exim / ecelerity etc. style
     sourceHostname = header.match(/from\s+([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)?.[1]
+      || header.match(/\(([^()\s]+\.[a-zA-Z]{2,})\s+\[[a-fA-F0-9.:]+\]\)/i)?.[1]
       || header.match(/\((?:HELO|EHLO)\s+([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)?.[1]
       || header.match(/\bhelo=([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i)?.[1]
       || "Unknown";
@@ -504,9 +519,9 @@ export const parseEmlLocally = (text) => {
         bypassedGateway = true;
         break;
       }
-      const m = header.match(ipRegex);
-      if (m && isValidPublicIp(m[1])) {
-        sourceIp = m[1];
+      const publicIp = publicIpInHeader(header);
+      if (publicIp) {
+        sourceIp = publicIp;
         sourceIpEvidence = "Real sender behind recipient-side security gateway";
         matchedHeaderIndex = i;
         bypassedGateway = true;
@@ -530,9 +545,9 @@ export const parseEmlLocally = (text) => {
         break;
       }
 
-      const match = header.match(ipRegex);
-      if (match && isValidPublicIp(match[1])) {
-        applySourceHeader(header, match[1], "Received header public IP fallback");
+      const publicIp = publicIpInHeader(header);
+      if (publicIp) {
+        applySourceHeader(header, publicIp, "Received header public IP fallback");
         break;
       }
     }

@@ -36,13 +36,22 @@ export const PROVIDERS = [
     detect: (parts) => (
       parts.lowerMsgId.includes('mail.gmail.com')
       || parts.lowerSourceHeader.includes('gmailapi.google.com')
+      || parts.lowerSourceHeader.includes('googleusercontent.com')
+      || parts.lowerSourceHostname.includes('googleusercontent.com')
       || isGoogleIp(parts.sourceIp || '')
     ),
-    nameFor: (parts) => (
-      parts.sendingDomain === 'gmail.com' || parts.returnPathDomain === 'gmail.com'
-        ? 'Gmail (Consumer)'
-        : 'Google Workspace'
-    )
+    nameFor: (parts) => {
+      if (
+        parts.lowerSourceHeader.includes('googleusercontent.com')
+        || parts.lowerSourceHostname.includes('googleusercontent.com')
+      ) {
+        return 'Google Cloud Platform (GCP Compute Engine)';
+      }
+      if (parts.sendingDomain === 'gmail.com' || parts.returnPathDomain === 'gmail.com') {
+        return 'Gmail (Consumer)';
+      }
+      return 'Google Workspace';
+    }
   },
   {
     name: 'Microsoft 365 / Outlook',
