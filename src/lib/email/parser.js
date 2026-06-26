@@ -425,14 +425,27 @@ export const parseEmlLocally = (text) => {
     || extractDomain(parseHeaderMatch(dkimSignature, [/\bd=([^;\s]+)/i]));
   const authHeaderFromDomain = extractDomain(parseHeaderMatch(authResults, [/header\.from=([^\s;]+)/i])) || sendingDomain;
 
-  const publicIpInHeader = (header) => {
+  const receivedSenderSide = (header) => {
+    const fromMatch = /\bfrom\b/i.exec(header);
+    if (!fromMatch) return '';
+    const fromSide = header.slice(fromMatch.index);
+    const byMatch = /\sby\s/i.exec(fromSide);
+    const semicolonIndex = fromSide.indexOf(';');
+    const endCandidates = [byMatch?.index, semicolonIndex]
+      .filter((index) => typeof index === 'number' && index >= 0);
+    const endIndex = endCandidates.length ? Math.min(...endCandidates) : fromSide.length;
+    return fromSide.slice(0, endIndex);
+  };
+
+  const publicIpInReceivedSender = (header) => {
+    const senderSide = receivedSenderSide(header);
     const ipBody = /((?:\d{1,3}\.){3}\d{1,3}|(?:[a-fA-F0-9]{1,4}:|:){1,7}[a-fA-F0-9]{1,4})/.source;
     const patterns = [
       new RegExp(`(?:\\[|\\()${ipBody}(?:\\]|\\))`, 'g'),
       new RegExp(`(?:^|[^a-z0-9.-])${ipBody}(?![a-z0-9.-])`, 'gi')
     ];
     for (const pattern of patterns) {
-      const matches = header.matchAll(pattern);
+      const matches = senderSide.matchAll(pattern);
       for (const match of matches) {
         if (isValidPublicIp(match[1])) return match[1];
       }
@@ -519,7 +532,7 @@ export const parseEmlLocally = (text) => {
         bypassedGateway = true;
         break;
       }
-      const publicIp = publicIpInHeader(header);
+      const publicIp = publicIpInReceivedSender(header);
       if (publicIp) {
         sourceIp = publicIp;
         sourceIpEvidence = "Real sender behind recipient-side security gateway";
@@ -545,7 +558,7 @@ export const parseEmlLocally = (text) => {
         break;
       }
 
-      const publicIp = publicIpInHeader(header);
+      const publicIp = publicIpInReceivedSender(header);
       if (publicIp) {
         applySourceHeader(header, publicIp, "Received header public IP fallback");
         break;

@@ -1677,6 +1677,24 @@ describe("MX-based brand impersonation", () => {
     expect(a.parser.sendingService).toBe("Google Cloud Platform (GCP Compute Engine)")
     expect(a.mx?.provider).toBe("Proofpoint")
   })
+
+  it("receiver-side public IP is not treated as the sender source", async () => {
+    const a = await analyze(
+      buildEml({
+        from: "ADP HR <team.roll@adp.com>",
+        to: "team.roll@adp.com",
+        received: [
+          "from [10.0.0.5] by mx.recipient.example (8.8.8.8) with ESMTP id fixture; Wed, 24 Jun 2026 13:59:47 +0000 (GMT)",
+        ],
+        authResults: "ppops.net; spf=none smtp.mailfrom=",
+        body: "Review now.",
+      }),
+    )
+
+    expect(a.parser.sourceIp).toBeNull()
+    expect(a.forward.isForwarded).toBe(true)
+    expect(a.parser.sendingService).toBe("No clear email service identified")
+  })
 })
 
 describe("RDAP domain-age lookup", () => {
