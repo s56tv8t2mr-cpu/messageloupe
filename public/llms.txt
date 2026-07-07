@@ -16,7 +16,6 @@ Message Loupe is a browser-based web app for non-technical users and small teams
 - [Home (the scanner)](https://messageloupe.com/): drop a `.eml` file or paste headers; receive a verdict.
 - [BEC and wire fraud email checker](https://messageloupe.com/business-email-compromise): direct guidance for wire, invoice, payroll, and account-change emails; explains why authenticated mail can still be fraudulent and cites primary sources.
 - [How to save an email](https://messageloupe.com/how-to-save-an-email): step-by-step instructions for Gmail, Outlook web, Apple Mail, Outlook desktop, Thunderbird, iPhone Mail.
-- [For teams](https://messageloupe.com/business): small-business workflow and Gmail / Outlook add-in roadmap.
 - [Methodology](https://messageloupe.com/methodology): what signals are checked, how the verdict is computed, and the deliberate limits of header-only analysis.
 - [About](https://messageloupe.com/about): why the project exists and how it's built.
 - [Privacy](https://messageloupe.com/privacy): the no-data-collection policy in detail.

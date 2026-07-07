@@ -193,9 +193,6 @@ export default function Home() {
                     <ArrowRight data-icon="inline-end" />
                   </Link>
                 </Button>
-                <Button asChild variant="link" className="h-auto px-0">
-                  <Link href="/business">Message Loupe for teams</Link>
-                </Button>
               </div>
             </div>
           </div>
