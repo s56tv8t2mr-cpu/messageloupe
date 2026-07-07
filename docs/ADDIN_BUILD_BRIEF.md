@@ -231,10 +231,13 @@ automatically every time the user opens a message — this satisfies both
 
 1. `GmailApp.setCurrentMessageAccessToken(e.gmail.accessToken)`.
 2. Fetch raw RFC-822:
-   `GET https://gmail.googleapis.com/gmail/v1/users/me/messages/{e.gmail.messageId}?format=raw`
-   with header `Authorization: Bearer <e.gmail.accessToken>` via
-   `UrlFetchApp`. Decode with `Utilities.base64DecodeWebSafe(raw)` →
-   `Utilities.newBlob(bytes).getDataAsString("UTF-8")`.
+   `GmailApp.getMessageById(e.gmail.messageId).getRawContent()`. Do **not**
+   send `e.gmail.accessToken` as an `Authorization: Bearer` token to the
+   Gmail REST API; it is the current-message token for `GmailApp`, not a
+   general OAuth bearer. If a REST fallback is ever needed, use
+   `ScriptApp.getOAuthToken()` as the bearer and pass the message token
+   separately as `X-Goog-Gmail-Access-Token: ${e.gmail.accessToken}`. Do not
+   add `gmail.readonly`.
 3. Inject the Apps Script env once per execution:
    ```js
    MessageLoupeEngine.setEngineEnv({
@@ -319,10 +322,10 @@ owner runs it against their own inbox and spot-checks 10 results.
 
 ## 7. Milestone M1 — Outlook add-in, on-demand + pinned autoscan-on-open (`codex/outlook-addin`)
 
-Static task-pane add-in. **Host it on messageloupe.com** (e.g. files under
-`public/outlook/` or an exported route) so the engine's same-origin
-`/api/rdap` proxy keeps working unchanged. It's a static site — Cloudflare
-Pages serves it; no new infrastructure.
+Static task-pane add-in. **Host it on messageloupe.com** (generated files under
+`public/outlook/`, per Q12) so the engine can use the same-origin
+`/api/rdap` Cloudflare Pages Function already used by the site. Cloudflare
+Pages serves the static pane; no new infrastructure.
 
 ### Manifest (`addins/outlook/manifest.xml`)
 
@@ -385,10 +388,14 @@ web, new Outlook for Windows, classic Windows, Mac). Key elements:
 
 - Office.js loads from `https://appsforoffice.microsoft.com/lib/1/hosted/office.js`.
   The site ships a strict CSP via the Cloudflare `_headers` file — add a
-  scoped rule for `/outlook/*` allowing that script origin (and keep the rest
-  of the site's CSP untouched).
-- The pane runs same-origin with the site, so dns.google, IANA RDAP, and
-  `/api/rdap` all work exactly as on the site.
+  scoped rule for `/outlook/*` allowing that script origin. Keep
+  `connect-src 'self' https://dns.google`; do not allow arbitrary public RDAP
+  hosts from the pane.
+- The pane runs same-origin with the site, so dns.google and `/api/rdap` work
+  under that CSP. RDAP must go through the same-origin `/api/rdap` Pages
+  Function; if that endpoint is unavailable in a local/static preview,
+  domain-age checks should degrade to `rdap: null` rather than attempting
+  direct public RDAP from the Outlook pane.
 
 **Gate:** unit tests for `buildPseudoEml` (multipart original, plain
 original, attachments, missing html body); all repo gates; sideload
