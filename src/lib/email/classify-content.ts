@@ -147,9 +147,32 @@ const BANK_STATEMENT_REQUEST_PATTERNS: RegExp[] = [
   /\bcopy\s+of\s+(?:your\s+)?bank\s+statement\b/i,
 ]
 
-const BANKING_DETAILS_REQUEST_PATTERNS: RegExp[] = [
-  /\b(?:send|provide|share|email|submit|supply|enter)\s+(?:us\s+)?(?:your\s+)?(?:bank(?:ing)?\s+(?:details|information|info)|bank\s+account\s+(?:details|information|number)|routing\s+number|direct\s+deposit\s+(?:details|information))\b/i,
-  /\b(?:need|require|request)\s+(?:your\s+)?(?:bank(?:ing)?\s+(?:details|information|info)|bank\s+account\s+(?:details|information|number)|routing\s+number|direct\s+deposit\s+(?:details|information))\b/i,
+const BANKING_DETAILS_REQUEST_VERBS = [
+  "send",
+  "provide",
+  "share",
+  "email",
+  "submit",
+  "supply",
+  "enter",
+  "need",
+  "require",
+  "request",
+]
+
+const BANKING_DETAILS_REQUEST_TARGETS = [
+  "bank details",
+  "bank information",
+  "bank info",
+  "banking details",
+  "banking information",
+  "banking info",
+  "bank account details",
+  "bank account information",
+  "bank account number",
+  "routing number",
+  "direct deposit details",
+  "direct deposit information",
 ]
 
 const SIGNED_FORM_REQUEST_PATTERNS: RegExp[] = [
@@ -412,6 +435,15 @@ function hasBankingChangeRequest(text: string): boolean {
   )
 }
 
+function hasBankingDetailsRequest(text: string): boolean {
+  const normalized = normalizePhraseText(text)
+  return BANKING_DETAILS_REQUEST_VERBS.some((verb) =>
+    BANKING_DETAILS_REQUEST_TARGETS.some((target) =>
+      hasPhraseNear(normalized, verb, target, 48),
+    ),
+  )
+}
+
 function bodyBrandClaim(text: string): ContentClassification["bodyBrandClaim"] {
   const normalized = normalizePhraseText(text)
   const lineText = text.toLowerCase()
@@ -473,7 +505,7 @@ export function classifyContent(text: string): ContentClassification {
   const hasIdentityDocumentRequest = matchAny(target, IDENTITY_DOCUMENT_REQUEST_PATTERNS)
   const hasBankStatementRequest = matchAny(target, BANK_STATEMENT_REQUEST_PATTERNS)
   const hasSignedFormRequest = matchAny(target, SIGNED_FORM_REQUEST_PATTERNS)
-  const hasBankingDetailsRequest = matchAny(target, BANKING_DETAILS_REQUEST_PATTERNS)
+  const bankingDetailsRequested = hasBankingDetailsRequest(target)
   return {
     hasMoney: matchAny(target, MONEY_PATTERNS),
     hasCredentials: matchAny(target, CREDENTIAL_PATTERNS),
@@ -484,7 +516,7 @@ export function classifyContent(text: string): ContentClassification {
     hasIdentityDocumentRequest,
     hasBankStatementRequest,
     hasSignedFormRequest,
-    hasBankingDetailsRequest,
+    hasBankingDetailsRequest: bankingDetailsRequested,
     hasBecOpener: matchAny(target, BEC_OPENER_PATTERNS),
     hasSecureDocumentLure: matchAny(target, SECURE_DOCUMENT_LURE_PATTERNS),
     hasSubscriptionRefundScam: hasSubscriptionRefundScam(target),
