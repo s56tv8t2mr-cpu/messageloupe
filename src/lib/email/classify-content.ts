@@ -539,5 +539,10 @@ export function classifyContent(text: string): ContentClassification {
 // classic cap; document requests inherit the same logic (asking a stranger
 // for their passport scan is high-stakes regardless of the apparent sender).
 export function shouldCapVerdict(c: ContentClassification): boolean {
-  return c.hasMoney || c.hasCredentials || c.hasDocumentRequest
+  return (
+    c.hasMoney ||
+    c.hasCredentials ||
+    c.hasDocumentRequest ||
+    c.hasBankingDetailsRequest
+  )
 }

@@ -645,6 +645,26 @@ describe("attachment type risk", () => {
 })
 
 describe("content classification cap", () => {
+  it("standalone bank-information request cannot return safe", async () => {
+    const analysis = await check(
+      cleanEsp({
+        from: "Account Setup <accounts@news.acme.com>",
+        body: "Please provide your bank information to complete account setup.",
+      }),
+      {
+        tier: "caution",
+        capped: true,
+        reason: "financial-action-content",
+        notReason: "document-request-content",
+      },
+    )
+
+    expect(analysis.content.hasBankingDetailsRequest).toBe(true)
+    expect(analysis.content.hasMoney).toBe(false)
+    expect(analysis.verdict.explanation).toMatch(/bank|financial/i)
+    expect(analysis.verdict.explanation).not.toMatch(/documents|signed forms/i)
+  })
+
   it("treats updated bank details as financial content, not a personal-document request", async () => {
     const analysis = await check(
       cleanEsp({
