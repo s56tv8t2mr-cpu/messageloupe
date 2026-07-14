@@ -147,6 +147,11 @@ const BANK_STATEMENT_REQUEST_PATTERNS: RegExp[] = [
   /\bcopy\s+of\s+(?:your\s+)?bank\s+statement\b/i,
 ]
 
+const BANKING_DETAILS_REQUEST_PATTERNS: RegExp[] = [
+  /\b(?:send|provide|share|email|submit|supply|enter)\s+(?:us\s+)?(?:your\s+)?(?:bank(?:ing)?\s+(?:details|information|info)|bank\s+account\s+(?:details|information|number)|routing\s+number|direct\s+deposit\s+(?:details|information))\b/i,
+  /\b(?:need|require|request)\s+(?:your\s+)?(?:bank(?:ing)?\s+(?:details|information|info)|bank\s+account\s+(?:details|information|number)|routing\s+number|direct\s+deposit\s+(?:details|information))\b/i,
+]
+
 const SIGNED_FORM_REQUEST_PATTERNS: RegExp[] = [
   /\bfill,\s*sign\s+and\s+send\s+back\b/i,
   /\bsign\s+and\s+send\s+back\b/i,
@@ -468,6 +473,7 @@ export function classifyContent(text: string): ContentClassification {
   const hasIdentityDocumentRequest = matchAny(target, IDENTITY_DOCUMENT_REQUEST_PATTERNS)
   const hasBankStatementRequest = matchAny(target, BANK_STATEMENT_REQUEST_PATTERNS)
   const hasSignedFormRequest = matchAny(target, SIGNED_FORM_REQUEST_PATTERNS)
+  const hasBankingDetailsRequest = matchAny(target, BANKING_DETAILS_REQUEST_PATTERNS)
   return {
     hasMoney: matchAny(target, MONEY_PATTERNS),
     hasCredentials: matchAny(target, CREDENTIAL_PATTERNS),
@@ -478,6 +484,7 @@ export function classifyContent(text: string): ContentClassification {
     hasIdentityDocumentRequest,
     hasBankStatementRequest,
     hasSignedFormRequest,
+    hasBankingDetailsRequest,
     hasBecOpener: matchAny(target, BEC_OPENER_PATTERNS),
     hasSecureDocumentLure: matchAny(target, SECURE_DOCUMENT_LURE_PATTERNS),
     hasSubscriptionRefundScam: hasSubscriptionRefundScam(target),

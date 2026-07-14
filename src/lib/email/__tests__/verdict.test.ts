@@ -821,6 +821,21 @@ describe("job-offer scams", () => {
     )
   })
 
+  it("job offer + payroll bank-details request → danger", async () => {
+    const analysis = await check(
+      cleanEsp({
+        from: "Acme Recruiting <careers@news.acme.com>",
+        subject: "Remote position onboarding",
+        body:
+          "We are pleased to offer you a remote position. To set up payroll, please provide your bank details and routing number.",
+      }),
+      { tier: "danger", reason: "job-offer-with-document-request" },
+    )
+
+    expect(analysis.content.hasBankingDetailsRequest).toBe(true)
+    expect(analysis.content.hasDocumentRequest).toBe(false)
+  })
+
   it("job offer alone → caution", async () => {
     await check(
       cleanEsp({

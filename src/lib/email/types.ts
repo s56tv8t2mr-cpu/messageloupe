@@ -125,6 +125,7 @@ export interface ContentClassification {
   hasIdentityDocumentRequest: boolean
   hasBankStatementRequest: boolean
   hasSignedFormRequest: boolean
+  hasBankingDetailsRequest: boolean
   hasBecOpener: boolean
   hasSecureDocumentLure: boolean
   hasSubscriptionRefundScam: boolean
