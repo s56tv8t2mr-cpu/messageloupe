@@ -24,9 +24,9 @@ export default function AboutPage() {
           <p className="text-muted-foreground">
             Message Loupe is a free second-opinion tool for email. Drop a saved
             email, or paste its raw headers, and within a couple of seconds you get
-            a plain-English verdict: <strong>safe</strong>, <strong>caution</strong>,
-            or <strong>likely fake</strong>, with a short explanation of how we got
-            there.
+            a plain-English verdict: <strong>no warning signs</strong>,{" "}
+            <strong>caution</strong>, or <strong>likely fake</strong>. Each verdict
+            explains the evidence and, when needed, the safest next action.
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
@@ -45,13 +45,14 @@ export default function AboutPage() {
             What Message Loupe answers (and what it doesn&apos;t)
           </h2>
           <p className="text-muted-foreground">
-            Message Loupe answers one specific question:{" "}
-            <strong className="text-foreground">is the sender who they claim to
-            be?</strong> It does not try to decide whether an email is wanted or
-            relevant. Real cold outreach, real marketing, real newsletters: those
-            can all be &quot;authentic but unwelcome,&quot; and we&apos;ll correctly
-            say they look legitimate, because they are. Whether you want them is your
-            call. Spam filtering is a different problem, handled (imperfectly) by
+            Message Loupe answers a narrower question:{" "}
+            <strong className="text-foreground">what warning signs are present in
+            the evidence it can inspect?</strong> A &quot;No warning signs&quot; result
+            means it found no spoofing, sender-alignment, routing, or suspicious-link
+            signals. It does not prove who controls the account or that a request is
+            trustworthy. It also does not decide whether an email is wanted or
+            relevant. Real cold outreach, marketing, and newsletters can pass these
+            checks. Spam filtering is a different problem, handled (imperfectly) by
             your email provider.
           </p>
 
@@ -62,18 +63,21 @@ export default function AboutPage() {
             The verdict is advisory, not a guarantee. We can read the technical
             evidence in an email&apos;s headers: who really sent it, what server
             relayed it, whether the sender&apos;s domain authorizes that server.
-            That&apos;s enough to catch the overwhelming majority of impersonation
-            scams: fake banks, fake delivery services, lookalike domains, hijacked
-            login pages.
+            These checks can catch many common impersonation patterns, including fake
+            banks, fake delivery services, lookalike domains, and hijacked login
+            pages.
           </p>
           <p className="text-muted-foreground mt-6">
             What we can&apos;t catch is when an attacker has already
             compromised a real account at a real vendor and is sending a real-looking
             request from that real address. Every technical signal passes, because
-            from the email&apos;s perspective, nothing is wrong. That&apos;s why any
-            time we see money or credentials in the message, we cap our verdict at
-            &quot;Caution: verify by phone.&quot; Use a phone number you already
-            trust, not one from the email.
+            from the email&apos;s perspective, nothing is wrong. That&apos;s why a message
+            asking for money, banking details, credentials, identity documents, or a
+            signed form can never receive &quot;No warning signs&quot; solely because its
+            technical signals pass. It is at least Caution, with a verification step
+            matched to the request: call a trusted number for money or banking changes,
+            open the known site directly for credentials, and use an approved portal
+            for documents or signed forms.
           </p>
 
           <h2 className="text-foreground mt-10 text-xl font-semibold">
