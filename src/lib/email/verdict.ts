@@ -893,9 +893,11 @@ export function computeVerdict({
     capped = true
     let capSignal = "document-request-content"
     capReason = documentRequestCapReason(content)
-    if (content.hasMoney) {
+    if (content.hasMoney || content.hasBankingDetailsRequest) {
       capSignal = "financial-action-content"
-      capReason = "This message mentions money, payment, or banking changes."
+      capReason = content.hasBankingDetailsRequest
+        ? "This message asks for bank-account, payroll, or direct-deposit details."
+        : "This message mentions money, payment, or banking changes."
     } else if (content.hasCredentials) {
       capSignal = "credential-request-content"
       capReason = "This message asks about credentials or login info."
@@ -965,7 +967,7 @@ function explanationFor(
   }
   if (tier === "caution") {
     if (ctx.capped) {
-      if (ctx.content.hasMoney) {
+      if (ctx.content.hasMoney || ctx.content.hasBankingDetailsRequest) {
         return `${ctx.capReason} Even though the technical signals look fine on the surface, verify any payment or banking change by phone using a number you already trust, not one from this email.`
       }
       if (ctx.content.hasCredentials) {

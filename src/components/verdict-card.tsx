@@ -103,7 +103,10 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
   const meta = TIER_META[verdict.tier]
   const TierIcon = meta.Icon
   const requiresOutsideVerification =
-    content.hasMoney || content.hasCredentials || content.hasDocumentRequest
+    content.hasMoney ||
+    content.hasCredentials ||
+    content.hasDocumentRequest ||
+    content.hasBankingDetailsRequest
 
   const chips = React.useMemo(() => computeChips(analysis), [analysis])
 
@@ -197,6 +200,7 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
         content.hasUrgency ||
         content.hasJobOffer ||
         content.hasDocumentRequest ||
+        content.hasBankingDetailsRequest ||
         content.hasSubscriptionRefundScam ||
         content.hasWireTransferLure ||
         content.hasOpaqueEncryptedBody) && (
@@ -209,6 +213,7 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
           {content.hasSubscriptionRefundScam ? <Badge variant="warning">Refund / renewal scam</Badge> : null}
           {content.hasJobOffer ? <Badge variant="warning">Job offer</Badge> : null}
           {content.hasBankingChangeRequest ? <Badge variant="warning">Banking change</Badge> : null}
+          {content.hasBankingDetailsRequest ? <Badge variant="warning">Banking details</Badge> : null}
           {content.hasIdentityDocumentRequest ? <Badge variant="warning">Identity documents</Badge> : null}
           {content.hasBankStatementRequest ? <Badge variant="warning">Bank statement</Badge> : null}
           {content.hasSignedFormRequest ? <Badge variant="warning">Signed form</Badge> : null}
@@ -240,7 +245,7 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
 }
 
 function RecommendedActionAlert({ content }: { content: Analysis["content"] }) {
-  if (content.hasMoney) {
+  if (content.hasMoney || content.hasBankingDetailsRequest) {
     return (
       <Alert variant="warning" className="bg-warning/[0.06] border-warning/30">
         <PhoneCall aria-hidden />
