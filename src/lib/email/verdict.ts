@@ -856,13 +856,13 @@ export function computeVerdict({
     tier = escalate(tier, "caution")
   }
 
-  // ---- Job-offer + document-request scams ----
+  // ---- Job-offer + sensitive-data-request scams ----
   // A distinct phish family from money/credential phish. The dangerous
-  // combination is offer language + document/PII request: real employers
-  // use secure portals (Lever, BambooHR, DocuSign) and don't ask candidates
-  // to email scans of their passport. Pair fires danger; single fires
-  // caution.
-  if (content.hasJobOffer && content.hasDocumentRequest) {
+  // combination is offer language + a document, PII, or payroll-banking
+  // request. Pair fires danger; a job offer alone fires caution.
+  const hasSensitiveJobOnboardingRequest =
+    content.hasDocumentRequest || content.hasBankingDetailsRequest
+  if (content.hasJobOffer && hasSensitiveJobOnboardingRequest) {
     reasons.push({
       signal: "job-offer-with-document-request",
       detail: jobDocumentRequestDetail(content),
@@ -923,7 +923,7 @@ export function computeVerdict({
     reasons.push({
       signal: "attachment-with-suspicious-content",
       detail: `This email carries ${attachments.length} attachment${attachments.length === 1 ? "" : "s"} (${fileList}${attachments.length > 3 ? ", …" : ""}) alongside ${content.hasJobOffer ? "job-offer" : "money-transfer"} language. Don't open the attachment unless you can confirm the sender by phone first; phishing attachments often contain malware or fake login pages.`,
-      weight: content.hasJobOffer && content.hasDocumentRequest ? "high" : "medium",
+      weight: content.hasJobOffer && hasSensitiveJobOnboardingRequest ? "high" : "medium",
     })
     tier = escalate(tier, "caution")
   }
@@ -982,6 +982,9 @@ function explanationFor(
 }
 
 function jobDocumentRequestDetail(content: ContentClassification): string {
+  if (content.hasBankingDetailsRequest) {
+    return "This email reads like a job offer and asks for bank-account, payroll, or direct-deposit details. Confirm the employer and role through its official careers site before sharing financial information; fake recruiters commonly use onboarding to harvest it."
+  }
   if (content.hasIdentityDocumentRequest) {
     return "This email reads like a job offer and asks for identity documents such as a passport, ID, or certificate. Legitimate employers use approved hiring portals for this; they don't ask candidates to email scans. This is a common recruitment-scam pattern."
   }
