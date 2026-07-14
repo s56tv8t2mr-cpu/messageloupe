@@ -122,6 +122,9 @@ export interface ContentClassification {
   hasUrgency: boolean
   hasJobOffer: boolean
   hasDocumentRequest: boolean
+  hasIdentityDocumentRequest: boolean
+  hasBankStatementRequest: boolean
+  hasSignedFormRequest: boolean
   hasBecOpener: boolean
   hasSecureDocumentLure: boolean
   hasSubscriptionRefundScam: boolean

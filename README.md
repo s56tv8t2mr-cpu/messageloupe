@@ -1,6 +1,6 @@
 # Message Loupe
 
-Message Loupe is a free, browser-based email analyzer focused on business email compromise (BEC), invoice fraud, and wire-transfer scams. Drop in an original email (`.eml`) or paste its raw headers to get a three-tier verdict: **Safe** ("Looks legitimate"), **Caution** ("Be careful"), or **Likely fake**.
+Message Loupe is a free, browser-based email analyzer focused on business email compromise (BEC), invoice fraud, and wire-transfer scams. Drop in an original email (`.eml`) or paste its raw headers to get a three-tier verdict: **No warning signs**, **Caution** ("Be careful"), or **Likely fake**.
 
 It provides a second opinion on text-only payment requests, executive impersonation, changed bank details, fake invoices, and payroll diversion, while warning that a compromised legitimate account may still look authentic.
 
@@ -87,7 +87,7 @@ The committed suite uses synthetic fixtures and selected representative regressi
 npm run eval:private
 ```
 
-The private gate fails if a known-fake message returns **Looks legitimate**, if a message cannot be analyzed, or if a configured corpus is empty.
+The private gate fails if a known-fake message returns the internal `safe` tier, if a message cannot be analyzed, or if a configured corpus is empty.
 
 ## Stack
 

@@ -42,7 +42,7 @@ const TIER_META: Record<
   }
 > = {
   safe: {
-    label: "Safe",
+    label: "No warning signs",
     Icon: ShieldCheck,
     pill: "bg-success/10 text-success ring-success/25",
     panel: "border-success/25 bg-success/[0.03]",
@@ -102,6 +102,8 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
   const { verdict, content } = analysis
   const meta = TIER_META[verdict.tier]
   const TierIcon = meta.Icon
+  const requiresOutsideVerification =
+    content.hasMoney || content.hasCredentials || content.hasDocumentRequest
 
   const chips = React.useMemo(() => computeChips(analysis), [analysis])
 
@@ -129,9 +131,9 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
             <TierIcon className="size-4" aria-hidden />
             {meta.label}
           </span>
-          {verdict.capped ? (
+          {verdict.tier === "caution" && requiresOutsideVerification ? (
             <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
-              Capped: verify by phone
+              Verify outside email
             </span>
           ) : null}
         </div>
@@ -181,23 +183,13 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
 
       {verdict.tier === "safe" ? (
         <p className="text-muted-foreground -mt-1 px-1 text-xs leading-relaxed">
-          Safe means <strong className="text-foreground/80">authentic</strong>, not
-          welcome. Real cold outreach and marketing pass these checks too, so Message
-          Loupe answers &quot;is the sender who they claim to be?&quot;, not &quot;is
-          this email wanted?&quot;
+          Message Loupe did not find warning signs in the evidence it can inspect. It
+          cannot prove who controls the account or that a request is trustworthy.
         </p>
       ) : null}
 
-      {verdict.tier === "caution" && verdict.capped ? (
-        <Alert variant="warning" className="bg-warning/[0.06] border-warning/30">
-          <PhoneCall aria-hidden />
-          <AlertTitle className="text-sm">Verify by phone before acting</AlertTitle>
-          <AlertDescription>
-            Use a number you already trust: your saved contact, your bank&apos;s
-            number on the back of your card, or your accountant&apos;s known line.
-            Never call a number from this email.
-          </AlertDescription>
-        </Alert>
+      {verdict.tier === "caution" && requiresOutsideVerification ? (
+        <RecommendedActionAlert content={content} />
       ) : null}
 
       {(content.hasMoney ||
@@ -216,7 +208,10 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
           {content.hasCredentials ? <Badge variant="warning">Credentials / login</Badge> : null}
           {content.hasSubscriptionRefundScam ? <Badge variant="warning">Refund / renewal scam</Badge> : null}
           {content.hasJobOffer ? <Badge variant="warning">Job offer</Badge> : null}
-          {content.hasDocumentRequest ? <Badge variant="warning">Documents requested</Badge> : null}
+          {content.hasBankingChangeRequest ? <Badge variant="warning">Banking change</Badge> : null}
+          {content.hasIdentityDocumentRequest ? <Badge variant="warning">Identity documents</Badge> : null}
+          {content.hasBankStatementRequest ? <Badge variant="warning">Bank statement</Badge> : null}
+          {content.hasSignedFormRequest ? <Badge variant="warning">Signed form</Badge> : null}
           {content.hasUrgency ? <Badge variant="outline">Urgency language</Badge> : null}
         </div>
       )}
@@ -241,6 +236,45 @@ export function VerdictCard({ analysis }: VerdictCardProps) {
         </div>
       ) : null}
     </motion.div>
+  )
+}
+
+function RecommendedActionAlert({ content }: { content: Analysis["content"] }) {
+  if (content.hasMoney) {
+    return (
+      <Alert variant="warning" className="bg-warning/[0.06] border-warning/30">
+        <PhoneCall aria-hidden />
+        <AlertTitle className="text-sm">Verify before paying or changing details</AlertTitle>
+        <AlertDescription>
+          Call a number you already trust, such as a saved contact or the number on an
+          earlier statement. Never use contact details from this email.
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (content.hasCredentials) {
+    return (
+      <Alert variant="warning" className="bg-warning/[0.06] border-warning/30">
+        <KeyRound aria-hidden />
+        <AlertTitle className="text-sm">Open the known site directly</AlertTitle>
+        <AlertDescription>
+          Don&apos;t use a sign-in or password link from this email. Open the service
+          from a saved bookmark or type its known address yourself.
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  return (
+    <Alert variant="warning" className="bg-warning/[0.06] border-warning/30">
+      <PhoneCall aria-hidden />
+      <AlertTitle className="text-sm">Confirm the request outside this email</AlertTitle>
+      <AlertDescription>
+        Contact the organization through a number or account you already trust, then
+        use its approved portal for documents or signed forms.
+      </AlertDescription>
+    </Alert>
   )
 }
 

@@ -107,9 +107,10 @@ export default function MethodologyPage() {
               or no source IP at all.
             </li>
             <li>
-              <strong className="text-foreground">Safe</strong>{" "}
-              when every category
-              checks out and there&apos;s no money or credential content present.
+              <strong className="text-foreground">No warning signs</strong>{" "}
+              when the inspected categories check out and there&apos;s no money,
+              credential, or document-request content present. This does not prove
+              the person or request is trustworthy.
             </li>
           </ul>
 

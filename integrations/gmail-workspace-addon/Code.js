@@ -36,7 +36,7 @@ function onGmailMessageOpen(e) {
     )
     .addSection(
       CardService.newCardSection()
-        .addWidget(CardService.newTextParagraph().setText("Next step: pass this message through the Message Loupe analyzer and show Safe / Caution / Likely Fake here."))
+        .addWidget(CardService.newTextParagraph().setText("Next step: pass this message through the Message Loupe analyzer and show No warning signs / Caution / Likely fake here."))
     )
     .build();
 }

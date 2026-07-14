@@ -66,7 +66,7 @@ Verdict UI in every surface maps the tier exactly like the site's verdict card:
 
 - `danger` → red, headline "Likely fake"
 - `caution` → amber, "Be careful"
-- `safe` → green, "Looks legitimate"
+- `safe` → green, "No obvious warning signs"
 - `forwarded` → neutral, "This looks like a forward" + instruction to open the
   original message instead
 
@@ -258,7 +258,7 @@ automatically every time the user opens a message — this satisfies both
    and pre-approved fallback are specified in **Q&A #2 (§11)**; follow that.
 5. Build the card with `CardService`:
    - Header: tier color chip + headline (`Likely fake` / `Be careful` /
-     `Looks legitimate` / `This looks like a forward`).
+     `No obvious warning signs` / `This looks like a forward`).
    - Section "Why": top reasons (≤4), each as a `DecoratedText` with a
      severity icon.
    - Section "Details": SPF/DKIM/DMARC one-liner (`parser.authSummary`),
@@ -606,12 +606,11 @@ code.
 
 ### Q10. Autoscan UX (labels/categories)
 
-**Safe messages are marked silently** — `Message Loupe/Scanned` only, no
-visible "safe" badge. Rationale: an ambient "safe" mark on thousands of
+**Messages without warning signs are marked silently** — `Message Loupe/Scanned`
+only, with no visible endorsement badge. Rationale: an ambient positive mark on thousands of
 messages trains users to treat absence-of-warning as endorsement and makes
-any future false negative a product failure; the site's "Looks legitimate"
-verdict is fine because the user explicitly asked. Danger/caution tiers get
-visible labels.
+any future false negative a product failure. Danger/caution tiers get visible
+labels.
 
 **Tier-only marks; reasons live in the add-in UI.** Gmail labels and Outlook
 categories are global named tags, not per-message metadata — encoding
