@@ -135,8 +135,12 @@ export function Scanner() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="bg-muted/40 inline-flex rounded-md p-0.5">
+      <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div
+          className="bg-muted/40 inline-flex w-full rounded-md p-0.5 sm:w-auto"
+          role="group"
+          aria-label="Email input method"
+        >
           <ModeButton
             active={mode === "file"}
             onClick={() => setMode("file")}
@@ -231,8 +235,9 @@ function ModeButton({
       type="button"
       onClick={onClick}
       data-state={active ? "active" : "inactive"}
+      aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded px-3.5 py-1.5 text-sm font-medium transition-colors",
+        "inline-flex flex-1 items-center justify-center gap-1.5 rounded px-3.5 py-1.5 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:flex-none",
         active
           ? "bg-background text-foreground shadow-sm"
           : "text-muted-foreground hover:text-foreground",

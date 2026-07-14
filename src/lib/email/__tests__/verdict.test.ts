@@ -645,6 +645,47 @@ describe("attachment type risk", () => {
 })
 
 describe("content classification cap", () => {
+  it("treats updated bank details as financial content, not a personal-document request", async () => {
+    const analysis = await check(
+      cleanEsp({
+        from: "Known Vendor <billing@news.vendor.example>",
+        body: "Please use our updated bank details for the next invoice payment.",
+      }),
+      {
+        tier: "caution",
+        capped: true,
+        reason: "financial-action-content",
+        notReason: "document-request-content",
+      },
+    )
+
+    expect(analysis.content.hasBankingChangeRequest).toBe(true)
+    expect(analysis.content.hasDocumentRequest).toBe(false)
+    expect(analysis.content.hasIdentityDocumentRequest).toBe(false)
+    expect(analysis.verdict.reasons.map((reason) => reason.detail).join(" ")).not.toMatch(
+      /passport|personal documents/i,
+    )
+  })
+
+  it("describes a signed-form request without claiming identity documents were requested", async () => {
+    const analysis = await check(
+      cleanEsp({
+        from: "Operations <operations@news.acme.com>",
+        body: "Please sign and send back the attached acknowledgement form.",
+      }),
+      { tier: "caution", reason: "document-request-content" },
+    )
+
+    expect(analysis.content.hasSignedFormRequest).toBe(true)
+    expect(analysis.content.hasIdentityDocumentRequest).toBe(false)
+    expect(analysis.verdict.reasons.map((reason) => reason.detail).join(" ")).toMatch(
+      /signed form/i,
+    )
+    expect(analysis.verdict.reasons.map((reason) => reason.detail).join(" ")).not.toMatch(
+      /passport|personal documents/i,
+    )
+  })
+
   it("clean auth + money language → caution (capped)", async () => {
     await check(
       cleanEsp({
@@ -656,12 +697,15 @@ describe("content classification cap", () => {
   })
 
   it("clean auth + credentials language → caution (capped)", async () => {
-    await check(
+    const analysis = await check(
       cleanEsp({
         body: "Please verify your account by clicking the link to reset your password.",
       }),
       { tier: "caution", capped: true },
     )
+
+    expect(analysis.verdict.explanation).toMatch(/open the service/i)
+    expect(analysis.verdict.explanation).not.toMatch(/verified by phone/i)
   })
 
   it("HTML-only money language → caution (capped)", async () => {
@@ -1413,7 +1457,10 @@ describe("forwarded-message guard", () => {
 
 describe("clean ESP-routed mail", () => {
   it("fully-aligned SendGrid-routed newsletter → safe", async () => {
-    await check(cleanEsp(), { tier: "safe", reasonsEmpty: true })
+    const analysis = await check(cleanEsp(), { tier: "safe", reasonsEmpty: true })
+
+    expect(analysis.verdict.headline).toBe("No obvious warning signs")
+    expect(analysis.verdict.explanation).toMatch(/does not prove/i)
   })
 })
 

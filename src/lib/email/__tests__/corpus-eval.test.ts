@@ -18,6 +18,10 @@ interface EvalCase {
   eml: string
 }
 
+interface CalibrationCase extends EvalCase {
+  expectedTier: VerdictTier
+}
+
 const attachmentBody = (filename: string, contentType: string): string =>
   [
     "Please review the attached file.",
@@ -117,6 +121,71 @@ const hamCorpus: EvalCase[] = [
   },
 ]
 
+const legitimateCalibrationCorpus: CalibrationCase[] = [
+  {
+    name: "ordinary authenticated project update",
+    expectedTier: "safe",
+    eml: cleanEsp({
+      from: "Acme Projects <projects@news.acme.com>",
+      subject: "Thursday project review",
+      body: "The project notes are ready for review before Thursday's meeting.",
+    }),
+  },
+  {
+    name: "ordinary authenticated meeting change",
+    expectedTier: "safe",
+    eml: cleanEsp({
+      from: "Jordan Lee <jordan@news.acme.com>",
+      subject: "Meeting moved to 2 PM",
+      body: "The client meeting moved to 2 PM. The conference-room link is unchanged.",
+    }),
+  },
+  {
+    name: "legitimate newsletter",
+    expectedTier: "safe",
+    eml: cleanEsp({
+      from: "Acme Newsletter <news@news.acme.com>",
+      body: "Read this week's product updates and customer stories.",
+    }),
+  },
+  {
+    name: "known vendor invoice still requires verification",
+    expectedTier: "caution",
+    eml: cleanEsp({
+      from: "Known Vendor <billing@news.vendor.example>",
+      subject: "Invoice available",
+      body: "Your invoice balance is due this week. Please use your normal payment process.",
+    }),
+  },
+  {
+    name: "authenticated bank-detail change still requires verification",
+    expectedTier: "caution",
+    eml: cleanEsp({
+      from: "Known Vendor <billing@news.vendor.example>",
+      subject: "Updated payment details",
+      body: "Please use our updated bank details for the next invoice payment.",
+    }),
+  },
+  {
+    name: "legitimate credential notice still requires verification",
+    expectedTier: "caution",
+    eml: cleanEsp({
+      from: "Acme Support <support@news.acme.com>",
+      subject: "Password reset requested",
+      body: "A password reset was requested. Open the Acme site directly if this was you.",
+    }),
+  },
+  {
+    name: "legitimate identity-document request still requires verification",
+    expectedTier: "caution",
+    eml: cleanEsp({
+      from: "Acme People Team <people@news.acme.com>",
+      subject: "Employment verification",
+      body: "Please provide a copy of your passport through the approved employee portal.",
+    }),
+  },
+]
+
 beforeEach(() => {
   __resetMxCacheForTests()
   __resetRdapCacheForTests()
@@ -184,5 +253,23 @@ describe("email corpus evaluation gate", () => {
     const danger = results.filter((result) => result.tier === "danger")
 
     expect(danger.map((result) => result.name)).toEqual([])
+  })
+
+  it("legitimate calibration cases match the expected decision floor", async () => {
+    const results = await Promise.all(
+      legitimateCalibrationCorpus.map(async (testCase) => ({
+        ...testCase,
+        actualTier: (await analyze(testCase.eml)).verdict.tier,
+      })),
+    )
+    const mismatches = results.filter((result) => result.actualTier !== result.expectedTier)
+
+    expect(
+      mismatches.map((result) => ({
+        name: result.name,
+        expected: result.expectedTier,
+        actual: result.actualTier,
+      })),
+    ).toEqual([])
   })
 })

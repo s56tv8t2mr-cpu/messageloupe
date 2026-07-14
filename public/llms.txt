@@ -1,6 +1,6 @@
 # Message Loupe
 
-> A free, browser-based second opinion on suspicious email, including business email compromise, wire fraud, invoice redirection, credential traps, and sender impersonation. Drop a saved email or paste raw headers; get a 3-tier verdict (Safe / Caution / Danger) with plain-English reasoning. The email is not uploaded.
+> A free, browser-based second opinion on suspicious email, including business email compromise, wire fraud, invoice redirection, credential traps, and sender impersonation. Drop a saved email or paste raw headers; get a 3-tier verdict (No warning signs / Caution / Likely fake) with plain-English reasoning. The email is not uploaded.
 
 Message Loupe is a browser-based web app for non-technical users and small teams who need a second opinion before they send money, change payment details, enter credentials, or open a risky link. The analysis engine is an open-source port of an internal triage tool originally built for phishing analysts, with the analyst-grade pivots stripped out and the verdict reduced to plain language.
 

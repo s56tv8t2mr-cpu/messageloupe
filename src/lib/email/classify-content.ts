@@ -120,11 +120,10 @@ const JOB_OFFER_PATTERNS: RegExp[] = [
   /\bcommission\s+on\s+sales\b/i,
 ]
 
-// Document / PII requests — combined with offer/onboarding language, a
-// strong scam signal. Real businesses use secure portals (DocuSign, Lever,
-// BambooHR) for this; they do not ask candidates to email scans of their
-// passport.
-const DOCUMENT_REQUEST_PATTERNS: RegExp[] = [
+// Keep the document-request families separate so the verdict can explain the
+// exact request. Banking-detail changes are financial actions, not identity-
+// document requests, and are classified by the money/banking rules above.
+const IDENTITY_DOCUMENT_REQUEST_PATTERNS: RegExp[] = [
   /\bpassport(\s+(copy|scan|number|details|page|valid|validity|size))?\b/i,
   /\b(?:visa|immigration)\s+(status|stamp|copy|details|valid)/i,
   /\b(driver'?s?|driving)\s+licen[sc]e/i,
@@ -136,12 +135,19 @@ const DOCUMENT_REQUEST_PATTERNS: RegExp[] = [
   /\b(ccxp|cipd|pmp|prince2|cisa|cissp)\s+certificate/i,
   /\bbirth\s+certificate\b/i,
   /\bproof\s+of\s+(address|residence|identity|employment|income)/i,
-  /\bbank\s+(statement|details|info|copy)/i,
   /\bcopy\s+of\s+(your\s+)?(id|passport|licen[sc]e|visa)/i,
   /\bphoto[\s-]?copy\s+of\s+(your\s+)?(passport|id|licen[sc]e)/i,
   /\bpassport[\s-]?size\s+(photo|photograph|picture)/i,
   /\bsend\s+(?:us\s+)?(?:a\s+)?(?:scan|photo|copy)\s+of\s+your\s+/i,
   /\bemail\s+(?:us\s+)?(?:a\s+)?(?:scan|photo|copy)\s+of\s+your\s+/i,
+]
+
+const BANK_STATEMENT_REQUEST_PATTERNS: RegExp[] = [
+  /\b(?:send|provide|upload|attach|email|share)(?:\s+\w+){0,4}\s+(?:a\s+)?bank\s+statement\b/i,
+  /\bcopy\s+of\s+(?:your\s+)?bank\s+statement\b/i,
+]
+
+const SIGNED_FORM_REQUEST_PATTERNS: RegExp[] = [
   /\bfill,\s*sign\s+and\s+send\s+back\b/i,
   /\bsign\s+and\s+send\s+back\b/i,
 ]
@@ -459,12 +465,19 @@ function hasSubscriptionRefundScam(text: string): boolean {
 
 export function classifyContent(text: string): ContentClassification {
   const target = text || ""
+  const hasIdentityDocumentRequest = matchAny(target, IDENTITY_DOCUMENT_REQUEST_PATTERNS)
+  const hasBankStatementRequest = matchAny(target, BANK_STATEMENT_REQUEST_PATTERNS)
+  const hasSignedFormRequest = matchAny(target, SIGNED_FORM_REQUEST_PATTERNS)
   return {
     hasMoney: matchAny(target, MONEY_PATTERNS),
     hasCredentials: matchAny(target, CREDENTIAL_PATTERNS),
     hasUrgency: matchAny(target, URGENCY_PATTERNS),
     hasJobOffer: matchAny(target, JOB_OFFER_PATTERNS),
-    hasDocumentRequest: matchAny(target, DOCUMENT_REQUEST_PATTERNS),
+    hasDocumentRequest:
+      hasIdentityDocumentRequest || hasBankStatementRequest || hasSignedFormRequest,
+    hasIdentityDocumentRequest,
+    hasBankStatementRequest,
+    hasSignedFormRequest,
     hasBecOpener: matchAny(target, BEC_OPENER_PATTERNS),
     hasSecureDocumentLure: matchAny(target, SECURE_DOCUMENT_LURE_PATTERNS),
     hasSubscriptionRefundScam: hasSubscriptionRefundScam(target),

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Message Loupe: Product Recommendations</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #526174;
+      --faint: #728094;
+      --line: #dce3ec;
+      --surface: #f4f7fb;
+      --blue: #285f9e;
+      --blue-soft: #eaf2fb;
+      --green: #187453;
+      --green-soft: #e8f6f0;
+      --amber: #8b5a05;
+      --amber-soft: #fff5dc;
+      --red: #a13535;
+      --red-soft: #fceeee;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      background: #edf1f6;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    body {
+      width: min(100%, 920px);
+      margin: 36px auto;
+      background: #fff;
+      box-shadow: 0 4px 8px rgb(24 33 47 / 7%);
+    }
+
+    main { padding: 56px 64px 64px; }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    h1 {
+      max-width: 14ch;
+      margin-bottom: 18px;
+      font-size: 3rem;
+      line-height: 1.03;
+      letter-spacing: -0.035em;
+      text-wrap: balance;
+    }
+
+    h2 {
+      margin: 48px 0 18px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      font-size: 1.55rem;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    h3 {
+      margin: 24px 0 8px;
+      font-size: 1.05rem;
+      line-height: 1.3;
+    }
+
+    p, li { max-width: 74ch; text-wrap: pretty; }
+    p { margin-bottom: 14px; }
+
+    ul, ol {
+      margin: 10px 0 18px;
+      padding-left: 1.3rem;
+    }
+
+    li { margin: 6px 0; padding-left: 4px; }
+    strong { color: var(--ink); }
+
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--surface);
+      color: #314158;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.88em;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 48px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+
+    .mark {
+      position: relative;
+      display: inline-block;
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--blue);
+      border-radius: 50%;
+    }
+
+    .mark::after {
+      content: "";
+      position: absolute;
+      right: -5px;
+      bottom: -3px;
+      width: 8px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--blue);
+      transform: rotate(45deg);
+      transform-origin: left center;
+    }
+
+    .meta {
+      color: var(--faint);
+      font-size: 0.78rem;
+      text-align: right;
+    }
+
+    .lede {
+      max-width: 64ch;
+      margin-bottom: 28px;
+      color: var(--muted);
+      font-size: 1.12rem;
+      line-height: 1.65;
+    }
+
+    .thesis {
+      margin: 30px 0 34px;
+      padding: 22px 24px;
+      border: 1px solid #bcd0e8;
+      border-radius: 12px;
+      background: var(--blue-soft);
+      color: #173f6c;
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.35;
+      letter-spacing: -0.015em;
+      text-wrap: balance;
+    }
+
+    .scorecard {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      overflow: hidden;
+      margin: 30px 0 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--line);
+    }
+
+    .score {
+      min-height: 108px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .score b {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--blue);
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .score span { color: var(--muted); font-size: 0.83rem; line-height: 1.35; }
+
+    .note {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+
+    .note p:last-child { margin-bottom: 0; }
+    .note.good { border-color: #b9dfd0; background: var(--green-soft); }
+    .note.warn { border-color: #ead39d; background: var(--amber-soft); }
+
+    .priority {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 16px;
+      margin: 22px 0;
+      break-inside: avoid;
+    }
+
+    .priority-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .priority h3 { margin-top: 4px; }
+    .priority p:last-child { margin-bottom: 0; }
+
+    .evidence {
+      color: var(--faint);
+      font-size: 0.82rem;
+    }
+
+    .model {
+      margin: 26px 0;
+      padding: 22px 24px;
+      border-radius: 12px;
+      background: #101925;
+      color: #e9f0f8;
+      break-inside: avoid;
+    }
+
+    .model h3 { margin-top: 0; color: #fff; }
+    .model p, .model li { color: #c3cfdd; }
+    .model strong { color: #fff; }
+    .model ol { margin-bottom: 0; }
+
+    .roadmap {
+      width: 100%;
+      margin: 18px 0 28px;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .roadmap th,
+    .roadmap td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .roadmap th {
+      color: var(--faint);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .roadmap td:first-child {
+      width: 18%;
+      color: var(--blue);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .decision {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .decision section {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      break-inside: avoid;
+    }
+
+    .decision h3 { margin-top: 0; }
+    .decision ul { margin-bottom: 0; }
+    .decision .do { border-color: #b9dfd0; background: var(--green-soft); }
+    .decision .avoid { border-color: #ebc5c5; background: var(--red-soft); }
+
+    .verification {
+      margin-top: 46px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 760px) {
+      body { margin: 0; box-shadow: none; }
+      main { padding: 32px 22px 44px; }
+      h1 { font-size: 2.35rem; }
+      .masthead { align-items: flex-start; }
+      .scorecard { grid-template-columns: 1fr 1fr; }
+      .decision { grid-template-columns: 1fr; }
+      .roadmap, .roadmap tbody, .roadmap tr, .roadmap td { display: block; }
+      .roadmap thead { display: none; }
+      .roadmap tr { padding: 12px 0; border-bottom: 1px solid var(--line); }
+      .roadmap td { width: auto !important; padding: 4px 0; border: 0; white-space: normal !important; }
+    }
+
+    @page {
+      size: Letter;
+      margin: 0.58in 0.62in 0.62in;
+    }
+
+    @media print {
+      html, body { background: #fff; }
+      html { font-size: 10.5pt; }
+      body { width: auto; margin: 0; box-shadow: none; }
+      main { padding: 0; }
+      h1 { font-size: 30pt; }
+      h2 { margin-top: 26pt; font-size: 17pt; break-after: avoid; }
+      h3 { break-after: avoid; }
+      p, li { orphans: 3; widows: 3; }
+      .masthead { margin-bottom: 28pt; }
+      .thesis, .note, .model, .priority, .decision section, .scorecard, table { break-inside: avoid; }
+      .score { min-height: 88px; }
+      .verification { margin-top: 28pt; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <div class="brand"><span class="mark" aria-hidden="true"></span>Message Loupe</div>
+      <div class="meta">Product review and recommendations<br>Prepared July 10, 2026</div>
+    </header>
+
+    <h1>From strong detector to essential decision system</h1>
+    <p class="lede">Message Loupe already has a credible engine, a trustworthy privacy model, and a calm interface. Its next step is not simply detecting more suspicious signals. It is turning reliable analysis into a repeatable action that prevents expensive mistakes.</p>
+
+    <div class="thesis">Message Loupe should become the approval layer between an email and an irreversible action.</div>
+
+    <div class="scorecard" aria-label="Current product assessment">
+      <div class="score"><b>9/10</b><span>Technical credibility and defensive depth</span></div>
+      <div class="score"><b>8/10</b><span>Core product insight and market wedge</span></div>
+      <div class="score"><b>5/10</b><span>Activation and everyday usability</span></div>
+      <div class="score"><b>4/10</b><span>Compounding product and distribution loop</span></div>
+    </div>
+
+    <h2>What should be protected</h2>
+    <ul>
+      <li><strong>The central insight is right:</strong> authenticated delivery does not make a payment or credential request safe.</li>
+      <li><strong>Privacy is real architecture:</strong> browser-side parsing and explicit rules make the promise verifiable.</li>
+      <li><strong>The explanations are inspectable:</strong> users can understand why a verdict was reached without accepting an opaque score.</li>
+      <li><strong>The visual tone fits the task:</strong> calm, precise, and free of fear-driven security imagery.</li>
+      <li><strong>The validation discipline is serious:</strong> 153 committed tests pass, and 52 private known-fake samples currently produce zero <code>Safe</code> verdicts and zero analysis errors.</li>
+    </ul>
+
+    <div class="note good">
+      <p><strong>Overall judgment:</strong> this is substantially better than a polished prototype. The engine has enough depth to support a real product. The larger gap is the workflow around that engine.</p>
+    </div>
+
+    <h2>Priority recommendations</h2>
+
+    <div class="priority">
+      <div class="priority-number">1</div>
+      <div>
+        <h3>Move the capability into the inbox</h3>
+        <p>Saving an <code>.eml</code>, finding raw headers, and leaving the inbox creates too much friction during a stressful decision. Gmail and Outlook integration is the actual product surface, not a secondary enhancement.</p>
+        <p>Until an add-in ships, place the live scanner in the primary hero position and move the sample result and saving instructions below it.</p>
+        <p class="evidence">Evidence: the homepage teaches users how to obtain an original email before it presents the scanner. The integration roadmap already identifies inbox add-ins as the paid wedge.</p>
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="priority-number">2</div>
+      <div>
+        <h3>Make the result action-first</h3>
+        <p><code>Safe</code>, <code>Caution</code>, and <code>Likely fake</code> describe evidence. The user needs an immediate decision:</p>
+        <ul>
+          <li>Continue normally</li>
+          <li>Verify outside the email</li>
+          <li>Stop and escalate</li>
+        </ul>
+        <p>Add a decision and recommended-action layer that is independent of the path used to calculate the verdict. Money, credential, payroll, and bank-detail requests should always surface the appropriate outside-verification action.</p>
+        <p class="evidence">Evidence: the prominent phone-verification alert currently depends on an internal <code>capped</code> flag. A message can contain wire-transfer risk and receive Caution through another signal without displaying that alert.</p>
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="priority-number">3</div>
+      <div>
+        <h3>Retire the public “Safe” claim</h3>
+        <p>The interface currently explains that “Safe means authentic.” That is stronger than the underlying evidence supports. Domain authentication cannot establish who controls a mailbox or whether the requested action is honest.</p>
+        <p>Keep the internal enum if convenient, but use a public label such as <strong>No obvious warning signs</strong> or <strong>Delivery appears authentic</strong>. Continue stating that high-risk actions require verification outside the email.</p>
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="priority-number">4</div>
+      <div>
+        <h3>Make every explanation correspond to the exact signal</h3>
+        <p>A test message containing “updated bank details” correctly received Caution, but the broad document-request detector caused the result to claim that passports, IDs, or certificates had been requested.</p>
+        <p>Split the current classification into personal documents, bank details, payment instructions, secure-document portals, and employment paperwork. A correct verdict with an incorrect explanation still damages trust.</p>
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="priority-number">5</div>
+      <div>
+        <h3>Add a hard legitimate-email benchmark</h3>
+        <p>The private known-fake corpus provides an excellent false-negative gate. It does not measure how often legitimate invoices, HR messages, bank notices, role-based senders, and payment discussions become noisy cautions.</p>
+        <p>Every detector family should have known-fake examples, ordinary legitimate examples, and legitimate edge cases containing the same vocabulary. Track both missed scams and unnecessary cautions.</p>
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="priority-number">6</div>
+      <div>
+        <h3>Separate shipped value from future roadmap copy</h3>
+        <p>The consumer homepage currently describes pilot workflows, prototype add-ins, and future team records. Replace that section with benefits available now. Introduce a business call to action only when there is a concrete design-partner offer.</p>
+        <p>The hidden business page contains sound internal strategy, but phrases such as “The buyer is not a consumer” and “Pilot pricing hypothesis” should be rewritten before publication.</p>
+      </div>
+    </div>
+
+    <div class="priority">
+      <div class="priority-number">7</div>
+      <div>
+        <h3>Correct the mobile scanner toolbar and mode semantics</h3>
+        <p>At a mobile test width, the page expanded from a 375px content viewport to 436px because the save-help control was forced alongside the upload and paste controls. Stack or wrap that toolbar at narrow widths.</p>
+        <p>Implement the mode chooser as accessible tabs or pressed-state buttons with visible keyboard focus and an announced selected state.</p>
+      </div>
+    </div>
+
+    <h2>The bolder product thesis</h2>
+    <p>Build a focused pre-action control for small finance teams. The first version should address one expensive workflow: a payment or bank-detail change received by email.</p>
+
+    <div class="model">
+      <h3>Payment Change Firewall</h3>
+      <ol>
+        <li>An employee opens a message in Gmail or Outlook.</li>
+        <li>Message Loupe identifies the action being requested, then analyzes the sender, route, content, links, and attachments.</li>
+        <li>The organization’s policy determines the required response.</li>
+        <li>A payment or bank-detail change requires a known-number callback and, when configured, a second approver.</li>
+        <li>The employee records the outcome without storing the raw message.</li>
+        <li>Message Loupe creates a privacy-preserving receipt containing the verdict, reason codes, verifier, policy followed, and completion time.</li>
+      </ol>
+    </div>
+
+    <p>This changes the value proposition from “a better phishing checker” to a controlled process that prevents an unauthorized payment and proves that verification occurred.</p>
+
+    <h2>How the product becomes accretive</h2>
+    <ul>
+      <li><strong>The free scanner earns trust:</strong> useful public checks, methodology, and search content create credibility.</li>
+      <li><strong>The add-in creates habit:</strong> the product becomes available at the moment of uncertainty without requiring file handling.</li>
+      <li><strong>Verification receipts create invitations:</strong> a user shares a result with an approver, bringing a colleague into the workflow.</li>
+      <li><strong>Organization policies create retention:</strong> bank changes, payroll requests, credentials, and documents each gain a defined response.</li>
+      <li><strong>Explicit feedback improves calibration:</strong> users can report a wrong explanation or missed risk by sending only the signal and verdict metadata they consent to share.</li>
+      <li><strong>Industry policy packs create distribution:</strong> bookkeeping, legal, real-estate, and family-office practices can adopt templates matched to their recurring risks.</li>
+    </ul>
+
+    <div class="note warn">
+      <p><strong>Recommended first buyer:</strong> outsourced bookkeepers and small accounting firms. They encounter payment-risk email repeatedly across multiple clients, which should produce greater usage frequency and a natural route into additional organizations.</p>
+    </div>
+
+    <h2>Recommended 90-day sequence</h2>
+    <table class="roadmap">
+      <thead>
+        <tr><th>Timing</th><th>Product work</th><th>Evidence of success</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Weeks 1–2</td>
+          <td>Fix mobile overflow, scanner semantics, misleading explanations, the Safe label, and action-alert logic. Add a known-good calibration suite.</td>
+          <td>All checks pass. No known-fake email returns Safe. Legitimate calibration cases stay within an agreed caution rate.</td>
+        </tr>
+        <tr>
+          <td>Weeks 2–4</td>
+          <td>Recruit three to five bookkeeping or finance-team design partners. Observe the exact steps they use for payment changes.</td>
+          <td>At least three teams agree to run a real pilot and identify a person responsible for payment verification.</td>
+        </tr>
+        <tr>
+          <td>Weeks 4–8</td>
+          <td>Ship one inbox integration selected by the pilot customers. Implement the decision and recommended-action model.</td>
+          <td>Users can check the open message and reach an actionable result without saving a file or finding headers.</td>
+        </tr>
+        <tr>
+          <td>Weeks 8–12</td>
+          <td>Add payment-change policy, verification completion, a second-approver option, and privacy-preserving receipts.</td>
+          <td>Teams complete real verification workflows and can review open versus completed follow-ups without storing message bodies.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Build now, defer deliberately</h2>
+    <div class="decision">
+      <section class="do">
+        <h3>Build now</h3>
+        <ul>
+          <li>Action-oriented verdicts</li>
+          <li>Balanced detector calibration</li>
+          <li>One inbox integration</li>
+          <li>Payment-change verification</li>
+          <li>Metadata-only receipts</li>
+          <li>A small design-partner pilot</li>
+        </ul>
+      </section>
+      <section class="avoid">
+        <h3>Defer</h3>
+        <ul>
+          <li>A broad administrative dashboard</li>
+          <li>Two add-ins developed simultaneously</li>
+          <li>Opaque remote AI classification</li>
+          <li>Decorative product analytics</li>
+          <li>Dozens of additional signals without calibration</li>
+          <li>Public claims for unshipped team features</li>
+        </ul>
+      </section>
+    </div>
+
+    <p class="verification"><strong>Review basis:</strong> repository architecture, product and roadmap documents, homepage and scanner UI, verdict and classification logic, add-in prototypes, desktop and mobile browser review, lint, production build, 153 committed tests, and the private known-fake evaluation. Repository state was clean on <code>main</code> at the time of review.</p>
+  </main>
+</body>
+</html>

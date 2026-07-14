@@ -865,8 +865,7 @@ export function computeVerdict({
   if (content.hasJobOffer && content.hasDocumentRequest) {
     reasons.push({
       signal: "job-offer-with-document-request",
-      detail:
-        "This email reads like a job offer and asks for personal documents (passport, ID, certificates, photos). Legitimate employers use secure portals for this; they don't ask candidates to email scans. This is a classic recruitment-scam pattern.",
+      detail: jobDocumentRequestDetail(content),
       weight: "high",
     })
     tier = escalate(tier, "danger")
@@ -881,8 +880,7 @@ export function computeVerdict({
   } else if (content.hasDocumentRequest) {
     reasons.push({
       signal: "document-request-content",
-      detail:
-        "This email asks for copies of personal documents (passport, ID, certificates, photos). Legitimate organizations use secure upload portals or in-person verification; they don't ask people to email scans. Verify the request through a channel you already trust.",
+      detail: documentRequestDetail(content),
       weight: "medium",
     })
     tier = escalate(tier, "caution")
@@ -894,7 +892,7 @@ export function computeVerdict({
   if (shouldCapVerdict(content) && tier === "safe") {
     capped = true
     let capSignal = "document-request-content"
-    capReason = "This message asks for copies of personal documents."
+    capReason = documentRequestCapReason(content)
     if (content.hasMoney) {
       capSignal = "financial-action-content"
       capReason = "This message mentions money, payment, or banking changes."
@@ -943,7 +941,7 @@ export function computeVerdict({
 function headlineFor(tier: VerdictTier): string {
   switch (tier) {
     case "safe":
-      return "Looks legitimate"
+      return "No obvious warning signs"
     case "caution":
       return "Be careful"
     case "danger":
@@ -967,12 +965,48 @@ function explanationFor(
   }
   if (tier === "caution") {
     if (ctx.capped) {
-      return `${ctx.capReason} Even though the technical signals look fine on the surface, anything involving money or credentials should be verified by phone using a number you already trust, not one from this email.`
+      if (ctx.content.hasMoney) {
+        return `${ctx.capReason} Even though the technical signals look fine on the surface, verify any payment or banking change by phone using a number you already trust, not one from this email.`
+      }
+      if (ctx.content.hasCredentials) {
+        return `${ctx.capReason} Don't use a sign-in or password link from this email. Open the service from a saved bookmark or type its known address yourself.`
+      }
+      return `${ctx.capReason} Confirm the request through a channel you already trust before sharing documents or signed forms.`
     }
     return "Some signals don't add up. Treat this email with skepticism. Verify any requested action through a channel you already trust before responding."
   }
   if (tier === "safe") {
-    return "Authentication, sender alignment, and routing all check out. The email appears to come from where it claims."
+    return "No spoofing, sender-alignment, routing, or suspicious-link signals were found. This does not prove the person or request is trustworthy."
   }
   return ""
+}
+
+function jobDocumentRequestDetail(content: ContentClassification): string {
+  if (content.hasIdentityDocumentRequest) {
+    return "This email reads like a job offer and asks for identity documents such as a passport, ID, or certificate. Legitimate employers use approved hiring portals for this; they don't ask candidates to email scans. This is a common recruitment-scam pattern."
+  }
+  if (content.hasBankStatementRequest) {
+    return "This email reads like a job offer and asks for a bank statement. Confirm the employer through its official careers site and use only an approved hiring portal before sharing financial documents."
+  }
+  return "This email reads like a job offer and asks you to sign and return a form. Confirm the employer and the role through its official careers site before returning onboarding paperwork."
+}
+
+function documentRequestDetail(content: ContentClassification): string {
+  if (content.hasIdentityDocumentRequest) {
+    return "This email asks for identity documents such as a passport, ID, certificate, or license. Confirm the request through a channel you already trust and use the organization's approved portal instead of replying with scans."
+  }
+  if (content.hasBankStatementRequest) {
+    return "This email asks for a bank statement. Confirm the request through a channel you already trust before sharing financial documents, and use the organization's approved portal."
+  }
+  return "This email asks you to return a signed form. Confirm the request through a channel you already trust before sending signed paperwork."
+}
+
+function documentRequestCapReason(content: ContentClassification): string {
+  if (content.hasIdentityDocumentRequest) {
+    return "This message asks for identity documents."
+  }
+  if (content.hasBankStatementRequest) {
+    return "This message asks for a bank statement."
+  }
+  return "This message asks you to sign and return a form."
 }
