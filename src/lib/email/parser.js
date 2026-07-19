@@ -72,10 +72,24 @@ const receivedFromHosts = (entry) => {
   return match?.[1] ? [match[1].toLowerCase().replace(/\.$/, '')] : [];
 };
 
+const GOOGLE_INTERNAL_DELIVERY_TRACE_RE =
+  /^by\s+2002:[a-f0-9:]+\s+with\s+SMTP\s+id\s+[a-z0-9.-]+;/i;
+
 const topReceivedByHosts = (receivedEntries) => {
   const firstReceived = receivedEntries[0];
   if (!firstReceived) return [];
-  return receivedByHosts(firstReceived);
+  const directByHosts = receivedByHosts(firstReceived);
+  if (directByHosts.length > 0) return directByHosts;
+
+  // Gmail prepends an internal delivery trace whose `by` value is an
+  // IPv6-shaped Google node identifier, not a hostname. The next Received
+  // entry is the actual recipient boundary (`by mx.google.com`) that emitted
+  // Authentication-Results. Only recognize that exact canonical pairing;
+  // a generic hostless top entry must not make a lower sender-supplied hop a
+  // trust anchor.
+  if (!GOOGLE_INTERNAL_DELIVERY_TRACE_RE.test(firstReceived.value)) return [];
+  return receivedByHosts(receivedEntries[1] || { value: '' })
+    .filter((host) => host === 'mx.google.com');
 };
 
 const MICROSOFT_RECIPIENT_HOST_RE =
