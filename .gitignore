@@ -14,6 +14,7 @@
 /coverage
 /.private-eval/
 /Known Fake EMLs/
+/Known-good-corpus/
 /email-analysis-archive/
 /src/lib/email/__tests__/_diagnose.test.ts
 /src/lib/email/__tests__/_diagnose-out.json

@@ -218,6 +218,30 @@ function microsoftInternalWithSenderForgedBoundaryEml({
   ].join("\r\n")
 }
 
+function googleInternalDeliveryTraceEml(): string {
+  return [
+    "Delivered-To: recipient@customer.example",
+    "Received: by 2002:a05:7022:60a7:b0:13b:4803:1ade with SMTP id fixture123; Thu, 16 Jul 2026 12:46:32 -0700 (PDT)",
+    "X-Received: by 2002:a05:6a21:3a43:b0:3bf:a638:4376 with SMTP id fixture456; Thu, 16 Jul 2026 12:46:32 -0700 (PDT)",
+    "Received: from mx0a-00174202.pphosted.com (mx0a-00174202.pphosted.com [205.220.171.130]) by mx.google.com with ESMTPS id fixture789 for <recipient@customer.example>; Thu, 16 Jul 2026 12:46:32 -0700 (PDT)",
+    `Authentication-Results: ${authResults({
+      domain: "example-corp.com",
+      authservId: "mx.google.com",
+    })}`,
+    "Received-SPF: pass (google.com: domain of sender@example-corp.com designates 205.220.171.130 as permitted sender) client-ip=205.220.171.130",
+    "Received: from mail-centralusazon11011000.outbound.protection.outlook.com (mail-centralusazon11011000.outbound.protection.outlook.com [52.101.62.0]) by mx0a-00174202.pphosted.com with ESMTPS; Thu, 16 Jul 2026 15:46:31 -0400 (EDT)",
+    "DKIM-Signature: v=1; a=rsa-sha256; d=example-corp.com; s=example; h=From:To:Subject; b=fixture",
+    "Return-Path: <sender@example-corp.com>",
+    "From: Example Corp <sender@example-corp.com>",
+    "To: Recipient <recipient@customer.example>",
+    "Subject: Thanks for your interest",
+    "Message-ID: <fixture-google-internal-trace@example-corp.com>",
+    "Date: Thu, 16 Jul 2026 19:46:28 +0000",
+    "",
+    "Thanks for your interest. We will be in touch soon.",
+  ].join("\r\n")
+}
+
 beforeEach(() => {
   __resetMxCacheForTests()
   __resetRdapCacheForTests()
@@ -318,6 +342,34 @@ describe("authentication failures", () => {
       }),
       { tier: "caution", reason: "untrusted-auth-results" },
     )
+  })
+
+  it("trusts Google authentication behind its canonical internal delivery trace", async () => {
+    mockFetchMxAnswer([mxAnswer(10, "mxa-00174202.gslb.pphosted.com")])
+
+    const analysis = await check(googleInternalDeliveryTraceEml(), {
+      tier: "safe",
+      notReason: "brand-impersonation-confirmed",
+    })
+
+    expect(analysis.parser.authResultsTrusted).toBe(true)
+    expect(analysis.parser.ignoredAuthResultsCount).toBe(0)
+    expect(analysis.parser.spfResult).toBe("pass")
+    expect(analysis.parser.dkimResult).toBe("pass")
+    expect(analysis.parser.dmarcResult).toBe("pass")
+  })
+
+  it("does not trust a lower Google-looking boundary behind a generic hostless trace", async () => {
+    const eml = googleInternalDeliveryTraceEml().replace(
+      /Received: by 2002:[^\r]+/,
+      "Received: by internal-delivery-node with SMTP id fixture123; Thu, 16 Jul 2026 12:46:32 -0700 (PDT)",
+    )
+
+    const analysis = await check(eml, { reason: "untrusted-auth-results" })
+
+    expect(analysis.parser.authResultsTrusted).toBe(false)
+    expect(analysis.parser.dkimResult).not.toBe("pass")
+    expect(analysis.parser.dmarcResult).not.toBe("pass")
   })
 
   it("Microsoft EOP anonymous Authentication-Results are recognized with boundary evidence", async () => {
