@@ -125,7 +125,7 @@ export default function HowToSaveAnEmailPage() {
           </li>
           <li>
             <strong className="text-foreground">Gmail on phone.</strong> Open{" "}
-            <code>gmail.com</code> in your phone&apos;s web browser (
+            <code>gmail.com</code>{" "}in your phone&apos;s web browser (
             <em>not</em> the Gmail app), tap the three-line menu, choose{" "}
             <em>Desktop site</em>, then use the Gmail steps above.
           </li>
