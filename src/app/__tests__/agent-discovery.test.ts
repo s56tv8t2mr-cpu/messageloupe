@@ -68,6 +68,15 @@ describe("robots policy", () => {
 })
 
 describe("Agent Skills discovery", () => {
+  it("pins published skill bytes to LF across Windows checkouts", () => {
+    expect(existsSync(repoPath(".gitattributes"))).toBe(true)
+
+    const attributes = readNormalized(".gitattributes")
+    expect(attributes).toContain(
+      "public/.well-known/agent-skills/review-suspicious-email/SKILL.md text eol=lf",
+    )
+  })
+
   it("publishes one instruction-only skill with a matching SHA-256 digest", () => {
     const skillPath = "public/.well-known/agent-skills/review-suspicious-email/SKILL.md"
     const skillBytes = readFileSync(repoPath(skillPath))
