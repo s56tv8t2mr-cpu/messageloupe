@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -17,5 +17,23 @@ describe("agent discovery headers", () => {
       ].join("\n"),
     )
     expect(headers).not.toContain('rel="api-catalog"')
+  })
+})
+
+describe("robots policy", () => {
+  it("allows search and AI input while reserving content from training", () => {
+    expect(existsSync(resolve(process.cwd(), "src/app/robots.ts"))).toBe(false)
+
+    const robots = readNormalized("src/app/robots.txt").trimEnd()
+    expect(robots).toBe(
+      [
+        "User-Agent: *",
+        "Content-Signal: search=yes, ai-input=yes, ai-train=no",
+        "Allow: /",
+        "",
+        "Host: https://messageloupe.com",
+        "Sitemap: https://messageloupe.com/sitemap.xml",
+      ].join("\n"),
+    )
   })
 })
