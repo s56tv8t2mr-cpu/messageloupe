@@ -69,4 +69,5 @@ next-env.d.ts
 /.agents/
 /.codex/
 /.impeccable/
+/.superpowers/
 /.worktrees/
