@@ -26,3 +26,7 @@
 # Short-cache HTML so deploys roll out fast.
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
+
+# Agent discovery on the homepage.
+/
+  Link: </llms.txt>; rel="service-desc"; type="text/plain", </methodology/>; rel="service-doc"; type="text/html"
