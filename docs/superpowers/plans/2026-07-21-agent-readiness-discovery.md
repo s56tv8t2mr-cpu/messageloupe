@@ -570,7 +570,7 @@ git status --short
 git log --oneline origin/main..HEAD
 ```
 
-Expected: the worktree is clean and the branch contains the design/plan documentation plus the three focused implementation commits.
+Expected: the worktree is clean and the branch contains the design/plan documentation, the approved workflow-isolation setup, and the three focused implementation commits.
 
 ---
 
@@ -585,7 +585,7 @@ Expected: the worktree is clean and the branch contains the design/plan document
 
 - [ ] **Step 1: Use the project ship workflow**
 
-Invoke the `ship` skill from the clean repository root. It must commit any approved residual documentation, push `codex/agent-discovery-link-headers`, open the required pull request, and verify that the Cloudflare Pages deployment check starts.
+Invoke the `ship` skill from the clean repository root. It must commit any approved residual documentation, push `codex/agent-readiness-implementation`, open the required pull request, and verify that the Cloudflare Pages deployment check starts.
 
 Expected: the branch is pushed and a pull request targets `main`; no direct protected-branch push is attempted.
 
