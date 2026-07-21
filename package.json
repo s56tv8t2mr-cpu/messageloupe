@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "generate:agent-skills": "node scripts/generate-agent-skills-index.mjs",
+    "prebuild": "npm run generate:agent-skills",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

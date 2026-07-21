@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "review-suspicious-email",
+      "type": "skill-md",
+      "description": "Guide a user to privately check a suspicious email with Message Loupe, preserve original headers, and interpret the result. Use when the user asks whether an email may be phishing, spoofed, or business email compromise.",
+      "url": "/.well-known/agent-skills/review-suspicious-email/SKILL.md",
+      "digest": "sha256:7fb37c2de27dea9222dce90d7e7a2adf716095b4713ea7f8e1b7f8388485a33d"
+    }
+  ]
+}
