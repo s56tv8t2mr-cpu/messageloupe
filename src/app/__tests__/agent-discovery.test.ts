@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -14,15 +14,19 @@ function readNormalized(path: string): string {
   return readFileSync(repoPath(path), "utf8").replace(/\r\n/g, "\n")
 }
 
+function headerRule(headers: string, path: string): string | undefined {
+  const escapedPath = path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const match = headers.match(new RegExp(`(?:^|\\n)${escapedPath}\\n((?:  [^\\n]+(?:\\n|$))*)`))
+
+  return match?.[1].trimEnd()
+}
+
 describe("agent discovery headers", () => {
   it("advertises existing description and documentation from the homepage", () => {
     const headers = readNormalized("public/_headers")
 
-    expect(headers).toContain(
-      [
-        "/",
-        '  Link: </llms.txt>; rel="service-desc"; type="text/plain", </methodology/>; rel="service-doc"; type="text/html"',
-      ].join("\n"),
+    expect(headerRule(headers, "/")).toBe(
+      '  Link: </llms.txt>; rel="service-desc"; type="text/plain", </methodology/>; rel="service-doc"; type="text/html"',
     )
     expect(headers).not.toContain('rel="api-catalog"')
   })
@@ -30,17 +34,15 @@ describe("agent discovery headers", () => {
   it("serves the skills index and skill with explicit types and CORS", () => {
     const headers = readNormalized("public/_headers")
 
-    expect(headers).toContain(
+    expect(headerRule(headers, "/.well-known/agent-skills/index.json")).toBe(
       [
-        "/.well-known/agent-skills/index.json",
         "  Content-Type: application/json; charset=utf-8",
         "  Access-Control-Allow-Origin: *",
         "  Cache-Control: public, max-age=3600, must-revalidate",
       ].join("\n"),
     )
-    expect(headers).toContain(
+    expect(headerRule(headers, "/.well-known/agent-skills/review-suspicious-email/SKILL.md")).toBe(
       [
-        "/.well-known/agent-skills/review-suspicious-email/SKILL.md",
         "  Content-Type: text/markdown; charset=utf-8",
         "  Access-Control-Allow-Origin: *",
         "  Cache-Control: public, max-age=3600, must-revalidate",
@@ -105,5 +107,12 @@ describe("Agent Skills discovery", () => {
     expect(skill).toContain("A regular forward is not sufficient")
     expect(skill).toContain("Never describe a verdict as a guarantee")
     expect(skill).not.toContain("scripts/")
+    expect(readdirSync(repoPath("public/.well-known/agent-skills/review-suspicious-email"), { recursive: true })).toEqual([
+      "SKILL.md",
+    ])
+    expect(skill).not.toMatch(/^#!/m)
+    expect(skill).not.toMatch(
+      /^```(?:shell|sh|bash|zsh|fish|powershell|pwsh|ps1|javascript|js|jsx|node|nodejs|typescript|ts|tsx|python|py)\b/im,
+    )
   })
 })

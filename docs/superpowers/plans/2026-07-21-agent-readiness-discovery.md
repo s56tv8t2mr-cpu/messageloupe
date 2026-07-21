@@ -22,7 +22,7 @@
 
 ## File Structure
 
-- Create `src/app/__tests__/agent-discovery.test.ts` — source and artifact contract for all accepted discovery surfaces.
+- Create `src/app/__tests__/agent-discovery.test.ts` — source contract for all accepted discovery surfaces.
 - Modify `public/_headers` — homepage Link response header plus MIME/CORS/cache headers for the skill index and skill document.
 - Delete `src/app/robots.ts` — the typed metadata generator cannot emit `Content-Signal`.
 - Create `src/app/robots.txt` — static crawl policy and Content Signals.
@@ -524,10 +524,10 @@ npm run build
 ```
 
 ```powershell
-git diff --check
+git diff --check origin/main...HEAD
 ```
 
-Expected: all tests pass, ESLint reports no errors, Next.js produces `out/`, and Git reports no whitespace errors.
+Expected: all tests pass, ESLint reports no errors, Next.js produces `out/`, and Git reports no whitespace errors in the committed branch range.
 
 - [ ] **Step 3: Verify the exact static export**
 
