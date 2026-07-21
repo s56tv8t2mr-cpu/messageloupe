@@ -1,6 +1,6 @@
 # Agent Readiness Discovery Design
 
-**Status:** Approved  
+**Status:** Approved
 **Date:** 2026-07-21
 
 ## Goal
